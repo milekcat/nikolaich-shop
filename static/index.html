@@ -5,96 +5,127 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>У Николаича - Фермерские продукты</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <style>
-        :root {
-            --bg: #f8f9fa; --wood: #3e2723; --green: #2e7d32; --light-green: #e8f5e9; --red: #e53935;
-            --text: #212121; --gray: #757575; --card: #ffffff;
-        }
+        :root { --bg: #f5f2eb; --wood: #3e2723; --green: #2e7d32; --light-green: #e8f5e9; --red: #e53935; --text: #212121; --gray: #757575; --card: #ffffff; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); padding-bottom: 120px; -webkit-tap-highlight-color: transparent;}
+        body { font-family: 'Nunito', sans-serif; background-color: var(--bg); background-image: radial-gradient(#d7d2c4 1px, transparent 1px); background-size: 20px 20px; color: var(--text); padding-bottom: 120px; -webkit-tap-highlight-color: transparent;}
         
-        /* Инфо панель */
-        .info-bar { background: var(--wood); color: white; padding: 12px 20px; font-size: 13px; line-height: 1.4; }
-        .info-bar strong { color: #ffeb3b; font-size: 14px;}
+        .info-bar { background: var(--wood); color: white; padding: 10px 20px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;}
+        .top-bar { position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.04); padding: 15px 20px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;}
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
+        .logo { font-size: 24px; font-weight: 900; color: var(--wood); text-decoration: none;}
+        .btn-cabinet { background: var(--light-green); color: var(--green); padding: 8px 16px; border-radius: 12px; font-weight: 800; border: none; cursor: pointer; font-size: 14px;}
         
-        /* Шапка */
-        .top-bar { position: sticky; top: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.03); padding-bottom: 10px;}
-        .header { padding: 15px 20px 10px; font-size: 26px; font-weight: 900; color: var(--wood); display: flex; justify-content: space-between; align-items: center;}
-        .delivery-badge { background: var(--light-green); color: var(--green); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 800; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 10px;}
+        .search-input { width: 100%; padding: 12px 16px; border: 2px solid #eee; border-radius: 14px; font-family: inherit; font-weight: 600; background: #fafafa; transition: 0.3s;}
+        .search-input:focus { border-color: var(--green); outline: none; background: white; box-shadow: 0 0 0 3px rgba(46,125,50,0.1);}
+        
+        .categories { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px;}
+        .categories::-webkit-scrollbar { display: none; }
+        .chip { background: var(--card); padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 800; white-space: nowrap; transition: 0.3s; color: var(--gray); border: 1px solid #eee; cursor:pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .chip.active { background: var(--green); color: white; border-color: var(--green); }
 
-        /* Акции (Слайдер) */
-        .promo-slider { display: flex; overflow-x: auto; padding: 15px 20px; gap: 15px; scroll-snap-type: x mandatory;}
+        .promo-slider { display: flex; overflow-x: auto; padding: 20px 20px 15px; gap: 15px; scroll-snap-type: x mandatory;}
         .promo-slider::-webkit-scrollbar { display: none; }
-        .promo-card { min-width: 280px; height: 140px; border-radius: 20px; background: linear-gradient(45deg, var(--green), #4caf50); color: white; padding: 20px; scroll-snap-align: start; position: relative; overflow: hidden; display: flex; align-items: center;}
+        .promo-card { min-width: 280px; height: 140px; border-radius: 20px; background: linear-gradient(135deg, var(--green), #4caf50); color: white; padding: 20px; scroll-snap-align: start; position: relative; overflow: hidden; display: flex; align-items: center; box-shadow: 0 8px 20px rgba(46,125,50,0.3);}
         .promo-card img { position: absolute; right: 0; top: 0; height: 100%; opacity: 0.8; object-fit: cover;}
         .promo-card h3 { position: relative; z-index: 2; font-size: 18px; max-width: 60%; line-height: 1.3;}
 
-        /* Категории */
-        .categories { display: flex; overflow-x: auto; padding: 5px 20px; gap: 10px; }
-        .categories::-webkit-scrollbar { display: none; }
-        .chip { background: var(--bg); padding: 10px 18px; border-radius: 20px; font-size: 15px; font-weight: 800; white-space: nowrap; transition: 0.3s; color: var(--gray); border: 1px solid #eee; cursor:pointer;}
-        .chip.active { background: var(--green); color: white; border-color: var(--green); }
-
-        /* Сетка товаров */
         .container { padding: 10px 20px; }
-        .cat-title { font-size: 22px; font-weight: 900; margin: 25px 0 15px; }
+        .cat-title { font-size: 22px; font-weight: 900; margin: 25px 0 15px; display: flex; align-items: center; gap: 10px;}
+        .badge-fire { background: #ffebee; color: var(--red); font-size: 12px; padding: 4px 8px; border-radius: 8px; }
+        
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
-        
-        .card { background: var(--card); border-radius: 24px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 6px 16px rgba(0,0,0,0.04); position: relative;}
-        .discount-badge { position: absolute; top: 10px; left: 10px; background: var(--red); color: white; font-size: 12px; font-weight: 800; padding: 4px 8px; border-radius: 10px; z-index: 2;}
-        .card-img { width: 100%; height: 130px; border-radius: 16px; object-fit: cover; background: #f0f0f0; margin-bottom: 12px; }
-        .card-img-placeholder { width: 100%; height: 130px; border-radius: 16px; background: var(--light-green); display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 12px;}
-        
+        .card { background: var(--card); border-radius: 24px; padding: 14px; display: flex; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,0.04); position: relative; border: 1px solid rgba(0,0,0,0.02);}
+        .discount-badge { position: absolute; top: 12px; left: 12px; background: var(--red); color: white; font-size: 12px; font-weight: 800; padding: 4px 8px; border-radius: 10px; z-index: 2; box-shadow: 0 4px 10px rgba(229,57,53,0.3);}
+        .card-img { width: 100%; height: 130px; border-radius: 16px; object-fit: cover; background: #f0f0f0; margin-bottom: 10px; }
+        .stock-info { font-size: 11px; font-weight: 800; color: #888; margin-bottom: 4px;}
+        .stock-info b { color: var(--green); }
         .price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px;}
         .price { font-weight: 900; font-size: 20px; color: var(--text); }
-        .old-price { font-size: 14px; color: var(--gray); text-decoration: line-through; font-weight: 600;}
-        .title { font-size: 14px; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
-        .desc { font-size: 12px; color: var(--gray); margin-bottom: 12px; flex-grow: 1; line-height: 1.3; }
+        .unit-label { font-size: 14px; color: var(--gray); font-weight: 700;}
+        .old-price { font-size: 13px; color: var(--gray); text-decoration: line-through; font-weight: 600;}
+        .title { font-size: 14px; font-weight: 700; margin-bottom: 12px; line-height: 1.3; flex-grow: 1;}
         
         .btn-add { width: 100%; padding: 12px; border: none; background: #f0f4f8; font-weight: 800; font-size: 15px; border-radius: 16px; cursor: pointer; color: var(--green); transition: 0.2s;}
         .btn-add:active { transform: scale(0.95); }
-        .qty-controls { display: none; width: 100%; justify-content: space-between; align-items: center; background: var(--green); color: white; border-radius: 16px; padding: 4px; }
+        .qty-controls { display: none; width: 100%; justify-content: space-between; align-items: center; background: var(--green); color: white; border-radius: 16px; padding: 4px; box-shadow: 0 4px 12px rgba(46,125,50,0.2);}
         .qty-btn { background: none; border: none; font-size: 20px; font-weight: 800; color: white; width: 36px; height: 36px; cursor: pointer; }
 
-        /* Корзина */
         .cart-bar { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--green); color: white; padding: 18px 24px; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 18px; box-shadow: 0 12px 30px rgba(46, 125, 50, 0.4); transform: translateY(150%); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; z-index: 1000; }
         .cart-bar.visible { transform: translateY(0); }
 
-        /* Модалка оформления */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; flex-direction: column; justify-content: flex-end; backdrop-filter: blur(4px);}
         .modal-content { background: white; border-radius: 30px 30px 0 0; padding: 30px 25px; animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); max-height: 90vh; overflow-y: auto;}
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
+        .form-input { width: 100%; padding: 16px; margin-bottom: 15px; border: 2px solid #eee; border-radius: 16px; font-size: 16px; font-family: inherit; font-weight: 600; background: #fafafa;}
+        .form-input:focus { border-color: var(--green); outline: none;}
         .input-group { display: flex; gap: 10px; margin-bottom: 15px;}
-        .form-input { width: 100%; padding: 16px; border: 2px solid #eee; border-radius: 16px; font-size: 16px; font-family: inherit; font-weight: 600; transition: 0.3s; background: #fafafa;}
-        .form-input:focus { border-color: var(--green); outline: none; background: white;}
         .btn-apply { padding: 0 20px; background: var(--wood); color: white; border: none; border-radius: 16px; font-weight: 800; cursor: pointer;}
         
-        .receipt { background: var(--bg); padding: 15px; border-radius: 16px; margin-bottom: 20px;}
-        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 600; color: var(--gray);}
-        .receipt-total { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 2px dashed #ddd; font-weight: 900; font-size: 22px; color: var(--text);}
-        
-        .btn-submit { width: 100%; padding: 18px; background: var(--green); color: white; border: none; border-radius: 20px; font-size: 18px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(46, 125, 50, 0.3);}
+        .payment-methods { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;}
+        .pay-label { display: flex; align-items: center; gap: 10px; padding: 14px; border: 2px solid #eee; border-radius: 16px; font-weight: 700; cursor: pointer; transition: 0.2s;}
+        .pay-label:has(input:checked) { border-color: var(--green); background: var(--light-green); color: var(--green);}
+        .pay-label input { accent-color: var(--green); width: 18px; height: 18px;}
+
+        .btn-submit { width: 100%; padding: 18px; background: var(--green); color: white; border: none; border-radius: 20px; font-size: 18px; font-weight: 900; cursor: pointer; margin-top:10px; box-shadow: 0 8px 20px rgba(46,125,50,0.3);}
+        .btn-black { background: #212121; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
         .close-btn { position: absolute; right: 25px; top: 25px; background: #eee; border: none; width: 40px; height: 40px; border-radius: 20px; font-size: 20px; font-weight: bold; cursor: pointer;}
+
+        .order-history-card { border: 2px solid #eee; border-radius: 16px; padding: 15px; margin-bottom: 15px; background: white;}
+        .status-badge { background: #e0e0e0; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 800;}
+        .status-badge.Новый { background: #ffebee; color: var(--red); }
+        .status-badge.В-работе { background: #fff3e0; color: #f57c00; }
+        .status-badge.Готов { background: var(--light-green); color: var(--green); }
+        
+        .secret-theme { background: #121212; color: #ffffff; padding: 20px; border-radius: 20px; margin-top: 20px;}
+        .secret-theme .card { background: #1e1e1e; border: 1px solid #333; color: white;}
+        .secret-theme .price { color: #fff; }
+        .secret-theme .cat-title { color: #fff; }
+
+        .footer { text-align: center; padding: 40px 20px; font-size: 13px; color: #999; }
+        .footer a { color: #999; text-decoration: underline; cursor: pointer; margin: 0 10px;}
+        .legal-text { background: #f8f9fa; padding: 20px; border-radius: 16px; height: 400px; overflow-y: auto; font-size: 13px; color: #444; margin-bottom: 20px; border: 1px solid #eee; line-height: 1.6; }
+        .legal-checkbox { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 25px; font-size: 14px; color: #ddd; font-weight: 600; cursor: pointer;}
+        .legal-checkbox input { width: 24px; height: 24px; flex-shrink: 0; accent-color: var(--green); cursor: pointer;}
     </style>
 </head>
 <body>
 
     <div class="info-bar">
-        📍 <b>г. Ярославль, пер. 1-й Голубятный, д. 12</b><br>
-        📞 <a href="tel:+79201494959" style="color:white; text-decoration:none; font-weight:bold;">+7 (920) 149-49-59</a>
+        <span>📍 1-й Голубятный, д. 12</span>
+        <a href="tel:+79201494959" style="color:white; text-decoration:none; font-weight:bold;">📞 +7 (920) 149-49-59</a>
     </div>
 
     <div class="top-bar">
-        <div class="header">
-            У Николаича 🚜
-            <div class="delivery-badge">От 10 мин</div>
+        <div class="header-row">
+            <a href="#" class="logo" onclick="location.reload()">У Николаича 🚜</a>
+            <button class="btn-cabinet" onclick="openCabinet()">👤 Кабинет</button>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" class="search-input" placeholder="Найти фермерские продукты..." onkeyup="handleSearch()">
         </div>
         <div class="categories" id="catContainer"></div>
     </div>
 
-    <div class="promo-slider" id="promoContainer"></div>
-    <div class="container" id="mainContainer"></div>
+    <div id="mainView">
+        <div class="promo-slider" id="promoContainer"></div>
+        <div class="container" id="collectionsContainer"></div>
+        <div class="container" id="mainContainer"></div>
+        <div class="container" id="secretContainer" style="display:none;"></div>
+    </div>
+
+    <div class="container" id="searchView" style="display:none;">
+        <h2 style="margin-bottom: 20px;">Результаты поиска:</h2>
+        <div class="grid" id="searchGrid"></div>
+    </div>
+
+    <div class="footer">
+        <div style="margin-bottom: 15px;"><a onclick="openGeneralLegal()">Публичная оферта и Пользовательское соглашение</a></div>
+        У Николаича © 2026 <span onclick="openSecretPrompt()" style="opacity:0.2; cursor:pointer; padding:10px;">🔒</span>
+    </div>
 
     <div class="cart-bar" id="floatingCart" onclick="openCheckout()">
         <span id="cartTotalText">Корзина 0 ₽</span>
@@ -103,56 +134,144 @@
 
     <div class="modal" id="checkoutModal">
         <div class="modal-content" style="position:relative;">
-            <button class="close-btn" onclick="closeCheckout()">✕</button>
-            <h2 style="margin-bottom: 20px; font-weight: 900;">Оформление</h2>
+            <button class="close-btn" onclick="closeModal('checkoutModal')">✕</button>
+            <h2 style="margin-bottom: 20px; font-weight: 900;">Оформление заказа</h2>
+            <input type="text" id="cName" class="form-input" placeholder="Ваше имя">
+            <input type="tel" id="cPhone" class="form-input" placeholder="Телефон (+7...)">
+            <input type="text" id="cAddress" class="form-input" placeholder="Куда везем? (Улица, дом, кв)">
             
-            <input type="text" id="cName" class="form-input" placeholder="Ваше имя" style="margin-bottom:10px;">
-            <input type="tel" id="cPhone" class="form-input" placeholder="Телефон (+7...)" style="margin-bottom:10px;">
-            <input type="text" id="cAddress" class="form-input" placeholder="Куда везем? (Улица, дом, кв)" style="margin-bottom:20px;">
+            <div id="vkInputContainer">
+                <input type="text" id="cVk" class="form-input" placeholder="Ссылка на ВК (для уведомлений)">
+            </div>
             
+            <h3 style="margin: 10px 0 15px;">Способ оплаты:</h3>
+            <div class="payment-methods" id="paymentContainer"></div>
+
             <div class="input-group">
-                <input type="text" id="cPromo" class="form-input" placeholder="Промокод (если есть)" style="margin-bottom:0;">
+                <input type="text" id="cPromo" class="form-input" placeholder="Промокод" style="margin-bottom:0;">
                 <button class="btn-apply" onclick="applyPromo()">OK</button>
             </div>
-
-            <div class="receipt">
-                <div class="receipt-row"><span>Товары:</span><span id="rSubtotal">0 ₽</span></div>
-                <div class="receipt-row" style="color:var(--red)" id="rDiscountRow"><span>Скидка:</span><span id="rDiscount">0 ₽</span></div>
-                <div class="receipt-row"><span>Доставка:</span><span style="color:var(--green)">Бесплатно</span></div>
-                <div class="receipt-total"><span>Итого:</span><span id="rTotal">0 ₽</span></div>
+            <div style="background:var(--bg); padding:15px; border-radius:16px; margin-bottom:15px; border: 1px solid #eee;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Товары:</span><span id="rSubtotal">0 ₽</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--red); display:none;" id="rDiscountRow"><span>Скидка:</span><span id="rDiscount">0 ₽</span></div>
+                <div style="display:flex; justify-content:space-between; font-weight:900; font-size:20px; margin-top:10px; padding-top:10px; border-top:2px dashed #ddd;"><span>Итого:</span><span id="rTotal">0 ₽</span></div>
             </div>
-            
-            <button class="btn-submit" onclick="submitOrder()">Заказать доставку</button>
+            <button class="btn-submit" onclick="submitOrder()">Подтвердить заказ</button>
+            <p style="font-size:11px; color:#aaa; text-align:center; margin-top:15px;">Нажимая кнопку, вы соглашаетесь с условиями <a style="color:#aaa;" onclick="openGeneralLegal()">Публичной оферты</a>.</p>
+        </div>
+    </div>
+
+    <div class="modal" id="cabinetModal">
+        <div class="modal-content" style="position:relative; height: 80vh;">
+            <button class="close-btn" onclick="closeModal('cabinetModal')">✕</button>
+            <h2 style="margin-bottom: 20px; font-weight: 900;">Мои заказы</h2>
+            <div id="cabinetAuth">
+                <p style="margin-bottom:15px; color:var(--gray);">Введите номер телефона:</p>
+                <div class="input-group">
+                    <input type="tel" id="cabPhone" class="form-input" placeholder="+7..." style="margin-bottom:0;">
+                    <button class="btn-apply" onclick="loadUserOrders()">Войти</button>
+                </div>
+            </div>
+            <div id="cabinetHistory" style="display:none; overflow-y:auto; height: 100%; padding-bottom:40px;"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="secretModal">
+        <div class="modal-content" style="position:relative; background: #111; color: white;">
+            <button class="close-btn" onclick="closeModal('secretModal')" style="background: #333; color: white;">✕</button>
+            <h2 style="margin-bottom: 10px; font-weight: 900; color: white;">Секретный вход 🔞</h2>
+            <p style="margin-bottom: 20px; color: #888;">Введите код доступа.</p>
+            <input type="password" id="sCodeInput" class="form-input" placeholder="Код доступа" style="background:#222; color:white; border-color:#444;">
+            <button class="btn-submit btn-black" onclick="verifySecret()">Войти</button>
+        </div>
+    </div>
+
+    <div class="modal" id="legalModal18">
+        <div class="modal-content" style="position:relative; background: #111; color: white; max-height: 95vh;">
+            <button class="close-btn" onclick="closeModal('legalModal18')" style="background: #333; color: white;">✕</button>
+            <h2 style="margin-bottom: 10px; font-weight: 900; color: white;">Подтверждение возраста</h2>
+            <p style="margin-bottom: 15px; color: #888; font-size: 14px;">Для доступа необходимо принять условия Агентского договора.</p>
+            <div class="legal-text" style="background:#222; border-color:#444; color:#bbb; height: 250px;">
+                <b>ПУБЛИЧНАЯ ОФЕРТА (ДОГОВОР ПОРУЧЕНИЯ)</b><br><br>
+                1. <b>Предмет:</b> Ресурс не осуществляет дистанционную продажу алкоголя и табака. Клиент поручает Агенту приобрести товар в стационарном магазине за счет Клиента и доставить его.<br><br>
+                2. <b>Оплата:</b> Расчеты в магазине производятся официально через кассу. Эквайринг на сайте используется исключительно для формирования авансового платежа Агенту для исполнения поручения.<br><br>
+                3. <b>Возраст:</b> Клиент гарантирует достижение 18 лет и обязуется предъявить оригинал паспорта курьеру.<br><br>
+                4. <b>Штраф:</b> При отсутствии паспорта или несовершеннолетии Клиента, передача товара не производится. Услуга Агента считается оказанной, средства удерживаются в качестве штрафа.
+            </div>
+            <label class="legal-checkbox">
+                <input type="checkbox" id="legalAgree18">
+                <span>Я старше 18 лет и согласен с условиями. В случае отсутствия паспорта согласен на удержание средств.</span>
+            </label>
+            <button class="btn-submit btn-black" onclick="acceptLegal18()">Открыть раздел</button>
+        </div>
+    </div>
+
+    <div class="modal" id="generalLegalModal">
+        <div class="modal-content" style="position:relative; max-height: 95vh;">
+            <button class="close-btn" onclick="closeModal('generalLegalModal')">✕</button>
+            <h2 style="margin-bottom: 15px; font-weight: 900;">Публичная оферта</h2>
+            <div class="legal-text">
+                <b>ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ И ДОГОВОР ОКАЗАНИЯ УСЛУГ (ОФЕРТА)</b><br><br>
+                <b>1. Общие положения</b><br>Настоящий документ является публичной офертой Индивидуального Предпринимателя...<br><br>
+                <b>2. Статус сервиса</b><br>Сервис "У Николаича" функционирует как служба курьерской доставки и агентирования.<br><br>
+                <b>3. Порядок оплаты</b><br>Оплата может производиться наличными, картой курьеру или онлайн (через ПАО "Альфа-Банк", PayKeeper).
+            </div>
         </div>
     </div>
 
     <script>
         let cart = {};
-        let store = { categories: [], products: [], promotions: [] };
+        let store = { categories: [], products: [], promotions: [], settings: {} };
         let discountPercent = 0;
+        let tempSecretProducts = []; 
+        let autoVkUserId = null; // Будет хранить ID из Mini App
+
+        // ИНИЦИАЛИЗАЦИЯ VK BRIDGE
+        vkBridge.send('VKWebAppInit')
+            .then(() => vkBridge.send('VKWebAppGetUserInfo'))
+            .then(user => {
+                autoVkUserId = user.id; // Получили скрытый ID!
+                const nameInput = document.getElementById('cName');
+                if (nameInput && !nameInput.value) {
+                    nameInput.value = `${user.first_name} ${user.last_name}`;
+                }
+                // Прячем поле с вводом ВК, так как мы уже всё знаем
+                document.getElementById('vkInputContainer').style.display = 'none';
+            })
+            .catch(() => console.log('Открыто в обычном браузере, а не в VK Mini App'));
 
         async function loadData() {
             const res = await fetch('/api/store-data');
             store = await res.json();
-            renderPromos();
-            renderCategories();
-            renderProducts();
+            renderPromos(); renderCategories(); renderCollections(); renderProducts(); buildPaymentMethods();
+        }
+
+        function buildPaymentMethods() {
+            const cont = document.getElementById('paymentContainer');
+            let html = '';
+            if(store.settings.pay_cash === "1") html += `<label class="pay-label"><input type="radio" name="payment" value="Наличными при получении" checked> 💵 Наличными при получении</label>`;
+            if(store.settings.pay_card_courier === "1") html += `<label class="pay-label"><input type="radio" name="payment" value="Картой курьеру (терминал)"> 💳 Картой курьеру (терминал)</label>`;
+            if(store.settings.pay_transfer === "1") html += `<label class="pay-label"><input type="radio" name="payment" value="Перевод по номеру телефона"> 📱 Перевод по номеру телефона</label>`;
+            if(store.settings.pay_online === "1") html += `<label class="pay-label"><input type="radio" name="payment" value="Онлайн картой (PayKeeper/Альфа)"> 🌐 Онлайн картой на сайте</label>`;
+            cont.innerHTML = html;
         }
 
         function renderPromos() {
             if(store.promotions.length === 0) { document.getElementById('promoContainer').style.display = 'none'; return; }
-            document.getElementById('promoContainer').innerHTML = store.promotions.map(p => `
-                <div class="promo-card">
-                    ${p.img ? `<img src="${p.img}">` : ''}
-                    <h3>${p.title}</h3>
-                </div>
-            `).join('');
+            document.getElementById('promoContainer').innerHTML = store.promotions.map(p => `<div class="promo-card">${p.img ? `<img src="${p.img}">` : ''}<h3>${p.title}</h3></div>`).join('');
         }
 
         function renderCategories() {
-            document.getElementById('catContainer').innerHTML = store.categories.map((c, i) => 
-                `<div class="chip ${i===0?'active':''}" onclick="scrollToCat(${c.id}, this)">${c.name}</div>`
-            ).join('');
+            document.getElementById('catContainer').innerHTML = store.categories.map((c, i) => `<div class="chip" onclick="scrollToCat(${c.id}, this)">${c.name}</div>`).join('');
+        }
+
+        function renderCollections() {
+            let html = '';
+            const popular = store.products.filter(p => p.is_popular === 1);
+            if(popular.length > 0) html += `<div class="cat-title">🔥 Популярное сейчас</div><div class="grid">${popular.map(p => generateCard(p)).join('')}</div>`;
+            const promos = store.products.filter(p => p.is_promo === 1);
+            if(promos.length > 0) html += `<div class="cat-title"><span class="badge-fire">АКЦИЯ</span> Выгодные предложения</div><div class="grid">${promos.map(p => generateCard(p)).join('')}</div>`;
+            document.getElementById('collectionsContainer').innerHTML = html;
         }
 
         function renderProducts() {
@@ -160,137 +279,167 @@
             store.categories.forEach(cat => {
                 const prods = store.products.filter(p => p.category_id === cat.id);
                 if(prods.length > 0) {
-                    html += `<div class="cat-title" id="cat-${cat.id}">${cat.name}</div><div class="grid">`;
-                    prods.forEach(p => {
-                        const qty = cart[p.id] ? cart[p.id].quantity : 0;
-                        const hasDiscount = p.old_price > p.price;
-                        
-                        let imgHtml = p.img ? `<img src="${p.img}" class="card-img">` : `<div class="card-img-placeholder">🛒</div>`;
-                        
-                        html += `
-                            <div class="card">
-                                ${hasDiscount ? `<div class="discount-badge">Выгода</div>` : ''}
-                                ${imgHtml}
-                                <div class="price-row">
-                                    <span class="price">${p.price} ₽</span>
-                                    ${hasDiscount ? `<span class="old-price">${p.old_price} ₽</span>` : ''}
-                                </div>
-                                <div class="title">${p.name}</div>
-                                <div class="desc">${p.description || ''}</div>
-                                
-                                <div style="margin-top:auto;">
-                                    <button class="btn-add" id="add-${p.id}" style="display:${qty>0?'none':'block'}" onclick="updCart(${p.id}, 1)">В корзину</button>
-                                    <div class="qty-controls" id="qty-${p.id}" style="display:${qty>0?'flex':'none'}">
-                                        <button class="qty-btn" onclick="updCart(${p.id}, -1)">−</button>
-                                        <span id="val-${p.id}" style="font-weight:900">${qty}</span>
-                                        <button class="qty-btn" onclick="updCart(${p.id}, 1)">+</button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += `</div>`;
+                    html += `<div class="cat-title" id="cat-${cat.id}">${cat.name}</div><div class="grid">${prods.map(p => generateCard(p)).join('')}</div>`;
                 }
             });
             document.getElementById('mainContainer').innerHTML = html;
         }
 
+        function generateCard(p) {
+            const qty = cart[p.id] ? cart[p.id].quantity : 0;
+            const hasDiscount = p.old_price > p.price;
+            let imgHtml = p.img ? `<img src="${p.img}" class="card-img">` : `<div class="card-img" style="display:flex;align-items:center;justify-content:center;font-size:40px;background:#e8f5e9;">🛒</div>`;
+            const step = p.unit === 'кг' ? 0.1 : 1;
+            const displayQty = p.unit === 'кг' ? qty.toFixed(1) : qty;
+            
+            return `
+                <div class="card">
+                    ${hasDiscount ? `<div class="discount-badge">Выгода</div>` : ''}
+                    ${imgHtml}
+                    <div class="stock-info">Остаток: <b>${p.stock} ${p.unit}</b></div>
+                    <div class="price-row"><span class="price">${p.price} ₽</span> <span class="unit-label">/ ${p.unit}</span> ${hasDiscount ? `<span class="old-price">${p.old_price} ₽</span>` : ''}</div>
+                    <div class="title">${p.name}</div>
+                    <div style="margin-top:auto;">
+                        <button class="btn-add" id="add-${p.id}" style="display:${qty>0?'none':'block'}" onclick="updCart(${p.id}, ${step})">В корзину</button>
+                        <div class="qty-controls" id="qty-${p.id}" style="display:${qty>0?'flex':'none'}">
+                            <button class="qty-btn" onclick="updCart(${p.id}, -${step})">−</button>
+                            <span id="val-${p.id}" style="font-weight:900">${displayQty} ${p.unit}</span>
+                            <button class="qty-btn" onclick="updCart(${p.id}, ${step})">+</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function updCart(id, change) {
             const p = store.products.find(x => x.id === id);
             if(!cart[id]) cart[id] = {...p, quantity: 0};
-            cart[id].quantity += change;
+            
+            let newQty = Math.round((cart[id].quantity + change) * 10) / 10;
+            if(newQty > p.stock) { alert(`Извините, доступно только ${p.stock} ${p.unit}.`); return; }
+            
+            cart[id].quantity = newQty;
             
             if(cart[id].quantity <= 0) {
                 delete cart[id];
-                document.getElementById(`add-${id}`).style.display = 'block';
-                document.getElementById(`qty-${id}`).style.display = 'none';
+                document.querySelectorAll(`#add-${id}`).forEach(el => el.style.display = 'block');
+                document.querySelectorAll(`#qty-${id}`).forEach(el => el.style.display = 'none');
             } else {
-                document.getElementById(`add-${id}`).style.display = 'none';
-                document.getElementById(`qty-${id}`).style.display = 'flex';
-                document.getElementById(`val-${id}`).innerText = cart[id].quantity;
+                const displayQty = p.unit === 'кг' ? cart[id].quantity.toFixed(1) : cart[id].quantity;
+                document.querySelectorAll(`#add-${id}`).forEach(el => el.style.display = 'none');
+                document.querySelectorAll(`#qty-${id}`).forEach(el => el.style.display = 'flex');
+                document.querySelectorAll(`#val-${id}`).forEach(el => el.innerText = `${displayQty} ${p.unit}`);
             }
             calcTotal();
         }
 
         function calcTotal() {
-            let sum = 0;
-            Object.values(cart).forEach(i => sum += i.price * i.quantity);
+            let sum = 0; Object.values(cart).forEach(i => sum += i.price * i.quantity);
+            sum = Math.round(sum * 100) / 100;
             const bar = document.getElementById('floatingCart');
-            if(sum > 0) {
-                document.getElementById('cartTotalText').innerText = `${sum} ₽`;
-                bar.classList.add('visible');
-            } else {
-                bar.classList.remove('visible');
-            }
+            if(sum > 0) { document.getElementById('cartTotalText').innerText = `${sum} ₽`; bar.classList.add('visible'); } 
+            else { bar.classList.remove('visible'); }
             return sum;
         }
 
-        function openCheckout() {
-            updateReceipt();
-            document.getElementById('checkoutModal').style.display = 'flex';
+        async function handleSearch() {
+            const q = document.getElementById('searchInput').value.trim();
+            if(q.length < 2) { document.getElementById('searchView').style.display = 'none'; document.getElementById('mainView').style.display = 'block'; return; }
+            document.getElementById('mainView').style.display = 'none'; document.getElementById('searchView').style.display = 'block';
+            const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+            const prods = await res.json();
+            document.getElementById('searchGrid').innerHTML = prods.length > 0 ? prods.map(p => generateCard(p)).join('') : '<p>Ничего не найдено :(</p>';
         }
-        function closeCheckout() { document.getElementById('checkoutModal').style.display = 'none'; }
+
+        function openCheckout() { updateReceipt(); document.getElementById('checkoutModal').style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function openGeneralLegal() { document.getElementById('generalLegalModal').style.display = 'flex'; }
 
         async function applyPromo() {
-            const code = document.getElementById('cPromo').value;
-            if(!code) return;
-            const res = await fetch('/api/check-promo', {
-                method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})
-            });
+            const res = await fetch('/api/check-promo', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: document.getElementById('cPromo').value}) });
             const data = await res.json();
-            if(data.success) {
-                discountPercent = data.discount;
-                alert(`Промокод применен! Скидка ${discountPercent}%`);
-                updateReceipt();
-            } else {
-                alert('Неверный промокод');
-                discountPercent = 0;
-                updateReceipt();
-            }
+            if(data.success) { discountPercent = data.discount; alert(`Скидка ${discountPercent}%`); updateReceipt(); } 
+            else { alert('Неверный промокод'); discountPercent = 0; updateReceipt(); }
         }
 
         function updateReceipt() {
-            const subtotal = calcTotal();
-            const discount = Math.round(subtotal * (discountPercent / 100));
-            const total = subtotal - discount;
-            
-            document.getElementById('rSubtotal').innerText = `${subtotal} ₽`;
-            if(discount > 0) {
-                document.getElementById('rDiscountRow').style.display = 'flex';
-                document.getElementById('rDiscount').innerText = `-${discount} ₽`;
-            } else {
-                document.getElementById('rDiscountRow').style.display = 'none';
-            }
-            document.getElementById('rTotal').innerText = `${total} ₽`;
+            const sub = calcTotal(); const disc = Math.round(sub * (discountPercent / 100));
+            document.getElementById('rSubtotal').innerText = `${sub} ₽`;
+            if(disc > 0) { document.getElementById('rDiscountRow').style.display = 'flex'; document.getElementById('rDiscount').innerText = `-${disc} ₽`; } 
+            else { document.getElementById('rDiscountRow').style.display = 'none'; }
+            document.getElementById('rTotal').innerText = `${Math.round(sub - disc)} ₽`;
         }
 
         async function submitOrder() {
-            const name = document.getElementById('cName').value;
-            const phone = document.getElementById('cPhone').value;
-            const address = document.getElementById('cAddress').value;
-            if(!name || !phone || !address) return alert("Заполните все поля!");
+            const name = document.getElementById('cName').value, phone = document.getElementById('cPhone').value, address = document.getElementById('cAddress').value;
+            // Если есть авто ID из Mini App, используем его. Иначе берем из поля ввода
+            const vk_link = autoVkUserId ? String(autoVkUserId) : document.getElementById('cVk').value;
+            
+            if(!name || !phone || !address) return alert("Заполните имя, телефон и адрес!");
+            const selectedPayment = document.querySelector('input[name="payment"]:checked');
+            if(!selectedPayment) return alert("Выберите способ оплаты!");
 
-            const subtotal = calcTotal();
-            const total = subtotal - Math.round(subtotal * (discountPercent / 100));
-            const promo_code = discountPercent > 0 ? document.getElementById('cPromo').value : '';
-
+            const sub = calcTotal(); const total = Math.round(sub - (sub * (discountPercent / 100)));
+            
             const res = await fetch('/api/checkout', {
                 method: 'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ name, phone, address, total, promo: promo_code, cart: Object.values(cart) })
+                body: JSON.stringify({ name, phone, address, vk_link, payment_method: selectedPayment.value, total, promo: discountPercent > 0 ? document.getElementById('cPromo').value : '', cart: Object.values(cart) })
             });
             const data = await res.json();
-            if(data.success) {
-                alert(`Успех! Ваш заказ №${data.order_id} передан на сборку.`);
-                cart = {}; discountPercent = 0;
-                closeCheckout(); renderProducts(); calcTotal();
-            }
+            if(data.success) { 
+                alert(selectedPayment.value.includes('Онлайн') ? `Заказ №${data.order_id} сформирован! Переход к оплате...` : `Успех! Заказ №${data.order_id} передан на сборку.`);
+                cart = {}; discountPercent = 0; closeModal('checkoutModal'); loadData(); calcTotal(); 
+            } else { alert("Ошибка: " + data.error); }
+        }
+
+        function openCabinet() { document.getElementById('cabinetModal').style.display = 'flex'; }
+        async function loadUserOrders() {
+            const phone = document.getElementById('cabPhone').value;
+            if(!phone) return alert("Введите номер телефона");
+            const res = await fetch(`/api/cabinet/${encodeURIComponent(phone)}`);
+            const orders = await res.json();
+            document.getElementById('cabinetAuth').style.display = 'none';
+            const hist = document.getElementById('cabinetHistory'); hist.style.display = 'block';
+            
+            if(orders.length === 0) { hist.innerHTML = '<p>Заказов не найдено.</p>'; return; }
+            hist.innerHTML = orders.map(o => `
+                <div class="order-history-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="font-weight:900;">Заказ #${o.id}</span><span class="status-badge ${o.status.replace(' ', '-')}">${o.status}</span></div>
+                    <div style="color:var(--gray); font-size:13px; margin-bottom:10px;">${new Date(o.created_at).toLocaleString('ru')} | ${o.payment_method}</div>
+                    <div style="border-top: 1px solid #eee; padding-top:10px;">${o.items.map(i => `<div style="font-size:14px; margin-bottom:5px;">${i.product_name} x${i.unit === 'кг' ? i.quantity.toFixed(1) : i.quantity} ${i.unit}</div>`).join('')}</div>
+                    <div style="text-align:right; font-weight:900; color:var(--green); margin-top:10px;">Итого: ${o.total} ₽</div>
+                </div>
+            `).join('');
         }
 
         function scrollToCat(id, el) {
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active')); el.classList.add('active');
             const target = document.getElementById(`cat-${id}`);
-            if(target) window.scrollTo({top: target.offsetTop - 140, behavior: 'smooth'});
+            if(target) window.scrollTo({top: target.getBoundingClientRect().top - 180, behavior: 'smooth'});
+        }
+
+        function openSecretPrompt() { document.getElementById('sCodeInput').value = ''; document.getElementById('secretModal').style.display = 'flex'; }
+        
+        async function verifySecret() {
+            const code = document.getElementById('sCodeInput').value;
+            const res = await fetch('/api/secret-auth', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({code}) });
+            const data = await res.json();
+            if(data.success) {
+                closeModal('secretModal');
+                tempSecretProducts = data.products;
+                document.getElementById('legalAgree18').checked = false;
+                document.getElementById('legalModal18').style.display = 'flex';
+            } else { alert('Неверный код доступа!'); }
+        }
+
+        function acceptLegal18() {
+            if(!document.getElementById('legalAgree18').checked) return alert('Необходимо подтвердить согласие с Договором!');
+            closeModal('legalModal18');
+            tempSecretProducts.forEach(p => { if(!store.products.find(x => x.id === p.id)) store.products.push(p); });
+            const secContainer = document.getElementById('secretContainer');
+            secContainer.style.display = 'block'; secContainer.classList.add('secret-theme');
+            secContainer.innerHTML = `<div class="cat-title">🤫 Для своих (18+)</div><div class="grid">${tempSecretProducts.map(p => generateCard(p)).join('')}</div>`;
+            window.scrollTo({top: secContainer.offsetTop - 100, behavior: 'smooth'});
         }
 
         loadData();

@@ -53,6 +53,8 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # 1. Создание базовых таблиц
     c.execute('''CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, category_id INTEGER, name TEXT, description TEXT, price REAL, old_price REAL, img TEXT, stock REAL DEFAULT 0, unit TEXT DEFAULT 'шт', is_popular INTEGER DEFAULT 0, is_promo INTEGER DEFAULT 0, is_secret INTEGER DEFAULT 0, is_available INTEGER DEFAULT 1)''')
@@ -61,6 +63,24 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT, vk_link TEXT, total REAL, promo_code TEXT, payment_method TEXT, status TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
     c.execute('''CREATE TABLE IF NOT EXISTS order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, product_name TEXT, price REAL, quantity REAL, unit TEXT)''')
     
+    # 2. УМНАЯ МИГРАЦИЯ БАЗЫ ДАННЫХ (Авто-исправление старых баз)
+    columns_to_check = {
+        'stock': "REAL DEFAULT 999", # 999 чтобы старые товары не блокировались при заказе
+        'unit': "TEXT DEFAULT 'шт'",
+        'is_popular': "INTEGER DEFAULT 0",
+        'is_promo': "INTEGER DEFAULT 0",
+        'is_secret': "INTEGER DEFAULT 0",
+        'is_available': "INTEGER DEFAULT 1"
+    }
+    
+    for col, col_type in columns_to_check.items():
+        try:
+            c.execute(f"SELECT {col} FROM products LIMIT 1")
+        except sqlite3.OperationalError:
+            # Если колонки нет, система сама добавит её "на лету"
+            c.execute(f"ALTER TABLE products ADD COLUMN {col} {col_type}")
+
+    # 3. Базовое наполнение
     if c.execute('SELECT COUNT(*) FROM settings').fetchone()[0] == 0:
         c.executemany('INSERT INTO settings (key, value) VALUES (?, ?)', [
             ("secret_code", "7777"),
@@ -70,6 +90,7 @@ def init_db():
     if c.execute('SELECT COUNT(*) FROM categories').fetchone()[0] == 0:
         c.execute('INSERT INTO categories (name) VALUES ("Свежее мясо"), ("Молоко и сыры"), ("Выпечка")')
         c.execute('INSERT INTO promotions (title, img) VALUES ("Скидка 20% на мясо по выходным!", "")')
+        
     conn.commit()
     conn.close()
 
@@ -84,7 +105,8 @@ def serve_index():
 def get_store_data():
     conn = get_db_connection()
     cats = conn.execute('SELECT * FROM categories').fetchall()
-    prods = conn.execute('SELECT * FROM products WHERE is_available = 1 AND stock > 0 AND is_secret = 0').fetchall()
+    # Убрали жесткую привязку к stock > 0, теперь витрина показывает все доступные (is_available = 1)
+    prods = conn.execute('SELECT * FROM products WHERE is_available = 1 AND is_secret = 0').fetchall()
     promos = conn.execute('SELECT * FROM promotions').fetchall()
     settings = dict(conn.execute('SELECT key, value FROM settings').fetchall())
     conn.close()
@@ -101,7 +123,7 @@ def secret_auth():
     conn = get_db_connection()
     true_code = conn.execute('SELECT value FROM settings WHERE key="secret_code"').fetchone()['value']
     if code == true_code:
-        prods = conn.execute('SELECT * FROM products WHERE is_available = 1 AND stock > 0 AND is_secret = 1').fetchall()
+        prods = conn.execute('SELECT * FROM products WHERE is_available = 1 AND is_secret = 1').fetchall()
         conn.close()
         return jsonify({"success": True, "products": [dict(p) for p in prods]})
     conn.close()
@@ -111,7 +133,7 @@ def secret_auth():
 def search_products():
     query = request.args.get('q', '').lower()
     conn = get_db_connection()
-    prods = conn.execute('SELECT * FROM products WHERE is_available = 1 AND stock > 0 AND is_secret = 0 AND LOWER(name) LIKE ?', ('%'+query+'%',)).fetchall()
+    prods = conn.execute('SELECT * FROM products WHERE is_available = 1 AND is_secret = 0 AND LOWER(name) LIKE ?', ('%'+query+'%',)).fetchall()
     conn.close()
     return jsonify([dict(p) for p in prods])
 
@@ -162,7 +184,6 @@ def user_cabinet(phone):
         res.append(od)
     conn.close()
     return jsonify(res)
-
 
 # --- CRM И АДМИНКА ---
 @app.route('/admin')
@@ -281,7 +302,6 @@ def vk_broadcast():
     if not text: return jsonify({"success": False, "error": "Пустое сообщение"})
     
     conn = get_db_connection()
-    # Выбираем всех уникальных клиентов, у которых указан ВК
     users = conn.execute('SELECT DISTINCT vk_link FROM orders WHERE vk_link != "" AND vk_link IS NOT NULL').fetchall()
     conn.close()
     

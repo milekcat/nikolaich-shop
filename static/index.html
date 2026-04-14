@@ -3,122 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>У Николаича | Доставка продуктов</title>
+    <title>У Николаича | Фермерское хозяйство</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>.smooth { transition: all 0.3s ease; }</style>
+    <style>
+        .farm-bg { background-color: #f7f3eb; background-image: url('data:image/svg+xml,%3Csvg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23e5dfd3" fill-opacity="0.4" fill-rule="evenodd"%3E%3Ccircle cx="3" cy="3" r="3"/%3E%3Ccircle cx="13" cy="13" r="3"/%3E%3C/g%3E%3C/svg%3E'); }
+    </style>
 </head>
-<body id="body-bg" class="bg-stone-50 text-stone-900 font-sans min-h-screen flex flex-col smooth">
+<body class="farm-bg text-stone-900 font-sans min-h-screen flex flex-col">
 
-    <header id="header-bg" class="bg-green-800 text-white p-4 sticky top-0 z-50 shadow-md smooth">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <span id="theme-icon" class="text-3xl">🚜</span>
+    <header class="bg-green-900 text-white sticky top-0 z-50 shadow-xl border-b-4 border-amber-600">
+        <div class="container mx-auto p-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="bg-white/10 p-2 rounded-xl text-3xl">🌾</div>
                 <div>
-                    <h1 class="text-2xl font-black italic uppercase leading-none">У Николаича</h1>
-                    <p id="theme-greeting" class="text-xs opacity-80 mt-1">Свежие продукты с доставкой на дом</p>
+                    <h1 class="text-3xl font-black uppercase tracking-wider">У Николаича</h1>
+                    <p class="text-amber-400 text-sm font-medium">Натуральные продукты с доставкой</p>
                 </div>
             </div>
-            <div onclick="toggleCart()" class="relative cursor-pointer hover:scale-105 smooth bg-white/10 p-3 rounded-xl">
-                <span class="text-2xl">🛒</span>
-                <span id="cart-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full hidden">0</span>
+            <div onclick="toggleCart()" class="relative cursor-pointer bg-white/10 hover:bg-white/20 p-4 rounded-2xl transition">
+                <span class="text-2xl">🧺</span>
+                <span id="cart-badge" class="absolute -top-2 -right-2 bg-amber-500 text-stone-900 text-xs font-black px-2 py-1 rounded-full hidden shadow-md">0</span>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto p-4 flex-grow flex flex-col md:flex-row gap-6 mt-4">
-        <aside class="w-full md:w-1/4">
-            <div class="bg-white rounded-2xl shadow-sm p-4 sticky top-24">
-                <h3 class="font-bold text-lg mb-4 border-b pb-2">Категории</h3>
-                <nav id="cat-list" class="flex flex-col gap-2"></nav>
+    <main class="container mx-auto p-4 flex-grow max-w-6xl mt-6">
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <div class="bg-stone-800 text-white rounded-3xl p-10 shadow-lg relative overflow-hidden">
+                <div class="relative z-10">
+                    <h2 class="text-3xl font-black mb-2 text-amber-500">Домашнее Мясо</h2>
+                    <p class="text-stone-300">Прямые поставки с нашего фермерского хозяйства.</p>
+                </div>
+                <div class="absolute -bottom-8 -right-4 text-8xl opacity-20">🥩</div>
             </div>
-        </aside>
+            <div class="bg-green-800 text-white rounded-3xl p-10 shadow-lg relative overflow-hidden">
+                <div class="relative z-10">
+                    <h2 class="text-3xl font-black mb-2 text-amber-400">Свежее Молоко</h2>
+                    <p class="text-green-100">Утренний надой. Без консервантов и добавок.</p>
+                </div>
+                <div class="absolute -bottom-8 -right-4 text-8xl opacity-20">🥛</div>
+            </div>
+        </section>
 
-        <div class="w-full md:w-3/4">
-            <h2 id="current-cat-title" class="text-3xl font-black mb-6">Все товары</h2>
-            <div id="product-grid" class="grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        </div>
+        <h2 class="text-4xl font-black mb-8 border-l-8 border-amber-500 pl-6 text-stone-800">Каталог</h2>
+        <div id="product-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-6"></div>
     </main>
 
-    <div id="cart-modal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden shadow-2xl">
-            <div class="p-6 border-b flex justify-between items-center">
-                <h2 class="text-2xl font-bold">Оформление доставки</h2>
-                <button onclick="toggleCart()" class="text-2xl text-gray-400 hover:text-black">&times;</button>
+    <div id="cart-modal" class="fixed inset-0 bg-stone-900/80 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] w-full max-w-lg flex flex-col max-h-[90vh] shadow-2xl">
+            <div class="p-6 border-b border-stone-200 flex justify-between items-center bg-stone-50 rounded-t-[2rem]">
+                <h2 class="text-2xl font-black text-green-900">Ваша корзина</h2>
+                <button onclick="toggleCart()" class="text-3xl text-stone-400 hover:text-stone-900">&times;</button>
             </div>
             
-            <div class="p-6 overflow-y-auto flex-grow" id="cart-content">
+            <div class="p-8 overflow-y-auto flex-grow">
                 <div id="cart-items" class="space-y-4 mb-6"></div>
-                <div class="text-xl font-black text-right mb-6 border-t pt-4">Итого: <span id="cart-total" class="text-green-600">0</span> ₽</div>
+                <div class="text-2xl font-black text-right mb-8 border-t border-stone-200 pt-6">К оплате: <span id="cart-total" class="text-green-700">0</span> ₽</div>
                 
-                <h3 class="font-bold mb-4">Куда везти?</h3>
-                <form id="checkout-form" class="space-y-3" onsubmit="submitOrder(event)">
-                    <input type="text" id="c-name" required placeholder="Ваше имя" class="w-full bg-gray-100 border-none rounded-xl p-3">
-                    <input type="tel" id="c-phone" required placeholder="Телефон для связи" class="w-full bg-gray-100 border-none rounded-xl p-3">
-                    <input type="text" id="c-address" required placeholder="Полный адрес доставки" class="w-full bg-gray-100 border-none rounded-xl p-3">
-                    <input type="text" id="c-vk" placeholder="Ссылка на ВК (для чека)" class="w-full bg-gray-100 border-none rounded-xl p-3">
-                    <button type="submit" id="btn-submit" class="w-full bg-green-600 text-white font-bold py-4 rounded-xl mt-4 text-lg hover:bg-green-500 smooth">Заказать доставку</button>
+                <form onsubmit="submitOrder(event)" class="space-y-4 bg-stone-50 p-6 rounded-2xl border border-stone-200">
+                    <h3 class="font-bold text-stone-800 text-lg mb-2">Данные для доставки</h3>
+                    <input type="text" id="c-name" required placeholder="ФИО получателя" class="w-full bg-white border border-stone-300 rounded-xl p-4 focus:ring-2 focus:ring-green-600 outline-none">
+                    <input type="tel" id="c-phone" required placeholder="Телефон" class="w-full bg-white border border-stone-300 rounded-xl p-4 focus:ring-2 focus:ring-green-600 outline-none">
+                    <input type="text" id="c-address" required placeholder="Полный адрес доставки" class="w-full bg-white border border-stone-300 rounded-xl p-4 focus:ring-2 focus:ring-green-600 outline-none">
+                    
+                    <label class="flex items-start gap-3 mt-4 bg-white p-4 rounded-xl border border-stone-200 cursor-pointer">
+                        <input type="checkbox" id="c-legal" required class="mt-1 w-5 h-5 accent-green-700 cursor-pointer">
+                        <span class="text-xs text-stone-600 leading-relaxed">
+                            Я согласен с <a href="#" class="text-blue-600 underline">условиями публичной оферты</a> и даю согласие на <a href="#" class="text-blue-600 underline">обработку персональных данных</a>.
+                        </span>
+                    </label>
+
+                    <button type="submit" class="w-full bg-green-700 text-white font-black py-4 rounded-xl mt-4 text-lg hover:bg-green-800 transition shadow-lg shadow-green-900/20">Оформить заказ</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <footer class="bg-stone-900 text-stone-500 py-10 mt-10 relative">
-        <div class="container mx-auto text-center"><p>© 2026 Магазин «У Николаича»</p></div>
-        <div onclick="askVIP()" class="absolute bottom-2 right-2 opacity-10 hover:opacity-100 cursor-pointer p-4 text-xl">🔒</div>
+    <footer class="bg-stone-900 text-stone-400 py-16 relative border-t-8 border-green-900 mt-20">
+        <div class="container mx-auto text-center space-y-2">
+            <p class="font-bold text-white text-lg">КФХ «У Николаича»</p>
+            <p class="text-sm">ИНН 1234567890 | ОГРН 1234567890123</p>
+            <div class="flex justify-center gap-4 text-xs mt-4">
+                <a href="#" class="hover:text-white underline">Публичная оферта</a>
+                <a href="#" class="hover:text-white underline">Политика конфиденциальности</a>
+            </div>
+        </div>
+        <div onclick="document.getElementById('vip-modal').classList.remove('hidden')" class="absolute bottom-2 right-2 opacity-[0.02] hover:opacity-100 cursor-pointer p-4 text-2xl transition duration-500">🔒</div>
     </footer>
 
+    <div id="vip-modal" class="fixed inset-0 bg-black/95 hidden z-[70] flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-stone-900 border border-stone-700 p-8 rounded-2xl shadow-2xl">
+            <div class="flex justify-between items-center mb-8 border-b border-stone-800 pb-4">
+                <h2 class="text-2xl font-black text-amber-500 tracking-widest uppercase">VIP Вход</h2>
+                <button onclick="document.getElementById('vip-modal').classList.add('hidden')" class="text-stone-500 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div id="vip-login" class="space-y-4">
+                <input type="text" id="v-phone" placeholder="Телефон" class="w-full bg-stone-950 border border-stone-800 rounded-lg p-4 text-white outline-none focus:border-amber-500">
+                <input type="password" id="v-pass" placeholder="Пароль" class="w-full bg-stone-950 border border-stone-800 rounded-lg p-4 text-white outline-none focus:border-amber-500">
+                <input type="text" id="v-code" placeholder="Секретный код доступа" class="w-full bg-stone-950 border-2 border-amber-500/50 rounded-lg p-4 text-white outline-none focus:border-amber-500">
+                <button onclick="vipAuth()" class="w-full bg-amber-600 text-stone-900 font-black py-4 rounded-lg hover:bg-amber-500 transition">ВХОД</button>
+                <p onclick="document.getElementById('vip-login').classList.add('hidden'); document.getElementById('vip-reg').classList.remove('hidden')" class="text-stone-500 text-center text-sm cursor-pointer hover:text-white mt-4">Подать заявку на вступление</p>
+            </div>
+
+            <div id="vip-reg" class="hidden space-y-4">
+                <input type="text" id="r-name" placeholder="ФИО" class="w-full bg-stone-950 border border-stone-800 rounded-lg p-4 text-white outline-none">
+                <input type="text" id="r-phone" placeholder="Телефон" class="w-full bg-stone-950 border border-stone-800 rounded-lg p-4 text-white outline-none">
+                <input type="text" id="r-addr" placeholder="Адрес" class="w-full bg-stone-950 border border-stone-800 rounded-lg p-4 text-white outline-none">
+                <input type="password" id="r-pass" placeholder="Пароль" class="w-full bg-stone-950 border border-stone-800 rounded-lg p-4 text-white outline-none">
+                <button onclick="vipRegister()" class="w-full bg-green-700 text-white font-bold py-4 rounded-lg hover:bg-green-600">ОТПРАВИТЬ ЗАПРОС</button>
+                <p onclick="document.getElementById('vip-reg').classList.add('hidden'); document.getElementById('vip-login').classList.remove('hidden')" class="text-stone-500 text-center text-sm cursor-pointer hover:text-white mt-4">Назад</p>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let allProducts = [], cart = [], themeClass = "bg-green-600";
+        let allProducts = [], cart = [];
 
         async function init() {
             const r = await fetch('/api/store'); const d = await r.json();
-            applyTheme(d.theme);
-            allProducts = d.products;
-            
-            // Рендер категорий
-            document.getElementById('cat-list').innerHTML = `<button onclick="filterCat(null)" class="text-left px-4 py-2 rounded-xl hover:bg-gray-100 font-bold w-full">🚜 Все товары</button>` + 
-                d.categories.map(c => `<button onclick="filterCat(${c.id}, '${c.name}')" class="text-left px-4 py-2 rounded-xl hover:bg-gray-100 font-medium w-full">${c.icon} ${c.name}</button>`).join('');
-            
-            filterCat(null);
+            allProducts = d.products; renderCatalog();
         }
 
-        function applyTheme(t) {
-            document.getElementById('body-bg').className = `${t.bg} text-stone-900 font-sans min-h-screen flex flex-col smooth`;
-            document.getElementById('header-bg').className = `${t.header} text-white p-4 sticky top-0 z-50 shadow-md smooth`;
-            document.getElementById('theme-icon').innerText = t.icon;
-            document.getElementById('theme-greeting').innerText = t.greeting;
-            themeClass = t.btn;
-            if(document.getElementById('btn-submit')) document.getElementById('btn-submit').className = `w-full ${t.btn} text-white font-bold py-4 rounded-xl mt-4 text-lg smooth`;
-        }
-
-        function filterCat(catId, catName = "Все товары") {
-            document.getElementById('current-cat-title').innerText = catName;
-            const prods = catId ? allProducts.filter(p => p.category_id === catId) : allProducts;
-            document.getElementById('product-grid').innerHTML = prods.map(p => `
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col">
-                    <div class="w-full h-32 bg-gray-100 rounded-xl mb-3 overflow-hidden"><img src="${p.img||''}" class="w-full h-full object-cover"></div>
-                    <h4 class="font-bold text-sm leading-tight mb-1 flex-grow">${p.name}</h4>
-                    <div class="text-lg font-black text-gray-800 mb-3">${p.price} ₽ <span class="text-xs font-normal text-gray-400">/${p.unit}</span></div>
-                    <button onclick="addCart(${p.id})" class="w-full ${themeClass} text-white py-2 rounded-lg font-bold text-sm hover:opacity-90">В корзину</button>
+        function renderCatalog() {
+            document.getElementById('product-grid').innerHTML = allProducts.map(p => `
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-stone-200 flex flex-col hover:shadow-xl transition duration-300">
+                    <div class="w-full h-40 bg-stone-100 rounded-2xl mb-4 overflow-hidden relative">
+                        <img src="${p.img || ''}" onerror="this.style.display='none'" class="w-full h-full object-cover">
+                        ${p.is_vip ? '<span class="absolute top-2 right-2 bg-amber-500 text-stone-900 text-xs font-black px-2 py-1 rounded">VIP</span>' : ''}
+                    </div>
+                    <h4 class="font-bold text-stone-800 mb-1 leading-tight flex-grow">${p.name}</h4>
+                    <div class="text-sm text-stone-400 mb-3">Остаток: ${p.stock} ${p.unit}</div>
+                    <div class="flex justify-between items-end">
+                        <div class="text-xl font-black text-green-800">${p.price} ₽</div>
+                        <button onclick="addCart(${p.id})" class="bg-stone-900 text-white w-10 h-10 rounded-xl font-bold hover:bg-green-700 transition">+</button>
+                    </div>
                 </div>`).join('');
         }
 
         function addCart(id) {
             const p = allProducts.find(x => x.id === id);
+            if(p.stock <= 0) return alert("Товар закончился");
             const inCart = cart.find(x => x.id === id);
-            if(inCart) inCart.quantity++; else cart.push({...p, quantity: 1});
+            if(inCart) {
+                if(inCart.quantity >= p.stock) return alert("Больше нет на складе");
+                inCart.quantity++;
+            } else cart.push({...p, quantity: 1});
             updateCart();
         }
 
         function updateCart() {
-            const badge = document.getElementById('cart-badge');
-            badge.innerText = cart.reduce((s, i) => s + i.quantity, 0);
-            badge.style.display = cart.length ? 'block' : 'none';
-            
+            document.getElementById('cart-badge').innerText = cart.reduce((s, i) => s + i.quantity, 0);
+            document.getElementById('cart-badge').style.display = cart.length ? 'block' : 'none';
             let sum = 0;
             document.getElementById('cart-items').innerHTML = cart.map(i => {
                 sum += i.price * i.quantity;
-                return `<div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg"><div class="text-sm font-bold">${i.name}</div><div class="flex items-center gap-3"><b class="text-gray-800">${i.price * i.quantity} ₽</b><span class="text-xs bg-gray-200 px-2 rounded">${i.quantity} ${i.unit}</span></div></div>`;
+                return `<div class="flex justify-between items-center bg-white p-4 rounded-xl border border-stone-100 shadow-sm"><div class="font-bold text-stone-800 text-sm w-1/2">${i.name}</div><div class="flex items-center gap-3"><b class="text-green-700">${i.price * i.quantity} ₽</b><span class="text-xs bg-stone-100 font-bold px-2 py-1 rounded text-stone-600">${i.quantity} ${i.unit}</span></div></div>`;
             }).join('');
             document.getElementById('cart-total').innerText = sum;
         }
@@ -127,19 +167,30 @@
 
         async function submitOrder(e) {
             e.preventDefault();
-            if(!cart.length) return alert("Корзина пуста!");
-            const d = { name: document.getElementById('c-name').value, phone: document.getElementById('c-phone').value, address: document.getElementById('c-address').value, vk_link: document.getElementById('c-vk').value, total: parseInt(document.getElementById('cart-total').innerText), cart: cart };
+            if(!cart.length) return alert("Корзина пуста");
+            if(!document.getElementById('c-legal').checked) return alert("Требуется согласие с офертой");
+            
+            const d = { name: document.getElementById('c-name').value, phone: document.getElementById('c-phone').value, address: document.getElementById('c-address').value, total: parseInt(document.getElementById('cart-total').innerText), legal_consent: 1, cart: cart };
             const r = await fetch('/api/checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)});
-            if((await r.json()).success) { alert("🚚 Заказ принят! Скоро доставим."); location.reload(); }
+            if((await r.json()).success) { alert("Заказ оформлен! Ожидайте доставку."); location.reload(); }
         }
 
-        async function askVIP() {
-            const phone = prompt("VIP Телефон:"); const pass = prompt("Пароль:"); const code = prompt("Код доступа:");
-            if(!phone || !pass || !code) return;
-            const r = await fetch('/api/vip/auth', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone, pass, code})});
-            const d = await r.json();
-            if(d.success) { allProducts = [...allProducts, ...d.vip_products]; filterCat(null, "VIP Доступ открыт"); alert("Добро пожаловать в закрытый клуб."); }
-            else alert("Доступ запрещен.");
+        async function vipRegister() {
+            const d = { name: document.getElementById('r-name').value, phone: document.getElementById('r-phone').value, address: document.getElementById('r-addr').value, password: document.getElementById('r-pass').value };
+            const r = await fetch('/api/vip/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)});
+            alert((await r.json()).msg);
+        }
+
+        async function vipAuth() {
+            const d = { phone: document.getElementById('v-phone').value, pass: document.getElementById('v-pass').value, code: document.getElementById('v-code').value };
+            const r = await fetch('/api/vip/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)});
+            const res = await r.json();
+            if(res.success) {
+                allProducts = [...allProducts, ...res.vip_products];
+                renderCatalog();
+                document.getElementById('vip-modal').classList.add('hidden');
+                alert("VIP Доступ открыт.");
+            } else alert(res.msg);
         }
 
         init();

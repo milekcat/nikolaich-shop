@@ -3,319 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Магазин Николаича</title>
+    <title>Николаич | Натуральные продукты</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        .product-card:hover { transform: translateY(-3px); transition: 0.3s; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .cart-badge { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .product-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .cart-badge { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-stone-50 text-stone-800 font-sans">
 
-    <header class="bg-green-600 text-white p-4 sticky top-0 z-40 shadow-md">
+    <header class="bg-green-700 text-white p-4 sticky top-0 z-50 shadow-xl">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-black tracking-tight flex items-center gap-2">
-                <span>🚜</span> Николаич
+            <h1 class="text-3xl font-black tracking-tighter italic flex items-center gap-2">
+                <span class="text-4xl">🚜</span> НИКОЛАИЧ
             </h1>
-            <div class="flex items-center gap-4">
-                <button onclick="toggleSecretModal()" class="text-xl hover:text-yellow-300 transition" title="Ввести секретный код">🔒</button>
-                <div class="relative cursor-pointer hover:scale-110 transition" onclick="toggleCart()">
-                    <span class="text-3xl">🛒</span>
-                    <div id="cart-count" class="cart-badge hidden">0</div>
+            <div class="flex items-center gap-6">
+                <button onclick="toggleSecret()" class="opacity-40 hover:opacity-100 transition-all text-xl" title="Секретный вход">🔒</button>
+                <div class="relative cursor-pointer group" onclick="toggleCart()">
+                    <span class="text-3xl group-hover:scale-110 block transition">🛒</span>
+                    <div id="cart-count" class="cart-badge hidden animate__animated animate__bounceIn">0</div>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto p-4 pb-20">
-        <div id="categories" class="flex gap-2 overflow-x-auto py-4 scrollbar-hide mb-4">
+    <main class="container mx-auto p-4 max-w-6xl">
+        <div id="category-bar" class="flex gap-3 overflow-x-auto py-6 no-scrollbar">
             </div>
 
-        <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             </div>
     </main>
 
-    <div id="cart-modal" class="fixed inset-0 bg-black/60 hidden z-50 p-4 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate__animated animate__zoomIn animate__faster">
-            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-                <h2 class="text-xl font-bold">Ваш заказ</h2>
-                <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+    <div id="cart-modal" class="fixed inset-0 bg-black/60 hidden z-[60] backdrop-blur-sm p-4 flex items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate__animated animate__slideInUp">
+            <div class="p-6 border-b flex justify-between items-center bg-stone-50">
+                <h2 class="text-2xl font-bold">Ваш заказ</h2>
+                <button onclick="toggleCart()" class="text-stone-400 hover:text-stone-900 text-3xl">&times;</button>
             </div>
-            
-            <div id="cart-items" class="p-4 overflow-y-auto flex-1 space-y-3">
+            <div id="cart-items" class="p-6 max-h-96 overflow-y-auto space-y-4">
                 </div>
-            
-            <div class="p-4 border-t bg-gray-50">
-                <div class="flex justify-between font-bold text-lg mb-4">
-                    <span>Итого:</span>
-                    <span id="cart-total" class="text-green-600">0 ₽</span>
+            <div class="p-6 bg-stone-50 border-t">
+                <div class="flex justify-between items-end mb-6">
+                    <span class="text-stone-500 font-medium">Итого к оплате:</span>
+                    <span id="cart-total" class="text-3xl font-black text-green-700">0 ₽</span>
                 </div>
-                <button onclick="showCheckoutForm()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition active:scale-95">
-                    Перейти к оформлению
+                <button onclick="showCheckout()" class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-green-200 transition-all active:scale-95">
+                    Оформить доставку
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="checkout-modal" class="fixed inset-0 bg-black/60 hidden z-[60] p-4 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden animate__animated animate__fadeInUp animate__faster">
-            <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
-                <h2 class="text-xl font-bold">Оформление</h2>
-                <button onclick="closeCheckout()" class="text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
-            </div>
-            <form id="checkout-form" class="p-4 space-y-4" onsubmit="submitOrder(event)">
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Имя</label>
-                    <input type="text" id="co-name" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none">
+    <div id="checkout-modal" class="fixed inset-0 bg-black/60 hidden z-[70] backdrop-blur-sm p-4 flex items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 animate__animated animate__zoomIn">
+            <h2 class="text-2xl font-bold mb-6">Куда везти?</h2>
+            <form id="order-form" class="space-y-4" onsubmit="submitOrder(event)">
+                <input type="text" id="name" placeholder="Ваше имя" required class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
+                <input type="tel" id="phone" placeholder="Номер телефона" required class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
+                <input type="text" id="address" placeholder="Адрес доставки" required class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
+                <input type="text" id="vk" placeholder="Ссылка на ВК (для уведомлений)" class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="hideCheckout()" class="flex-1 bg-stone-200 py-4 rounded-xl font-bold">Отмена</button>
+                    <button type="submit" class="flex-2 bg-green-600 text-white py-4 px-8 rounded-xl font-bold">Подтвердить</button>
                 </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Телефон</label>
-                    <input type="tel" id="co-phone" required placeholder="+7..." class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Адрес доставки</label>
-                    <input type="text" id="co-address" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Ссылка на ВКонтакте (для уведомлений)</label>
-                    <input type="text" id="co-vk" placeholder="https://vk.com/..." class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Способ оплаты</label>
-                    <select id="co-payment" class="w-full border rounded-lg p-2 bg-white outline-none">
-                        <option value="Наличными курьеру">Наличными курьеру</option>
-                        <option value="Картой курьеру">Картой курьеру</option>
-                        <option value="Перевод по номеру">Перевод по номеру</option>
-                    </select>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition active:scale-95 mt-4">
-                    Подтвердить заказ
-                </button>
             </form>
         </div>
     </div>
 
-    <div id="secret-modal" class="fixed inset-0 bg-black/80 hidden z-[70] p-4 flex items-center justify-center backdrop-blur-md">
-        <div class="bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center border border-slate-700 shadow-2xl animate__animated animate__zoomIn">
-            <div class="text-4xl mb-4">🤫</div>
-            <h2 class="text-xl font-bold text-white mb-4">Секретный доступ</h2>
-            <input type="password" id="secret-input" placeholder="Введите код..." class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 text-center text-lg tracking-widest mb-4 outline-none focus:border-green-500">
-            <div class="flex gap-2">
-                <button onclick="toggleSecretModal()" class="flex-1 bg-slate-700 text-white py-2 rounded-lg font-bold hover:bg-slate-600">Отмена</button>
-                <button onclick="checkSecret()" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-500">Войти</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        let allProducts = [];
-        let cart = [];
-        let currentCategory = null;
+        let allProducts = [], cart = [], categories = [];
 
-        // Загрузка данных
-        async function loadStore() {
-            try {
-                const res = await fetch('/api/store-data');
-                const data = await res.json();
-                allProducts = data.products;
-                renderCategories(data.categories);
-                renderProducts(allProducts);
-            } catch (e) {
-                console.error("Ошибка загрузки:", e);
-                document.getElementById('products-grid').innerHTML = '<p class="col-span-2 text-center text-red-500">Не удалось загрузить товары. Обновите страницу.</p>';
-            }
+        async function init() {
+            const res = await fetch('/api/store-data');
+            const data = await res.json();
+            allProducts = data.products;
+            categories = data.categories;
+            renderCategories();
+            renderProducts(allProducts);
         }
 
-        // Отрисовка категорий
-        function renderCategories(cats) {
-            const container = document.getElementById('categories');
-            let html = `<button onclick="filterCategory(null)" class="whitespace-nowrap px-4 py-2 rounded-full font-medium transition ${currentCategory === null ? 'bg-green-600 text-white' : 'bg-white border text-gray-600'}">Все</button>`;
-            cats.forEach(c => {
-                html += `<button onclick="filterCategory(${c.id})" class="whitespace-nowrap px-4 py-2 rounded-full font-medium transition ${currentCategory === c.id ? 'bg-green-600 text-white' : 'bg-white border text-gray-600'}">${c.name}</button>`;
+        function renderCategories() {
+            const bar = document.getElementById('category-bar');
+            let html = `<button onclick="filter(null)" class="px-6 py-2 bg-green-700 text-white rounded-full font-bold shadow-md">Все</button>`;
+            categories.forEach(c => {
+                html += `<button onclick="filter(${c.id})" class="px-6 py-2 bg-white text-stone-600 rounded-full font-bold shadow-sm hover:bg-stone-100 transition whitespace-nowrap">${c.name}</button>`;
             });
-            container.innerHTML = html;
+            bar.innerHTML = html;
         }
 
-        // Фильтрация
-        function filterCategory(id) {
-            currentCategory = id;
-            const filtered = id === null ? allProducts : allProducts.filter(p => p.category_id === id);
-            
-            // Обновляем визуал кнопок (упрощенно перерисовываем все для быстроты)
-            const buttons = document.getElementById('categories').children;
-            for(let btn of buttons) {
-                btn.className = "whitespace-nowrap px-4 py-2 rounded-full font-medium transition bg-white border text-gray-600";
-                if(btn.innerText === "Все" && id === null) btn.classList.add("bg-green-600", "text-white");
-                if(btn.innerText !== "Все" && id !== null && btn.innerText === allProducts.find(p=>p.category_id===id)?.name) btn.classList.add("bg-green-600", "text-white"); // Грубая проверка
-            }
-            loadStore().then(()=> { renderCategories(allProducts.categories || []) }); // Хак для простоты
-            renderProducts(filtered);
-        }
-
-        // Отрисовка товаров
-        function renderProducts(products) {
+        function renderProducts(items) {
             const grid = document.getElementById('products-grid');
-            if (products.length === 0) {
-                grid.innerHTML = '<p class="col-span-2 text-center text-gray-500 py-10">Товары не найдены</p>';
-                return;
-            }
-            grid.innerHTML = products.map(p => `
-                <div class="product-card bg-white p-3 rounded-2xl border border-gray-100 flex flex-col h-full animate__animated animate__fadeIn">
-                    <div class="relative pb-[100%] mb-3 overflow-hidden rounded-xl bg-gray-100">
-                        <img src="${p.img || 'https://via.placeholder.com/300'}" class="absolute inset-0 w-full h-full object-cover">
-                        ${p.is_secret ? '<span class="absolute top-2 left-2 bg-slate-900 text-white text-xs px-2 py-1 rounded shadow">Секретно</span>' : ''}
+            grid.innerHTML = items.map(p => `
+                <div class="product-card bg-white rounded-3xl p-4 border border-stone-100 animate__animated animate__fadeIn">
+                    <div class="relative overflow-hidden rounded-2xl mb-4 bg-stone-100">
+                        <img src="${p.img || '/uploads/default.jpg'}" class="w-full h-40 object-cover">
+                        ${p.is_secret ? '<span class="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-1 rounded-lg uppercase tracking-widest font-bold">Secret</span>' : ''}
                     </div>
-                    <h3 class="font-bold text-sm leading-tight text-gray-800 flex-1">${p.name}</h3>
-                    <div class="mt-3 flex items-center justify-between">
+                    <h3 class="font-bold text-stone-800 text-sm mb-1 h-10 overflow-hidden leading-tight">${p.name}</h3>
+                    <div class="flex justify-between items-end">
                         <div class="flex flex-col">
-                            ${p.old_price > 0 ? `<span class="text-xs text-gray-400 line-through">${p.old_price} ₽</span>` : ''}
-                            <span class="text-green-600 font-black text-lg">${p.price} ₽</span>
+                            <span class="text-green-600 font-black text-xl">${p.price} ₽</span>
+                            <span class="text-[10px] text-stone-400 uppercase font-bold">${p.unit}</span>
                         </div>
-                        <span class="text-xs text-gray-500">/${p.unit}</span>
+                        <button onclick="addToCart(${p.id})" class="bg-stone-900 text-white p-3 rounded-2xl hover:bg-green-600 transition active:scale-90">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
                     </div>
-                    <button onclick="addToCart(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price}, '${p.img}')" class="w-full mt-3 bg-gray-100 text-green-700 hover:bg-green-600 hover:text-white py-2 rounded-xl text-sm font-bold transition active:scale-95">
-                        В корзину
-                    </button>
                 </div>
             `).join('');
         }
 
-        // Корзина
-        function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); updateCartUI(); }
-        function showCheckoutForm() { 
-            if(cart.length === 0) return alert("Корзина пуста!");
-            document.getElementById('cart-modal').classList.add('hidden'); 
-            document.getElementById('checkout-modal').classList.remove('hidden'); 
-        }
-        function closeCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
-
-        function addToCart(id, name, price, img) {
-            const existing = cart.find(i => i.id === id);
-            if (existing) existing.quantity += 1;
-            else cart.push({ id, name, price, img, quantity: 1 });
-            
-            const badge = document.getElementById('cart-count');
-            badge.innerText = cart.length;
-            badge.classList.remove('hidden');
-            badge.classList.add('animate__animated', 'animate__rubberBand');
-            setTimeout(() => badge.classList.remove('animate__rubberBand'), 500);
-        }
-
-        function updateQuantity(id, delta) {
-            const item = cart.find(i => i.id === id);
-            if(item) {
-                item.quantity += delta;
-                if(item.quantity <= 0) cart = cart.filter(i => i.id !== id);
-                updateCartUI();
-            }
+        function addToCart(id) {
+            const p = allProducts.find(x => x.id === id);
+            const inCart = cart.find(x => x.id === id);
+            if(inCart) inCart.quantity++;
+            else cart.push({...p, quantity: 1});
+            updateCartUI();
         }
 
         function updateCartUI() {
-            const container = document.getElementById('cart-items');
-            const totalEl = document.getElementById('cart-total');
             const badge = document.getElementById('cart-count');
+            badge.innerText = cart.reduce((s, i) => s + i.quantity, 0);
+            badge.classList.remove('hidden');
             
-            badge.innerText = cart.length;
-            if(cart.length === 0) badge.classList.add('hidden');
-
             let total = 0;
-            container.innerHTML = cart.map(i => {
+            document.getElementById('cart-items').innerHTML = cart.map(i => {
                 total += i.price * i.quantity;
                 return `
-                <div class="flex items-center gap-3 bg-white p-2 border rounded-xl">
-                    <img src="${i.img || 'https://via.placeholder.com/50'}" class="w-12 h-12 object-cover rounded-lg">
-                    <div class="flex-1 min-w-0">
-                        <p class="font-bold text-sm truncate">${i.name}</p>
-                        <p class="text-green-600 font-bold text-sm">${i.price * i.quantity} ₽</p>
+                    <div class="flex items-center gap-4 bg-stone-50 p-3 rounded-2xl">
+                        <img src="${i.img}" class="w-16 h-16 object-cover rounded-xl">
+                        <div class="flex-1">
+                            <p class="font-bold text-sm">${i.name}</p>
+                            <p class="text-green-600 font-bold">${i.price * i.quantity} ₽</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="changeQty(${i.id}, -1)" class="w-8 h-8 rounded-full bg-white shadow-sm font-bold">-</button>
+                            <span class="font-bold">${i.quantity}</span>
+                            <button onclick="changeQty(${i.id}, 1)" class="w-8 h-8 rounded-full bg-white shadow-sm font-bold">+</button>
+                        </div>
                     </div>
-                    <div class="flex items-center bg-gray-100 rounded-lg">
-                        <button onclick="updateQuantity(${i.id}, -1)" class="px-3 py-1 text-gray-600 hover:text-black font-bold">-</button>
-                        <span class="px-2 text-sm font-bold">${i.quantity}</span>
-                        <button onclick="updateQuantity(${i.id}, 1)" class="px-3 py-1 text-gray-600 hover:text-black font-bold">+</button>
-                    </div>
-                </div>
-            `}).join('');
-            
-            if(cart.length === 0) container.innerHTML = '<p class="text-center text-gray-400 py-6">Корзина пуста</p>';
-            totalEl.innerText = `${total} ₽`;
+                `;
+            }).join('');
+            document.getElementById('cart-total').innerText = total + ' ₽';
         }
 
-        // Секретный раздел
-        function toggleSecretModal() {
-            const m = document.getElementById('secret-modal');
-            m.classList.toggle('hidden');
-            if(!m.classList.contains('hidden')) document.getElementById('secret-input').focus();
+        function changeQty(id, delta) {
+            const i = cart.find(x => x.id === id);
+            i.quantity += delta;
+            if(i.quantity <= 0) cart = cart.filter(x => x.id !== id);
+            updateCartUI();
         }
 
-        async function checkSecret() {
-            const code = document.getElementById('secret-input').value;
-            try {
-                const res = await fetch('/api/secret-auth', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({code: code})
-                });
-                const data = await res.json();
-                if(data.success) {
-                    allProducts = [...allProducts.filter(p => !p.is_secret), ...data.products];
-                    renderProducts(allProducts);
-                    toggleSecretModal();
-                    alert("🤫 Секретный раздел открыт!");
-                } else {
-                    alert("❌ Неверный код");
-                }
-            } catch (e) { alert("Ошибка связи с сервером"); }
+        function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
+        function showCheckout() { if(cart.length) document.getElementById('checkout-modal').classList.remove('hidden'); }
+        function hideCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
+
+        async function toggleSecret() {
+            const code = prompt("Введите код доступа:");
+            if(!code) return;
+            const res = await fetch('/api/secret-auth', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({code})
+            });
+            const data = await res.json();
+            if(data.success) {
+                allProducts = [...allProducts, ...data.products];
+                renderProducts(allProducts);
+                alert("🤫 Секретный раздел активирован!");
+            } else alert("❌ Неверный код");
         }
 
-        // Оформление заказа
         async function submitOrder(e) {
             e.preventDefault();
-            const btn = e.target.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            btn.innerText = "Отправка...";
-
-            const total = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-            
-            const payload = {
-                name: document.getElementById('co-name').value,
-                phone: document.getElementById('co-phone').value,
-                address: document.getElementById('co-address').value,
-                vk_link: document.getElementById('co-vk').value,
-                payment_method: document.getElementById('co-payment').value,
-                cart: cart,
-                total: total
+            const orderData = {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                vk_link: document.getElementById('vk').value,
+                total: parseInt(document.getElementById('cart-total').innerText),
+                cart: cart
             };
-
-            try {
-                const res = await fetch('/api/checkout', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                
-                if(data.success) {
-                    alert(`✅ Заказ #${data.order_id} успешно оформлен! Мы скоро свяжемся с вами.`);
-                    cart = [];
-                    updateCartUI();
-                    closeCheckout();
-                    document.getElementById('checkout-form').reset();
-                } else {
-                    alert(`❌ Ошибка: ${data.error}`);
-                }
-            } catch (err) {
-                alert("Ошибка отправки заказа.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Подтвердить заказ";
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(orderData)
+            });
+            if((await res.json()).success) {
+                alert("✅ Заказ успешно отправлен!");
+                cart = [];
+                location.reload();
             }
         }
 
-        // Старт
-        loadStore();
+        init();
     </script>
 </body>
 </html>

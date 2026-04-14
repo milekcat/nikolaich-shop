@@ -2,206 +2,100 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Николаич | Натуральные продукты</title>
+    <title>У Николаича | Натуральные продукты</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <style>
-        .product-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
-        .cart-badge { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 10px; }
-    </style>
 </head>
-<body class="bg-stone-50 text-stone-800 font-sans">
-
-    <header class="bg-green-700 text-white p-4 sticky top-0 z-50 shadow-xl">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-black tracking-tighter italic flex items-center gap-2">
-                <span class="text-4xl">🚜</span> НИКОЛАИЧ
-            </h1>
-            <div class="flex items-center gap-6">
-                <button onclick="toggleSecret()" class="opacity-40 hover:opacity-100 transition-all text-xl" title="Секретный вход">🔒</button>
-                <div class="relative cursor-pointer group" onclick="toggleCart()">
-                    <span class="text-3xl group-hover:scale-110 block transition">🛒</span>
-                    <div id="cart-count" class="cart-badge hidden animate__animated animate__bounceIn">0</div>
-                </div>
-            </div>
+<body class="bg-stone-50 text-stone-900 font-sans">
+    <header class="bg-green-900 text-white p-6 sticky top-0 z-50 shadow-2xl flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <span class="text-4xl animate__animated animate__bounceIn">🚜</span>
+            <h1 class="text-2xl font-black tracking-widest italic uppercase">У Николаича</h1>
         </div>
+        <button class="bg-white/10 p-3 rounded-full hover:bg-white/20 transition">🛒</button>
     </header>
 
     <main class="container mx-auto p-4 max-w-6xl">
-        <div id="category-bar" class="flex gap-3 overflow-x-auto py-6 no-scrollbar">
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6 my-10">
+            <div class="bg-gradient-to-br from-green-800 to-green-900 rounded-[3rem] p-10 text-white shadow-2xl overflow-hidden relative group">
+                <div class="relative z-10">
+                    <h2 class="text-4xl font-black mb-4">Домашнее Мясо</h2>
+                    <p class="text-green-100 opacity-80">Только натуральный откорм без добавок.</p>
+                </div>
+                <div class="absolute -bottom-10 -right-10 text-9xl opacity-10 group-hover:rotate-12 transition">🥩</div>
             </div>
+            <div class="bg-gradient-to-br from-amber-600 to-amber-700 rounded-[3rem] p-10 text-white shadow-2xl overflow-hidden relative group">
+                <div class="relative z-10">
+                    <h2 class="text-4xl font-black mb-4">Свежий Урожай</h2>
+                    <p class="text-amber-50 opacity-80">Овощи прямо с грядки к вашему столу.</p>
+                </div>
+                <div class="absolute -bottom-10 -right-10 text-9xl opacity-10 group-hover:-rotate-12 transition">🥦</div>
+            </div>
+        </section>
 
-        <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            </div>
+        <h2 class="text-3xl font-black mb-8 border-l-8 border-green-800 pl-6">Наши товары</h2>
+        <div id="catalog" class="grid grid-cols-2 md:grid-cols-4 gap-8"></div>
     </main>
 
-    <div id="cart-modal" class="fixed inset-0 bg-black/60 hidden z-[60] backdrop-blur-sm p-4 flex items-center justify-center">
-        <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate__animated animate__slideInUp">
-            <div class="p-6 border-b flex justify-between items-center bg-stone-50">
-                <h2 class="text-2xl font-bold">Ваш заказ</h2>
-                <button onclick="toggleCart()" class="text-stone-400 hover:text-stone-900 text-3xl">&times;</button>
-            </div>
-            <div id="cart-items" class="p-6 max-h-96 overflow-y-auto space-y-4">
-                </div>
-            <div class="p-6 bg-stone-50 border-t">
-                <div class="flex justify-between items-end mb-6">
-                    <span class="text-stone-500 font-medium">Итого к оплате:</span>
-                    <span id="cart-total" class="text-3xl font-black text-green-700">0 ₽</span>
-                </div>
-                <button onclick="showCheckout()" class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-green-200 transition-all active:scale-95">
-                    Оформить доставку
-                </button>
-            </div>
+    <footer class="bg-stone-900 text-stone-500 py-20 text-center relative mt-20">
+        <div class="container mx-auto">
+            <p class="text-lg font-bold text-stone-300 mb-2">«У Николаича» — вкус настоящей жизни</p>
+            <p class="text-sm opacity-50">Ярославская область, 2026</p>
         </div>
-    </div>
+        <div onclick="document.getElementById('vip-modal').classList.remove('hidden')" class="absolute bottom-4 right-4 opacity-5 hover:opacity-100 cursor-pointer p-4 transition-all">🔒</div>
+    </footer>
 
-    <div id="checkout-modal" class="fixed inset-0 bg-black/60 hidden z-[70] backdrop-blur-sm p-4 flex items-center justify-center">
-        <div class="bg-white w-full max-w-md rounded-3xl p-8 animate__animated animate__zoomIn">
-            <h2 class="text-2xl font-bold mb-6">Куда везти?</h2>
-            <form id="order-form" class="space-y-4" onsubmit="submitOrder(event)">
-                <input type="text" id="name" placeholder="Ваше имя" required class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
-                <input type="tel" id="phone" placeholder="Номер телефона" required class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
-                <input type="text" id="address" placeholder="Адрес доставки" required class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
-                <input type="text" id="vk" placeholder="Ссылка на ВК (для уведомлений)" class="w-full bg-stone-100 border-none rounded-xl p-4 focus:ring-2 focus:ring-green-500 transition">
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="hideCheckout()" class="flex-1 bg-stone-200 py-4 rounded-xl font-bold">Отмена</button>
-                    <button type="submit" class="flex-2 bg-green-600 text-white py-4 px-8 rounded-xl font-bold">Подтвердить</button>
+    <div id="vip-modal" class="fixed inset-0 bg-black/90 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-stone-800 border border-stone-700 rounded-3xl w-full max-w-md p-10 text-white animate__animated animate__zoomIn">
+            <div id="auth-box">
+                <h3 class="text-2xl font-black text-amber-500 mb-6 tracking-widest uppercase text-center">Закрытый Клуб</h3>
+                <div class="space-y-4">
+                    <input type="text" id="phone" placeholder="Телефон" class="w-full bg-stone-900 border-none rounded-xl p-4">
+                    <input type="password" id="pass" placeholder="Пароль" class="w-full bg-stone-900 border-none rounded-xl p-4">
+                    <input type="text" id="vcode" placeholder="Код доступа" class="w-full bg-stone-900 border-2 border-amber-500/30 rounded-xl p-4">
+                    <button onclick="login()" class="w-full bg-amber-600 py-4 rounded-xl font-black hover:bg-amber-500 transition">ВОЙТИ</button>
+                    <p class="text-center text-stone-500 text-sm mt-4 cursor-pointer" onclick="showReg()">Нет доступа? Зарегистрироваться</p>
                 </div>
-            </form>
+            </div>
+            <div id="reg-box" class="hidden">
+                <h3 class="text-2xl font-black text-green-500 mb-6 uppercase text-center">Заявка</h3>
+                <div class="space-y-4">
+                    <input type="text" id="r-name" placeholder="ФИО" class="w-full bg-stone-900 rounded-xl p-4">
+                    <input type="text" id="r-phone" placeholder="Телефон" class="w-full bg-stone-900 rounded-xl p-4">
+                    <input type="text" id="r-address" placeholder="Адрес" class="w-full bg-stone-900 rounded-xl p-4">
+                    <input type="password" id="r-pass" placeholder="Пароль" class="w-full bg-stone-900 rounded-xl p-4">
+                    <button onclick="register()" class="w-full bg-green-600 py-4 rounded-xl font-bold">ОТПРАВИТЬ</button>
+                    <button onclick="showLogin()" class="w-full text-stone-500 text-sm mt-2">Назад</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        let allProducts = [], cart = [], categories = [];
-
-        async function init() {
-            const res = await fetch('/api/store-data');
-            const data = await res.json();
-            allProducts = data.products;
-            categories = data.categories;
-            renderCategories();
-            renderProducts(allProducts);
+        async function load() {
+            const r = await fetch('/api/store-data');
+            const d = await r.json();
+            document.getElementById('catalog').innerHTML = d.products.map(p => `
+                <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-stone-200 hover:shadow-xl transition animate__animated animate__fadeIn">
+                    <div class="w-full h-48 bg-stone-100 rounded-2xl mb-4 overflow-hidden"><img src="${p.img}" class="w-full h-full object-cover"></div>
+                    <h4 class="font-bold text-lg mb-2">${p.name}</h4>
+                    <p class="text-green-700 font-black text-2xl">${p.price} ₽ <span class="text-xs font-normal text-stone-400">/${p.unit}</span></p>
+                </div>`).join('');
         }
-
-        function renderCategories() {
-            const bar = document.getElementById('category-bar');
-            let html = `<button onclick="filter(null)" class="px-6 py-2 bg-green-700 text-white rounded-full font-bold shadow-md">Все</button>`;
-            categories.forEach(c => {
-                html += `<button onclick="filter(${c.id})" class="px-6 py-2 bg-white text-stone-600 rounded-full font-bold shadow-sm hover:bg-stone-100 transition whitespace-nowrap">${c.name}</button>`;
-            });
-            bar.innerHTML = html;
+        function showReg(){ document.getElementById('auth-box').classList.add('hidden'); document.getElementById('reg-box').classList.remove('hidden'); }
+        function showLogin(){ document.getElementById('reg-box').classList.add('hidden'); document.getElementById('auth-box').classList.remove('hidden'); }
+        async function register(){
+            const d = { phone: document.getElementById('r-phone').value, name: document.getElementById('r-name').value, address: document.getElementById('r-address').value, password: document.getElementById('r-pass').value };
+            const r = await fetch('/api/vip/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)});
+            alert((await r.json()).msg); showLogin();
         }
-
-        function renderProducts(items) {
-            const grid = document.getElementById('products-grid');
-            grid.innerHTML = items.map(p => `
-                <div class="product-card bg-white rounded-3xl p-4 border border-stone-100 animate__animated animate__fadeIn">
-                    <div class="relative overflow-hidden rounded-2xl mb-4 bg-stone-100">
-                        <img src="${p.img || '/uploads/default.jpg'}" class="w-full h-40 object-cover">
-                        ${p.is_secret ? '<span class="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-1 rounded-lg uppercase tracking-widest font-bold">Secret</span>' : ''}
-                    </div>
-                    <h3 class="font-bold text-stone-800 text-sm mb-1 h-10 overflow-hidden leading-tight">${p.name}</h3>
-                    <div class="flex justify-between items-end">
-                        <div class="flex flex-col">
-                            <span class="text-green-600 font-black text-xl">${p.price} ₽</span>
-                            <span class="text-[10px] text-stone-400 uppercase font-bold">${p.unit}</span>
-                        </div>
-                        <button onclick="addToCart(${p.id})" class="bg-stone-900 text-white p-3 rounded-2xl hover:bg-green-600 transition active:scale-90">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+        async function login(){
+            const d = { phone: document.getElementById('phone').value, password: document.getElementById('pass').value, vip_code: document.getElementById('vcode').value };
+            const r = await fetch('/api/vip/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)});
+            const res = await r.json();
+            if(res.success){ alert("Доступ открыт!"); location.reload(); } else alert(res.msg);
         }
-
-        function addToCart(id) {
-            const p = allProducts.find(x => x.id === id);
-            const inCart = cart.find(x => x.id === id);
-            if(inCart) inCart.quantity++;
-            else cart.push({...p, quantity: 1});
-            updateCartUI();
-        }
-
-        function updateCartUI() {
-            const badge = document.getElementById('cart-count');
-            badge.innerText = cart.reduce((s, i) => s + i.quantity, 0);
-            badge.classList.remove('hidden');
-            
-            let total = 0;
-            document.getElementById('cart-items').innerHTML = cart.map(i => {
-                total += i.price * i.quantity;
-                return `
-                    <div class="flex items-center gap-4 bg-stone-50 p-3 rounded-2xl">
-                        <img src="${i.img}" class="w-16 h-16 object-cover rounded-xl">
-                        <div class="flex-1">
-                            <p class="font-bold text-sm">${i.name}</p>
-                            <p class="text-green-600 font-bold">${i.price * i.quantity} ₽</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <button onclick="changeQty(${i.id}, -1)" class="w-8 h-8 rounded-full bg-white shadow-sm font-bold">-</button>
-                            <span class="font-bold">${i.quantity}</span>
-                            <button onclick="changeQty(${i.id}, 1)" class="w-8 h-8 rounded-full bg-white shadow-sm font-bold">+</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            document.getElementById('cart-total').innerText = total + ' ₽';
-        }
-
-        function changeQty(id, delta) {
-            const i = cart.find(x => x.id === id);
-            i.quantity += delta;
-            if(i.quantity <= 0) cart = cart.filter(x => x.id !== id);
-            updateCartUI();
-        }
-
-        function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
-        function showCheckout() { if(cart.length) document.getElementById('checkout-modal').classList.remove('hidden'); }
-        function hideCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
-
-        async function toggleSecret() {
-            const code = prompt("Введите код доступа:");
-            if(!code) return;
-            const res = await fetch('/api/secret-auth', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({code})
-            });
-            const data = await res.json();
-            if(data.success) {
-                allProducts = [...allProducts, ...data.products];
-                renderProducts(allProducts);
-                alert("🤫 Секретный раздел активирован!");
-            } else alert("❌ Неверный код");
-        }
-
-        async function submitOrder(e) {
-            e.preventDefault();
-            const orderData = {
-                name: document.getElementById('name').value,
-                phone: document.getElementById('phone').value,
-                address: document.getElementById('address').value,
-                vk_link: document.getElementById('vk').value,
-                total: parseInt(document.getElementById('cart-total').innerText),
-                cart: cart
-            };
-            const res = await fetch('/api/checkout', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(orderData)
-            });
-            if((await res.json()).success) {
-                alert("✅ Заказ успешно отправлен!");
-                cart = [];
-                location.reload();
-            }
-        }
-
-        init();
+        load();
     </script>
 </body>
 </html>

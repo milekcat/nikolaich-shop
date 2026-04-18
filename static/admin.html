@@ -2,75 +2,183 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Управление Nikolaich.Shop</title>
+    <title>Николаич.Shop | Управление</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { display: flex; height: 100vh; overflow: hidden; background: #f4f6f9;}
+        .sidebar { width: 250px; background: #0b3d2c; color: white; padding: 20px; display:flex; flex-direction:column;}
+        .nav-btn { background: none; border: none; color: #ccc; text-align: left; padding: 12px; margin-bottom: 5px; border-radius: 5px; transition: 0.2s;}
+        .nav-btn:hover, .nav-btn.active { background: #1abc9c; color: white; font-weight:bold;}
+        .main { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .tab { display: none; }
+        .tab.active { display: block; }
+        .card { border-radius: 10px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container mt-5">
-    <h1 class="mb-4">⚙️ Панель управления (Николаич)</h1>
-    
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">🤖 ИИ-Генератор акций</h5>
-                    <p class="text-muted">Введите повод, ИИ сам придумает слоган и добавит баннер на сайт.</p>
-                    <input type="text" id="aiTopic" class="form-control mb-3" placeholder="Например: Пятница, пиво, скидки">
-                    <button onclick="generatePromo()" class="btn btn-primary w-100">Создать и выложить баннер</button>
-                    <div id="aiResult" class="mt-3 fw-bold text-success"></div>
-                </div>
-            </div>
-        </div>
+<body>
 
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">🚚 Доставка и Дизайн</h5>
-                    <label>Базовая цена доставки (руб):</label>
-                    <input type="number" id="baseFee" class="form-control mb-2" value="{{ base }}">
-                    <label>Цена за километр (руб):</label>
-                    <input type="number" id="kmFee" class="form-control mb-2" value="{{ km }}">
-                    <label>Цвет сайта (Праздники):</label>
-                    <input type="color" id="themeColor" class="form-control mb-3" value="{{ theme }}">
-                    <button onclick="saveSettings()" class="btn btn-dark w-100">Сохранить настройки</button>
+<div class="sidebar">
+    <h3 class="text-warning mb-4 fw-bold fst-italic">ADMIN 3.0</h3>
+    <button class="nav-btn active" onclick="switchTab('logistics')">🚚 Логистика</button>
+    <button class="nav-btn" onclick="switchTab('stock')">📦 Склад</button>
+    <button class="nav-btn" onclick="switchTab('ai')">🧠 AI Генератор</button>
+    <button class="nav-btn" onclick="switchTab('stats')">📊 Аналитика</button>
+</div>
+
+<div class="main">
+    
+    <div id="logistics" class="tab active">
+        <h2 class="mb-4">Настройки доставки и пакетов</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <h5 class="mb-3">Тарифы (База)</h5>
+                    <label>База такси (₽):</label> <input type="number" id="base" class="form-control mb-2" value="{{ base }}">
+                    <label>Цена за 1 км (₽):</label> <input type="number" id="km" class="form-control mb-2" value="{{ km }}">
+                    <label>Доставка бесплатно от (₽):</label> <input type="number" id="free_del" class="form-control mb-4" value="{{ free_del }}">
+                    
+                    <h5 class="mb-3">Сборка пакетов</h5>
+                    <label>Цена сборки (₽):</label> <input type="number" id="pack" class="form-control mb-2" value="{{ pack }}">
+                    <label>Пакет бесплатно от (₽):</label> <input type="number" id="free_pack" class="form-control mb-3" value="{{ free_pack }}">
+                    
+                    <button class="btn btn-success w-100" onclick="saveLogistics()">💾 Сохранить тарифы</button>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-body text-center">
-                    <h5 class="card-title">📊 Аналитика и Отчеты</h5>
-                    <p class="text-muted">Выгрузка всех заказов и кассы в Excel (CSV)</p>
-                    <a href="/admin/export_stats" class="btn btn-success btn-lg">📥 Скачать полную статистику</a>
+            
+            <div class="col-md-6">
+                <div class="card p-4 bg-dark text-white">
+                    <h5 class="text-warning mb-3">Тест калькулятора доставки</h5>
+                    <select id="test_type" class="form-select mb-2">
+                        <option value="taxi">Яндекс.Такси (с учетом км)</option>
+                        <option value="courier">Свой курьер (фикс база)</option>
+                    </select>
+                    <input type="number" id="test_dist" class="form-control mb-2" placeholder="Расстояние (км)">
+                    <input type="number" id="test_total" class="form-control mb-3" placeholder="Сумма корзины (₽)">
+                    <button class="btn btn-warning w-100" onclick="testCalc()">Симулировать заказ</button>
+                    <div id="calcRes" class="mt-3 fs-5 p-2 bg-secondary rounded" style="display:none;"></div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div id="stock" class="tab">
+        <div class="d-flex justify-content-between mb-4">
+            <h2>Управление складом</h2>
+            <button class="btn btn-primary" onclick="addProd()">+ Добавить позицию</button>
+        </div>
+        <div class="card p-0 overflow-hidden">
+            <table class="table m-0">
+                <thead class="table-dark"><tr><th>ID</th><th>Название</th><th>Цена</th><th>Остаток</th><th>Вкл(1/0)</th><th>💾</th></tr></thead>
+                <tbody id="stockTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="ai" class="tab">
+        <h2 class="mb-4">AI Создание акции (Pro-модель)</h2>
+        <div class="card p-4">
+            <label class="fw-bold mb-2">Какую акцию придумать?</label>
+            <div class="input-group mb-4">
+                <input type="text" id="aiTopic" class="form-control form-control-lg" placeholder="Например: Комбо-наборы к матчу Лиги Чемпионов">
+                <button class="btn btn-primary btn-lg" id="aiBtn" onclick="runAI()">Сгенерировать</button>
+            </div>
+            
+            <div id="aiRes" class="border p-4 rounded text-white text-center position-relative shadow" style="display:none; overflow:hidden;">
+                <img id="aiImg" style="width:100%; height:300px; object-fit:cover; position:absolute; top:0; left:0; z-index:0; opacity:0.4;">
+                <div style="position:relative; z-index:1;">
+                    <h1 id="aiTitle" class="fw-bold display-4 text-shadow"></h1>
+                    <h3 id="aiText" class="text-warning text-shadow"></h3>
+                    <div class="mt-4"><span class="badge bg-danger fs-5 px-4 py-2" id="aiRules"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="stats" class="tab">
+        <h2 class="mb-4">Аналитика</h2>
+        <div class="card p-4 text-center">
+            <h4>Выгрузка всех заказов</h4>
+            <p class="text-muted">Формат CSV, совместимо с Excel</p>
+            <a href="/admin/export" class="btn btn-success btn-lg">📥 Скачать CSV-отчет</a>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    async function generatePromo() {
-        const topic = document.getElementById('aiTopic').value;
-        document.getElementById('aiResult').innerText = "Нейросеть думает...";
-        let res = await fetch('/admin/ai/promo', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({topic: topic})
-        });
-        let data = await res.json();
-        document.getElementById('aiResult').innerText = "Готово! Новый слоган на сайте: " + data.promo;
+    function switchTab(t) {
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(t).classList.add('active');
+        event.target.classList.add('active');
+        if(t === 'stock') loadStock();
     }
 
-    async function saveSettings() {
-        let base = document.getElementById('baseFee').value;
-        let km = document.getElementById('kmFee').value;
-        let theme = document.getElementById('themeColor').value;
-        await fetch('/admin/settings', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({delivery_base: base, delivery_km: km, theme_color: theme})
-        });
-        alert("Настройки успешно сохранены!");
+    // --- ЛОГИСТИКА ---
+    async function saveLogistics() {
+        const payload = {
+            delivery_base: document.getElementById('base').value, delivery_km: document.getElementById('km').value,
+            free_delivery_limit: document.getElementById('free_del').value, package_fee: document.getElementById('pack').value,
+            free_package_limit: document.getElementById('free_pack').value
+        };
+        await fetch('/admin/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        alert('Тарифы обновлены!');
+    }
+
+    async function testCalc() {
+        const payload = { type: document.getElementById('test_type').value, distance_km: document.getElementById('test_dist').value, cart_total: document.getElementById('test_total').value };
+        const res = await fetch('/api/calculate_delivery', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        const data = await res.json();
+        const box = document.getElementById('calcRes');
+        box.style.display = 'block';
+        box.innerHTML = `Товары: <b>${data.cart_total}₽</b><br>Доставка: <b>${data.delivery_price}₽</b><br>Пакет: <b>${data.package_price}₽</b><hr><b>ИТОГО: ${data.total_to_pay}₽</b>`;
+    }
+
+    // --- СКЛАД ---
+    async function loadStock() {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        document.getElementById('stockTable').innerHTML = data.map(p => `<tr>
+            <td>${p.id}</td>
+            <td><input type="text" class="form-control" value="${p.name}" id="n-${p.id}"></td>
+            <td><input type="number" class="form-control" value="${p.price}" id="p-${p.id}"></td>
+            <td><input type="number" class="form-control" value="${p.stock}" id="s-${p.id}"></td>
+            <td><input type="number" class="form-control" value="${p.active}" id="a-${p.id}" max="1" min="0"></td>
+            <td><button class="btn btn-dark" onclick="saveProd(${p.id})">💾</button></td>
+        </tr>`).join('');
+    }
+
+    async function addProd() {
+        await fetch('/api/products', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:'Новинка', price:100, stock:10})});
+        loadStock();
+    }
+
+    async function saveProd(id) {
+        const payload = {id:id, name:document.getElementById(`n-${id}`).value, price:document.getElementById(`p-${id}`).value, stock:document.getElementById(`s-${id}`).value, active:document.getElementById(`a-${id}`).value};
+        await fetch('/api/products', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        alert('Товар сохранен');
+    }
+
+    // --- AI МАРКЕТИНГ ---
+    async function runAI() {
+        const btn = document.getElementById('aiBtn');
+        btn.disabled = true; btn.innerText = "Генерация акции (10-20 сек)...";
+        try {
+            const res = await fetch('/admin/ai/full_campaign', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({topic: document.getElementById('aiTopic').value})});
+            const data = await res.json();
+            if(data.error) throw new Error(data.error);
+            const box = document.getElementById('aiRes');
+            box.style.display = 'block';
+            box.style.backgroundColor = data.color;
+            document.getElementById('aiTitle').innerText = data.title;
+            document.getElementById('aiText').innerText = data.text;
+            document.getElementById('aiRules').innerText = data.rules;
+            document.getElementById('aiImg').src = data.image_url;
+            alert('Акция создана! Дизайн сайта обновлен.');
+        } catch(e) { alert("Ошибка ИИ: " + e.message); }
+        btn.disabled = false; btn.innerText = "Сгенерировать";
     }
 </script>
+<style>.text-shadow { text-shadow: 2px 2px 5px rgba(0,0,0,0.9); }</style>
 </body>
 </html>

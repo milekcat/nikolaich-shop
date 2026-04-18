@@ -180,6 +180,36 @@ def admin_orders():
             return jsonify([dict(x) for x in res])
         conn.execute("UPDATE orders SET status=? WHERE id=?", (request.json['status'], request.json['id']))
     return jsonify({"status": "ok"})
+# --- ДОПОЛНЕНИЕ ДЛЯ АДМИНКИ (ВСТАВИТЬ ПЕРЕД if __name__ == '__main__':) ---
 
+@app.route('/api/ai/gen_banner', methods=['POST'])
+def ai_gen_banner():
+    topic = request.json.get('topic')
+    prompt = f"{SHOP_INFO} Создай акцию на тему: {topic}. Выдай JSON: title (яркий заголовок), subtitle (условия), bg_color (hex код цвета, нежный пастельный), img_prompt (короткое описание картинки на английском без текста)."
+    res = call_ai(prompt, "Ты креативный директор", "gemini-2.5-pro", True)
+    if "error" in res: return jsonify(res)
+    # Генерируем картинку через бесплатный сервис Pollinations по промпту от ИИ
+    img_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(res['img_prompt'])}?width=800&height=400&nologo=true"
+    return jsonify({**res, "img_url": img_url})
+
+@app.route('/api/banners/publish', methods=['POST'])
+def publish_banner():
+    d = request.json
+    with sqlite3.connect('shop.db') as conn:
+        # Делаем старые баннеры неактивными, чтобы карусель не раздувалась (оставляем только 3 свежих)
+        conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat) VALUES (?,?,?,?,?)",
+                     (d['title'], d['subtitle'], d['img_url'], d['bg_color'], d['link_cat']))
+    return jsonify({"status": "ok"})
+
+@app.route('/api/ai/agent', methods=['POST'])
+def ai_agent():
+    role, msg = request.json.get('role'), request.json.get('msg')
+    base_sys = f"{SHOP_INFO} Отвечай коротко и по делу."
+    prompts = {
+        "marketer": f"{base_sys} Ты маркетолог. Придумывай механики продаж и тексты для ВК.",
+        "lawyer": f"{base_sys} Ты юрист. Отвечай строго по законам РФ (ФЗ-152, закон о защите прав потребителей).",
+    }
+    model = "gemini-3.1-pro" if role == 'lawyer' else "gemini-2.5-pro"
+    return jsonify({"reply": call_ai(msg, prompts.get(role, "Помощник"), model, False)})
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8085)

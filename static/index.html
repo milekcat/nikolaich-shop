@@ -7,59 +7,61 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        :root { --main-color: {{ theme }}; }
+        :root { --main-color: {{ theme }}; --accent: #f39c12; }
         body { background-color: #f4f6f9; font-family: 'Segoe UI', Roboto, sans-serif; }
         
-        /* Шапка и навигация */
-        .navbar-custom { background-color: var(--main-color) !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .cart-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; font-weight: bold; transition: 0.3s;}
-        .cart-btn:hover { background: white; color: var(--main-color) !important; }
+        .navbar-custom { background-color: var(--main-color); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .cart-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 30px; font-weight: 600; backdrop-filter: blur(5px);}
+        .cart-btn:hover { background: white; color: var(--main-color); }
         
-        /* Категории */
-        .category-scroll { display: flex; overflow-x: auto; gap: 15px; padding: 10px 0; scrollbar-width: none; }
-        .category-pill { background: white; border-radius: 25px; padding: 10px 25px; font-weight: 600; color: #333; text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; white-space: nowrap;}
-        .category-pill:hover, .category-pill.active { background: var(--main-color); color: white; }
+        .category-scroll { display: flex; overflow-x: auto; gap: 15px; padding: 15px 0; scrollbar-width: none; }
+        .category-pill { background: white; border-radius: 30px; padding: 10px 25px; font-weight: 600; color: #555; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: 0.3s; white-space: nowrap; cursor: pointer;}
+        .category-pill:hover, .category-pill.active { background: var(--main-color); color: white; transform: translateY(-2px);}
+        .cat-18 { border: 2px solid #e74c3c; }
 
-        /* ИИ Баннеры */
-        .banner-carousel { border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 40px; position: relative;}
-        .banner-slide { position: relative; height: 350px; width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: white;}
+        .banner-carousel { border-radius: 20px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.2); margin-bottom: 40px; position: relative;}
+        .banner-slide { position: relative; height: 380px; width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: white;}
         .banner-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;}
-        .banner-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)); z-index: 2;}
-        .banner-content { position: relative; z-index: 3; padding: 20px; max-width: 800px;}
-        .banner-title { font-size: 3rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-bottom: 15px;}
-        .banner-badge { font-size: 1.2rem; background: #e74c3c; padding: 8px 20px; border-radius: 30px; display: inline-block; box-shadow: 0 4px 10px rgba(231,76,60,0.5);}
+        .banner-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.85)); z-index: 2;}
+        .banner-content { position: relative; z-index: 3; padding: 20px; }
+        .banner-title { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; text-shadow: 0 4px 10px rgba(0,0,0,0.6); margin-bottom: 15px;}
+        
+        .product-card { border: none; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: 0.3s; background: white;}
+        .product-card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.1);}
+        .product-img { height: 220px; object-fit: cover; width: 100%;}
+        .price-tag { font-size: 1.6rem; font-weight: 800; color: var(--main-color);}
+        .btn-add { background: var(--main-color); color: white; border-radius: 12px; padding: 12px; font-weight: bold; transition: 0.3s; width: 100%; border:none;}
+        .btn-add:hover { background: var(--accent); color: #fff;}
+        .lock-icon { font-size: 0.8rem; color: #888; opacity: 0.7; }
 
-        /* Карточки товаров */
-        .product-card { border: none; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s, box-shadow 0.3s; background: white;}
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1);}
-        .product-img { height: 200px; object-fit: cover; width: 100%;}
-        .price-tag { font-size: 1.5rem; font-weight: bold; color: var(--main-color);}
-        .btn-add { background: var(--main-color); color: white; border: none; border-radius: 10px; padding: 10px; font-weight: bold; transition: 0.3s;}
-        .btn-add:hover { filter: brightness(1.1); transform: scale(1.02);}
-        .stock-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 10px; font-size: 0.8rem;}
+        .item-18 { display: none; }
+        .item-18.unlocked { display: block; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top py-3">
     <div class="container">
         <a class="navbar-brand fw-bold fs-3" href="#">🍔 Николаич.Shop</a>
-        <div class="d-flex align-items-center">
-            <button class="btn text-white cart-btn px-4 py-2">
-                <i class="bi bi-lock-fill me-1"></i> Корзина <span class="badge bg-light text-dark ms-2">0 ₽</span>
+        <div class="d-flex align-items-center gap-3">
+            {% if user_phone %}
+                <span class="text-white small fw-bold"><i class="bi bi-person-circle"></i> {{ user_phone }}</span>
+            {% else %}
+                <a href="/auth/vk" class="btn btn-outline-light btn-sm"><i class="bi bi-vk"></i> Вход ВК</a>
+            {% endif %}
+            <button class="btn text-white cart-btn px-4 py-2" data-bs-toggle="modal" data-bs-target="#cartModal">
+                <i class="bi bi-basket-fill me-1"></i> <span id="cartTotal">0 ₽</span>
             </button>
         </div>
     </div>
 </nav>
 
 <div class="container mt-4">
-    
     <div class="category-scroll mb-4">
-        <a href="#" class="category-pill active">🔥 Все товары</a>
-        <a href="#" class="category-pill">🥩 Мясо и Сало</a>
-        <a href="#" class="category-pill">🥤 Напитки</a>
-        <a href="#" class="category-pill">🧀 Снэки</a>
-        <a href="#" class="category-pill">🎁 Подарочные наборы</a>
+        <div class="category-pill active" onclick="filterCat('all')">🔥 Все меню</div>
+        <div class="category-pill" onclick="filterCat('Напитки')">🥤 Напитки</div>
+        <div class="category-pill" onclick="filterCat('Снэки')">🧀 Снэки</div>
+        <div class="category-pill cat-18 text-danger" onclick="unlock18Plus()"><i class="bi bi-exclamation-triangle-fill"></i> Скрытое 18+</div>
     </div>
 
     {% if banners %}
@@ -69,41 +71,99 @@
             <div class="banner-overlay"></div>
             <div class="banner-content">
                 <h1 class="banner-title">{{ banners[0].title }}</h1>
-                <p class="fs-4 text-light mb-4">{{ banners[0].text }}</p>
-                <div class="banner-badge"><i class="bi bi-star-fill text-warning me-2"></i>{{ banners[0].rules }}</div>
+                <p class="fs-4 text-light mb-4 fw-light">{{ banners[0].text }}</p>
+                <div class="badge bg-danger fs-5 px-4 py-2 rounded-pill shadow">{{ banners[0].rules }}</div>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <div class="d-flex justify-content-between align-items-end mb-4 mt-5">
-        <h2 class="fw-bold m-0">Популярное</h2>
-        <span class="text-muted">Найдено товаров: {{ products|length }}</span>
-    </div>
-
-    <div class="row g-4">
+    <div class="row g-4" id="productsGrid">
         {% for p in products %}
-        <div class="col-6 col-md-4 col-lg-3">
-            <div class="product-card h-100 position-relative">
-                <div class="stock-badge">Остаток: {{ p.stock }} шт</div>
-                <img src="{{ p.image_url }}" class="product-img" alt="{{ p.name }}">
+        <div class="col-6 col-md-4 col-lg-3 product-item {{ 'item-18' if p.is_18_plus else '' }}" data-cat="{{ p.category }}">
+            <div class="product-card h-100 d-flex flex-column">
+                <img src="{{ p.image_url }}" class="product-img">
                 <div class="card-body d-flex flex-column">
-                    <p class="text-muted small mb-1">{{ p.category }}</p>
-                    <h5 class="card-title fw-bold text-dark flex-grow-1">{{ p.name }}</h5>
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <span class="price-tag">{{ p.price }} ₽</span>
-                    </div>
-                    <button class="btn btn-add w-100 mt-3"><i class="bi bi-cart-plus me-2"></i>В корзину</button>
+                    <p class="text-muted small mb-1">{{ p.category }} {{ '<span class="text-danger fw-bold">18+</span>'|safe if p.is_18_plus else '' }}</p>
+                    <h5 class="fw-bold text-dark flex-grow-1">{{ p.name }}</h5>
+                    <span class="price-tag">{{ p.price }} ₽</span>
+                    <button class="btn-add mt-3" onclick="addToCart({{ p.price }})">+ Добавить</button>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
-
-    <footer class="mt-5 py-4 text-center text-muted border-top">
-        <p><i class="bi bi-shield-lock-fill text-success"></i> Безопасная оплата. Все права защищены © 2026 Николаич.Shop</p>
-    </footer>
 </div>
 
+<div class="modal fade" id="ageModal" data-bs-backdrop="static" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-4 rounded-4 border-0 shadow-lg">
+      <h2 class="fw-bold text-danger mb-3">Вам есть 18 лет?</h2>
+      <p class="text-muted mb-4">Этот раздел содержит товары для совершеннолетних. Подтверждая возраст, вы принимаете условия.</p>
+      <div class="d-flex justify-content-center gap-3">
+          <button class="btn btn-secondary px-4 py-2" data-bs-dismiss="modal">Нет</button>
+          <button class="btn btn-danger px-4 py-2 fw-bold" onclick="confirmAge()">Да, мне есть 18</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="cartModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 p-3 border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0">
+        <h4 class="fw-bold">Оформление заказа</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% if not user_phone %}
+        <div class="mb-3"><input type="text" id="orderName" class="form-control form-control-lg bg-light border-0" placeholder="Ваше Имя"></div>
+        <div class="mb-3"><input type="tel" id="orderPhone" class="form-control form-control-lg bg-light border-0" placeholder="+7 (___) ___-__-__">
+        <small class="text-muted ms-2">Вы будете автоматически зарегистрированы</small></div>
+        {% else %}
+        <p class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Вы авторизованы: {{ user_phone }}</p>
+        {% endif %}
+        <button class="btn btn-dark w-100 py-3 fs-5 fw-bold mt-2" onclick="checkout()">Подтвердить заказ</button>
+        <div class="text-center mt-3 lock-icon"><i class="bi bi-lock-fill"></i> Ваши данные защищены шифрованием. SSL Secure</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let cartSum = 0;
+    function addToCart(price) { cartSum += price; document.getElementById('cartTotal').innerText = cartSum + ' ₽'; }
+
+    function unlock18Plus() {
+        if(localStorage.getItem('isAdult') === 'true') {
+            document.querySelectorAll('.item-18').forEach(el => el.classList.add('unlocked'));
+            filterCat('Скрытое 18+');
+        } else { new bootstrap.Modal(document.getElementById('ageModal')).show(); }
+    }
+
+    function confirmAge() {
+        localStorage.setItem('isAdult', 'true');
+        bootstrap.Modal.getInstance(document.getElementById('ageModal')).hide();
+        unlock18Plus();
+    }
+
+    function filterCat(catName) {
+        document.querySelectorAll('.product-item').forEach(el => {
+            if(catName === 'all' || el.getAttribute('data-cat') === catName) {
+                if(!el.classList.contains('item-18') || el.classList.contains('unlocked')) el.style.display = 'block';
+            } else { el.style.display = 'none'; }
+        });
+    }
+
+    async function checkout() {
+        const phone = document.getElementById('orderPhone') ? document.getElementById('orderPhone').value : '{{ user_phone }}';
+        const name = document.getElementById('orderName') ? document.getElementById('orderName').value : 'Клиент';
+        if(!phone) return alert('Укажите телефон!');
+        
+        await fetch('/api/checkout', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, name, cart_total: cartSum}) });
+        alert('Заказ принят!'); location.reload();
+    }
+</script>
 </body>
 </html>

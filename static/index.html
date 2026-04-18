@@ -3,51 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>У Николаича</title>
+    <title>У Николаича | Доставка продуктов</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        /* Мобильный стиль PWA (как приложение) */
+        /* Мобильный стиль PWA */
         :root { --bg: #f5f5f7; --accent: #00b853; --text: #1d1d1f; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; padding-bottom: 110px; -webkit-tap-highlight-color: transparent; }
-        ::-webkit-scrollbar { display: none; } /* Прячем скроллбары для чистоты */
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { display: none; }
         
-        /* Липкая шапка и поиск */
-        .sticky-top-area { position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); z-index: 1000; padding-top: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        /* Липкая шапка */
+        .sticky-top-area { position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 1000; padding-top: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
         /* Кнопка ИИ-Шефа */
-        .ai-search-btn { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%); color: #d61a5e; border-radius: 16px; padding: 12px 20px; font-weight: 700; margin: 0 20px 15px 20px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(255, 154, 158, 0.3); cursor: pointer; }
+        .ai-search-btn { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); color: #d61a5e; border-radius: 18px; padding: 14px 20px; font-weight: 700; margin: 0 20px 15px 20px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(255, 154, 158, 0.3); cursor: pointer; transition: transform 0.1s; }
+        .ai-search-btn:active { transform: scale(0.98); }
         
-        /* Категории (горизонтальный скролл) */
+        /* Категории */
         .cat-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 0 20px 15px 20px; scroll-behavior: smooth; }
-        .cat-pill { background: #f2f2f7; border-radius: 20px; padding: 8px 16px; font-weight: 600; font-size: 14px; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+        .cat-pill { background: #f2f2f7; border-radius: 20px; padding: 8px 18px; font-weight: 600; font-size: 14px; white-space: nowrap; cursor: pointer; transition: 0.2s; color: #8e8e93; }
         .cat-pill.active { background: #000; color: #fff; }
 
-        /* Баннеры (Свайп как в сторис) */
-        .banner-track { display: flex; overflow-x: auto; gap: 15px; padding: 15px 20px; scroll-snap-type: x mandatory; }
-        .banner-card { min-width: 85%; scroll-snap-align: center; border-radius: 24px; padding: 24px; display: flex; justify-content: space-between; position: relative; overflow: hidden; height: 160px; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        /* Баннеры */
+        .banner-track { display: flex; overflow-x: auto; gap: 15px; padding: 20px; scroll-snap-type: x mandatory; }
+        .banner-card { min-width: 85%; scroll-snap-align: center; border-radius: 24px; padding: 24px; display: flex; justify-content: space-between; position: relative; overflow: hidden; height: 160px; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.06); cursor: pointer; }
         .banner-card img { position: absolute; right: -20px; bottom: -10px; height: 120%; object-fit: contain; }
-        .banner-title { font-size: 22px; font-weight: 800; line-height: 1.1; margin-bottom: 6px; position: relative; z-index: 2; width: 60%; }
+        .banner-title { font-size: 22px; font-weight: 800; line-height: 1.1; margin-bottom: 6px; position: relative; z-index: 2; width: 65%; }
         
-        /* Сетка товаров */
+        /* Карточки товаров */
         .prod-grid { padding: 0 20px; }
-        .p-card { background: #fff; border-radius: 24px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .p-card { background: #fff; border-radius: 24px; padding: 14px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
         .p-img { font-size: 55px; text-align: center; margin: 10px 0; }
-        .p-price { font-weight: 800; font-size: 18px; margin-top: auto; }
+        .p-price { font-weight: 800; font-size: 18px; margin-top: auto; display: flex; align-items: baseline; gap: 6px;}
+        .old-price { font-size: 13px; text-decoration: line-through; color: #8e8e93; font-weight: 500; }
         .p-name { font-size: 13px; color: #8e8e93; line-height: 1.2; height: 32px; overflow: hidden; margin-top: 4px; }
-        .btn-add { background: #f2f2f7; color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 700; margin-top: 12px; transition: 0.2s; }
+        .btn-add { background: #f2f2f7; color: #000; border: none; border-radius: 16px; width: 100%; padding: 10px; font-weight: 700; margin-top: 12px; transition: 0.2s; }
         .btn-add.added { background: var(--accent); color: #fff; }
 
         /* Плавающая корзина */
         .floating-cart { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--accent); color: #fff; border-radius: 20px; padding: 18px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 2000; cursor: pointer; }
         
-        /* Подвал и замочек 18+ */
-        .footer-legal { text-align: center; padding: 40px 20px; color: #a1a1a6; font-size: 12px; }
-        .lock-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #e5e5ea; color: #8e8e93; font-size: 16px; margin-top: 15px; cursor: pointer; opacity: 0.7; }
+        /* Подвал */
+        .footer-legal { text-align: center; padding: 40px 20px; color: #a1a1a6; font-size: 12px; line-height: 1.6; }
+        .lock-btn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: #e5e5ea; color: #8e8e93; font-size: 18px; margin-top: 20px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
+        .lock-btn:active { background: #d1d1d6; }
         
-        /* Модалки под мобилку */
-        .modal-content { border-radius: 24px 24px 0 0; border: none; }
+        /* Модалки под iOS */
+        .modal-content { border-radius: 28px 28px 0 0; border: none; }
         .modal.fade .modal-dialog { transform: translate(0, 100%); margin: auto; position: absolute; bottom: 0; left: 0; right: 0; max-width: 100%; }
         .modal.show .modal-dialog { transform: translate(0, 0); }
     </style>
@@ -56,16 +59,16 @@
 
 <div class="sticky-top-area">
     <div class="header-top">
-        <h3 class="fw-bold m-0 tracking-tight">Николаич</h3>
+        <h3 class="fw-bold m-0 tracking-tight"><i class="bi bi-shop text-success me-1"></i> Николаич</h3>
         {% if user %}
-            <div class="badge bg-light text-success fw-bold p-2 fs-6 rounded-pill border">💎 {{ user.bonuses }}</div>
+            <div class="badge bg-light text-success fw-bold p-2 px-3 fs-6 rounded-pill border shadow-sm">💎 {{ user.bonuses }}</div>
         {% else %}
-            <i class="bi bi-person-circle fs-3 text-secondary" data-bs-toggle="modal" data-bs-target="#loginModal"></i>
+            <i class="bi bi-person-circle fs-2 text-secondary" data-bs-toggle="modal" data-bs-target="#loginModal"></i>
         {% endif %}
     </div>
 
     <div class="ai-search-btn" data-bs-toggle="modal" data-bs-target="#aiModal">
-        <i class="bi bi-stars"></i> Собрать корзину по рецепту
+        <i class="bi bi-stars fs-5"></i> Собрать корзину по рецепту
     </div>
 
     <div class="cat-scroll">
@@ -88,12 +91,17 @@
 {% endif %}
 
 <div class="prod-grid mt-3">
-    <div class="row g-2">
+    <div class="row g-3">
         {% for p in products %}
-        <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}">
+        <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-name="{{ p.name|lower }}">
             <div class="p-card">
                 <div class="p-img">{{ p.img }}</div>
-                <div class="p-price">{{ p.price|int }} ₽</div>
+                <div class="p-price">
+                    {{ p.price|int }} ₽ 
+                    {% if p.old_price and p.old_price > p.price %}
+                        <span class="old-price">{{ p.old_price|int }} ₽</span>
+                    {% endif %}
+                </div>
                 <div class="p-name">{{ p.name }}</div>
                 <button class="btn-add" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}')">В корзину</button>
             </div>
@@ -103,7 +111,7 @@
 </div>
 
 <div class="footer-legal">
-    <div>ООО "Ферма Николаича" • ИНН 7604123456</div>
+    <div class="fw-bold mb-1">ООО "Ферма Николаича" • ИНН 7604123456</div>
     <div>Пользовательское соглашение • Политика конфиденциальности</div>
     <div class="lock-btn" onclick="request18()"><i class="bi bi-lock-fill"></i></div>
 </div>
@@ -113,34 +121,43 @@
     <span id="cartSum">0 ₽</span>
 </div>
 
+<div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content p-4 pb-5">
+        <h4 class="fw-bold mb-3">Вход для своих</h4>
+        <p class="text-muted small">Введите номер телефона, чтобы копить бонусы.</p>
+        <input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold" placeholder="+7 (999) 000-00-00">
+        <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="login()">Продолжить</button>
+    </div></div>
+</div>
+
 <div class="modal fade" id="aiModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content p-4" style="min-height: 60vh;">
+    <div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 60vh;">
         <h4 class="fw-bold mb-3"><i class="bi bi-stars text-danger"></i> Шеф-повар</h4>
         <p class="text-muted small">Напишите блюдо или повод, и я подберу свежие продукты из нашего ассортимента.</p>
-        <textarea id="aiPrompt" class="form-control mb-3 bg-light border-0 rounded-4 p-3" rows="3" placeholder="Например: Хочу сварить борщ на 5 человек..."></textarea>
+        <textarea id="aiPrompt" class="form-control mb-3 bg-light border-0 rounded-4 p-3" rows="4" placeholder="Например: Хочу пожарить шашлыки на троих мужиков, что взять?"></textarea>
         <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold mb-3" id="aiBtn" onclick="askChef()">Подобрать продукты</button>
-        <div id="aiReply" class="bg-light p-3 rounded-4 small mb-3" style="display:none;"></div>
+        <div id="aiReply" class="bg-light p-4 rounded-4 small mb-3 border" style="display:none; font-size: 14px;"></div>
     </div></div>
 </div>
 
 <div class="modal fade" id="cartModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content p-4" style="min-height: 80vh;">
-        <h3 class="fw-bold mb-4">Корзина</h3>
-        <div id="cartItemsList" class="mb-3 small fw-bold"></div>
-        <hr>
-        <div class="d-flex justify-content-between mb-2"><span>Товары</span><span id="tItems">0 ₽</span></div>
-        <div class="d-flex justify-content-between mb-2"><span>Сборка и пакеты</span><span id="tPkg">29 ₽</span></div>
-        <div class="d-flex justify-content-between mb-3"><span>Доставка (бесплатно от 2000₽)</span><span id="tDel">150 ₽</span></div>
+    <div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;">
+        <h3 class="fw-bold mb-4">Ваш заказ</h3>
+        <div id="cartItemsList" class="mb-3 fw-bold small bg-light p-3 rounded-4"></div>
+        
+        <div class="d-flex justify-content-between mb-2 mt-4 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
+        <div class="d-flex justify-content-between mb-2 text-muted"><span>Сборка и пакеты</span><span id="tPkg" class="fw-bold text-dark">29 ₽</span></div>
+        <div class="d-flex justify-content-between mb-4 text-muted"><span>Доставка (беспл. от 2000₽)</span><span id="tDel" class="fw-bold text-dark">150 ₽</span></div>
         
         {% if user and user.bonuses > 0 %}
-        <div class="form-check form-switch mb-4 bg-light p-3 rounded-4">
-            <input class="form-check-input ms-0 me-2" type="checkbox" id="useBonuses" onchange="calcCart()">
-            <label class="form-check-label fw-bold" for="useBonuses">Списать бонусы (До {{ user.bonuses }})</label>
+        <div class="form-check form-switch mb-4 bg-light p-3 rounded-4 border">
+            <input class="form-check-input ms-0 me-2 fs-5" type="checkbox" id="useBonuses" onchange="calcCart()">
+            <label class="form-check-label fw-bold mt-1" for="useBonuses">Списать бонусы (До {{ user.bonuses }})</label>
         </div>
         {% endif %}
         
-        <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold" placeholder="Ваш номер телефона" value="{{ user.phone if user else '' }}">
-        <button class="btn btn-success w-100 py-3 rounded-4 fw-bold fs-5 shadow-sm" onclick="sendOrder()">Оплатить <span id="tFinal">0</span> ₽</button>
+        <input type="tel" id="checkoutPhone" class="form-control p-4 bg-light border-0 rounded-4 mb-3 fw-bold fs-5 text-center" placeholder="Ваш номер телефона" value="{{ user.phone if user else '' }}">
+        <button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" onclick="sendOrder()">Оплатить <span id="tFinal">0</span> ₽</button>
     </div></div>
 </div>
 
@@ -150,22 +167,33 @@
     let itemsTotal = 0;
     let lastCalc = null;
 
+    // Авторизация
+    async function login() {
+        const phone = document.getElementById('loginPhone').value;
+        if(!phone || phone.length < 10) return alert('Введите корректный номер!');
+        await fetch('/api/auth/shadow', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone})});
+        location.reload();
+    }
+
     // Фильтр категорий
     function filterCat(id, btn) {
-        if(btn) { document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active')); btn.classList.add('active'); }
+        if(btn) { 
+            document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active')); 
+            btn.classList.add('active'); 
+        }
         document.querySelectorAll('.p-item').forEach(el => {
             el.style.display = (id === 'all' || el.dataset.cat == id) ? 'block' : 'none';
         });
     }
 
-    // Добавление в корзину (с анимацией кнопки)
+    // Добавление в корзину
     function add(btn, id, price, name) {
         cart.push({id, price, name});
         itemsTotal += price;
         
-        btn.innerHTML = 'Добавлено <i class="bi bi-check2"></i>';
+        btn.innerHTML = '<i class="bi bi-check2-circle fs-5"></i>';
         btn.classList.add('added');
-        setTimeout(() => { btn.innerHTML = 'В корзину'; btn.classList.remove('added'); }, 1000);
+        setTimeout(() => { btn.innerHTML = 'В корзину'; btn.classList.remove('added'); }, 800);
         
         document.getElementById('cartBtn').style.display = 'flex';
         document.getElementById('cartCount').innerText = cart.length + ' товаров';
@@ -175,47 +203,64 @@
     // Запрос 18+
     async function request18() {
         let phone = "{{ user.phone if user else '' }}";
-        if(!phone) phone = prompt("Доступ выдается директором магазина. Введите ваш номер телефона для отправки запроса:");
+        if(!phone) phone = prompt("Доступ выдается лично директором. Введите номер телефона для запроса:");
         if(!phone) return;
         await fetch('/api/18plus/request', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone})});
-        alert("Запрос отправлен! Директор проверит профиль и откроет доступ.");
+        alert("Запрос отправлен! Николаич проверит профиль и откроет доступ.");
     }
 
     // --- МАГИЯ ИИ ---
     async function askChef() {
         const btn = document.getElementById('aiBtn');
-        btn.innerText = 'Шеф думает...'; btn.disabled = true;
+        const promptText = document.getElementById('aiPrompt').value;
+        if(!promptText) return;
+
+        btn.innerText = 'Шеф подбирает продукты...'; btn.disabled = true;
         
-        const res = await fetch('/api/ai/chef', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query: document.getElementById('aiPrompt').value})});
-        const data = await res.json();
-        
-        let html = `<div>${data.message}</div>`;
-        if(data.cart_ids && data.cart_ids.length > 0) {
-            html += `<hr><button class="btn btn-sm btn-success w-100 rounded-pill fw-bold" onclick='loadAiCart(${JSON.stringify(data.cart_ids)})'>Добавить набор в корзину</button>`;
+        try {
+            const res = await fetch('/api/ai/chef', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query: promptText})});
+            const data = await res.json();
+            
+            let html = `<div class="mb-3">${data.message}</div>`;
+            if(data.cart_ids && data.cart_ids.length > 0) {
+                html += `<button class="btn btn-success w-100 rounded-pill fw-bold py-2 shadow-sm" onclick='loadAiCart(${JSON.stringify(data.cart_ids)})'>Закинуть набор в корзину</button>`;
+            }
+            document.getElementById('aiReply').innerHTML = html;
+            document.getElementById('aiReply').style.display = 'block';
+        } catch (e) {
+            alert('Ошибка связи с шефом.');
         }
-        document.getElementById('aiReply').innerHTML = html;
-        document.getElementById('aiReply').style.display = 'block';
         btn.innerText = 'Подобрать продукты'; btn.disabled = false;
     }
 
     function loadAiCart(ids) {
-        // Проходимся по кнопкам на витрине и "нажимаем" нужные
+        let addedCount = 0;
         ids.forEach(id => {
             const btn = document.querySelector(`.btn-add[onclick*=", ${id},"]`);
-            if(btn) btn.click();
+            if(btn) { btn.click(); addedCount++; }
         });
-        bootstrap.Modal.getInstance(document.getElementById('aiModal')).hide();
+        if(addedCount > 0) {
+            bootstrap.Modal.getInstance(document.getElementById('aiModal')).hide();
+        } else {
+            alert('Извините, этих товаров сейчас нет в наличии.');
+        }
     }
 
     // --- ЛОГИКА КОРЗИНЫ ---
     async function prepareCart() {
-        // Группируем товары по имени для красивого вывода
-        const counts = {}; cart.forEach(i => counts[i.name] = (counts[i.name] || 0) + 1);
-        document.getElementById('cartItemsList').innerHTML = Object.entries(counts).map(([name, qty]) => `<div class="d-flex justify-content-between text-muted border-bottom py-2"><span>${name}</span><span>x${qty}</span></div>`).join('');
+        const counts = {}; 
+        cart.forEach(i => counts[i.name] = (counts[i.name] || 0) + 1);
+        
+        if (Object.keys(counts).length === 0) {
+            document.getElementById('cartItemsList').innerHTML = '<div class="text-center text-muted py-3">Корзина пуста</div>';
+        } else {
+            document.getElementById('cartItemsList').innerHTML = Object.entries(counts).map(([name, qty]) => `<div class="d-flex justify-content-between border-bottom py-2"><span>${name}</span><span class="badge bg-dark rounded-pill" style="padding-top:6px">x${qty}</span></div>`).join('');
+        }
         await calcCart();
     }
 
     async function calcCart() {
+        if (cart.length === 0) return;
         const useBonuses = document.getElementById('useBonuses')?.checked || false;
         const res = await fetch('/api/cart/calc', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items_total: itemsTotal, use_bonuses: useBonuses})});
         lastCalc = await res.json();
@@ -227,6 +272,7 @@
     }
 
     async function sendOrder() {
+        if(cart.length === 0) return alert('Корзина пуста!');
         const phone = document.getElementById('checkoutPhone').value;
         if(!phone || phone.length < 10) return alert("Введите корректный номер телефона!");
         

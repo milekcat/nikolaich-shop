@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, session
 app = Flask(__name__)
 app.secret_key = 'nikolaich_premium_key_2026'
 
-# --- AI INTEGRATION (5 FUNCTIONS) ---
+# --- ИНТЕГРАЦИЯ AI ---
 AI_URL = "https://api.artemox.com/v1/chat/completions"
 AI_API_KEY = "sk-YGn3Z94dTreSNguvMqqa2A"
 
@@ -19,9 +19,9 @@ def call_ai(prompt, sys_prompt, model="gemini-2.5-pro", is_json=True):
     try:
         r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=50)
         return json.loads(r.json()['choices'][0]['message']['content']) if is_json else r.json()['choices'][0]['message']['content']
-    except Exception as e: return {"error": str(e)} if is_json else f"Error: {str(e)}"
+    except Exception as e: return {"error": str(e)} if is_json else f"Ошибка ИИ: {str(e)}"
 
-# --- DATABASE 7.0 ---
+# --- БАЗА ДАННЫХ 7.0 ---
 def init_db():
     with sqlite3.connect('shop.db') as conn:
         c = conn.cursor()
@@ -36,19 +36,18 @@ def init_db():
         c.execute("SELECT COUNT(*) FROM settings")
         if c.fetchone()[0] == 0:
             c.executemany('INSERT INTO settings VALUES (?,?)', [('base_delivery', '150'), ('km_price', '30'), ('cashback_percent', '5')])
-            c.executemany('INSERT INTO categories (name) VALUES (?)', [('🔥 Акции',), ('🥛 Молочное',), ('🥩 Мясо',), ('🍞 Выпечка',)])
+            c.executemany('INSERT INTO categories (name) VALUES (?)', [('🔥 Акции',), ('🥛 Молочное',), ('🥩 Мясо',)])
             c.executemany('INSERT INTO promocodes (code, type, val, min_cart) VALUES (?,?,?,?)', [('START', 'percent', 10, 1000)])
             c.executemany('INSERT INTO products (name, desc, price, old_price, stock, category_id, img, is_18) VALUES (?,?,?,?,?,?,?,?)', [
-                ('Молоко Фермерское', '1 литр, свежий надой', 120, 140, 50, 2, '🥛', 0),
+                ('Молоко Фермерское', '1 литр', 120, 140, 50, 2, '🥛', 0),
                 ('Стейк Рибай', 'Мраморная говядина', 850, 950, 15, 3, '🥩', 0),
-                ('Хлеб Бородинский', 'Горячий из печи', 65, 0, 20, 4, '🍞', 0),
-                ('Настойка Николаича', 'Крепкая, кедровая', 900, 0, 10, 1, '🍷', 1)
+                ('Настойка Николаича', '40 градусов', 900, 0, 10, 1, '🍷', 1)
             ])
     conn.commit()
 
 init_db()
 
-# --- ROUTES ---
+# --- МАРШРУТЫ ---
 @app.route('/')
 def index():
     with sqlite3.connect('shop.db') as conn:
@@ -69,23 +68,18 @@ def calc_cart():
     phone = session.get('phone') or data.get('phone')
     
     discount = 0
-    delivery = 150 # Base
+    delivery = 150
     
     with sqlite3.connect('shop.db') as conn:
         conn.row_factory = sqlite3.Row
-        if cart_total >= 2000: delivery = 0 # Auto-promo
+        if cart_total >= 2000: delivery = 0
         
         msg = ""
         if promo_code:
             pc = conn.execute("SELECT * FROM promocodes WHERE code=? AND active=1", (promo_code,)).fetchone()
-            ref_user = conn.execute("SELECT id FROM users WHERE ref_code=?", (promo_code,)).fetchone()
             if pc and cart_total >= pc['min_cart']:
                 discount = cart_total * (pc['val'] / 100) if pc['type'] == 'percent' else pc['val']
                 msg = "Промокод применен!"
-            elif ref_user:
-                discount = 300
-                msg = "Код друга применен!"
-            else: msg = "Код не найден"
 
         bonuses_spent = 0
         earned = int(cart_total * 0.05)
@@ -114,11 +108,12 @@ def checkout():
             uid = c.lastrowid
         else: uid = u[0]
         
-        if calc.get('bonuses_spent', 0) > 0:
+        if calc and calc.get('bonuses_spent', 0) > 0:
             c.execute("UPDATE users SET bonuses = bonuses - ? WHERE id=?", (calc['bonuses_spent'], uid))
-        c.execute("UPDATE users SET bonuses = bonuses + ? WHERE id=?", (calc.get('earned', 0), uid))
+        if calc:
+            c.execute("UPDATE users SET bonuses = bonuses + ? WHERE id=?", (calc.get('earned', 0), uid))
         
-        c.execute("INSERT INTO orders (user_id, final_total, items) VALUES (?, ?, ?)", (uid, calc['final'], json.dumps(data.get('cart'))))
+        c.execute("INSERT INTO orders (user_id, final_total, items) VALUES (?, ?, ?)", (uid, calc['final'] if calc else 0, json.dumps(data.get('cart'))))
         conn.commit()
     session['phone'] = phone
     return jsonify({"status": "ok"})
@@ -146,9 +141,9 @@ def admin_prods():
 @app.route('/api/ai/agent', methods=['POST'])
 def ai_agent():
     role, msg = request.json.get('role'), request.json.get('msg')
-    sys = {"marketer": "Ты маркетолог Николаича.", "lawyer": "Ты юрист Николаича.", "accountant": "Ты бухгалтер Николаича."}
+    sys = {"marketer": "Marketer", "lawyer": "Lawyer", "accountant": "Accountant"}
     m = "gemini-3.1-pro" if role in ['lawyer', 'accountant'] else "gemini-2.5-pro"
-    return jsonify({"reply": call_ai(msg, sys.get(role, "Помощник"), m, False)})
+    return jsonify({"reply": call_ai(msg, sys.get(role, "Assistant"), m, False)})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8085)

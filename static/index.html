@@ -3,156 +3,280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>У Николаича</title>
+    <title>Николаич | Центр Управления 6.0</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Шапка */
-        .top-header { background: #fff; padding: 15px 0; border-bottom: 1px solid #eaeaea; position: sticky; top: 0; z-index: 100;}
-        .brand-title { font-weight: 800; font-size: 24px; color: #111; text-align: center; margin: 0;}
-        .btn-auth { background: transparent; border: none; color: #333; font-weight: 600;}
+        /* Сайдбар */
+        .sidebar { width: 280px; background: #fff; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
+        .brand { font-size: 22px; font-weight: 800; color: #00b853; padding: 0 24px 20px 24px; border-bottom: 1px solid #e1e4e8; margin-bottom: 20px; letter-spacing: -0.5px; }
+        .nav-item { padding: 12px 24px; color: #586069; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 12px; border-left: 4px solid transparent; }
+        .nav-item:hover { background: #f6f8fa; color: #24292e; }
+        .nav-item.active { background: #e6f8ee; color: #00b853; border-left-color: #00b853; }
         
-        /* Категории (как на скрине) */
-        .cat-container { display: flex; gap: 10px; margin: 25px 0; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none;}
-        .cat-pill { background: #f0f0f0; border-radius: 20px; padding: 8px 20px; font-size: 14px; font-weight: 600; color: #111; cursor: pointer; white-space: nowrap; transition: 0.2s;}
-        .cat-pill.active { background: #000; color: #fff; }
-        .cat-18 { border: 1px solid #ff4d4f; color: #ff4d4f; background: transparent;}
-
-        /* Карточка товара (Идеальная копия скрина) */
-        .product-card { background: #f4f5f7; border-radius: 12px; padding: 20px 20px 0 20px; text-align: left; transition: transform 0.2s; border: none; height: 100%; display: flex; flex-direction: column;}
-        .product-card:hover { transform: translateY(-3px); }
-        .product-icon { font-size: 60px; text-align: center; margin: 20px 0 30px 0; }
-        .price-text { font-size: 18px; font-weight: 800; color: #111; margin: 0; }
-        .name-text { font-size: 13px; color: #555; margin-bottom: 15px; flex-grow: 1;}
-        .btn-add { background: transparent; border: none; border-top: 1px solid #e0e0e0; width: calc(100% + 40px); margin-left: -20px; padding: 15px 0; font-weight: 700; font-size: 14px; color: #111; transition: 0.2s;}
-        .btn-add:hover { background: #eaeaea; }
-
-        .item-18 { display: none; }
-        .item-18.unlocked { display: block; }
+        /* Основной контент */
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 40px; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Плавающая корзина */
-        .floating-cart { position: fixed; bottom: 30px; right: 30px; background: #2e7d32; color: white; border-radius: 50px; padding: 15px 30px; font-weight: bold; box-shadow: 0 10px 20px rgba(46,125,50,0.3); cursor: pointer; z-index: 1000; display: none;}
+        /* Карточки и Элементы */
+        .card-ui { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #e1e4e8; margin-bottom: 24px; }
+        .card-title { font-weight: 800; color: #24292e; margin-bottom: 20px; font-size: 18px; }
+        .form-control, .form-select { border-radius: 10px; border: 1px solid #d1d5da; padding: 10px 14px; background: #fafbfc; }
+        .form-control:focus, .form-select:focus { border-color: #00b853; box-shadow: 0 0 0 3px rgba(0,184,83,0.1); background: #fff; }
+        .btn-green { background: #00b853; color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600; transition: 0.2s; }
+        .btn-green:hover { background: #009945; transform: translateY(-1px); }
+        .btn-dark-ui { background: #24292e; color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600; transition: 0.2s; }
+        .btn-dark-ui:hover { background: #1b1f23; }
+        
+        /* Таблицы */
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .table-custom th { text-align: left; padding: 12px 16px; color: #586069; font-weight: 600; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #e1e4e8; }
+        .table-custom td { padding: 16px; border-bottom: 1px solid #e1e4e8; vertical-align: middle; color: #24292e; font-weight: 500; }
+        .emoji-icon { font-size: 24px; background: #f4f5f7; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div class="top-header">
-    <div class="container d-flex justify-content-between align-items-center">
-        <div style="width: 100px;"></div> <h1 class="brand-title">У Николаича</h1>
-        <div style="width: 100px; text-align: right;">
-            {% if user_phone %}
-                <span class="fw-bold fs-6"><i class="bi bi-person"></i> {{ user_phone[-4:] }}</span>
-            {% else %}
-                <a href="/auth/vk" class="btn-auth text-decoration-none"><i class="bi bi-person-circle me-1"></i> Войти</a>
-            {% endif %}
-        </div>
-    </div>
+<div class="sidebar">
+    <div class="brand">🚜 У Николаича</div>
+    <div class="nav-item active" onclick="switchTab('tab-ai')"><i class="bi bi-robot fs-5"></i> AI Команда</div>
+    <div class="nav-item" onclick="switchTab('tab-warehouse')"><i class="bi bi-box-seam fs-5"></i> Склад и Каталог</div>
+    <div class="nav-item" onclick="switchTab('tab-promo')"><i class="bi bi-tags fs-5"></i> Акции и Промокоды</div>
+    <div class="nav-item" onclick="switchTab('tab-users')"><i class="bi bi-people fs-5"></i> Клиенты и CRM</div>
 </div>
 
-<div class="container">
-    <div class="cat-container">
-        <div class="cat-pill active" onclick="filterCat('all', this)">Все</div>
-        {% for c in categories %}
-            <div class="cat-pill" onclick="filterCat({{ c.id }}, this)">{{ c.name }}</div>
-        {% endfor %}
-        <div class="cat-pill cat-18" onclick="unlock18Plus(this)"><i class="bi bi-exclamation-triangle"></i> 18+</div>
-    </div>
-
-    <div class="row g-4" id="productsGrid">
-        {% for p in products %}
-        <div class="col-12 col-md-6 col-lg-4 product-item {{ 'item-18' if p.is_18_plus else '' }}" data-cat="{{ p.category_id }}">
-            <div class="product-card">
-                <div class="product-icon">{{ p.image_url }}</div>
-                <p class="price-text">{{ p.price|int }} ₽</p>
-                <p class="name-text">{{ p.name }}</p>
-                <button class="btn-add" onclick="addToCart({{ p.price }})">+ В корзину</button>
+<div class="main-content">
+    
+    <div id="tab-ai" class="tab-pane active">
+        <h2 class="fw-bold mb-4">Нейро-Сотрудники</h2>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card-ui h-100">
+                    <div class="card-title"><i class="bi bi-chat-dots text-primary me-2"></i> Бизнес-Ассистенты</div>
+                    <select id="aiRole" class="form-select mb-3">
+                        <option value="marketer">🎯 Маркетолог (Идеи, тексты, акции)</option>
+                        <option value="lawyer">⚖️ Юрист (Законы РФ, договоры)</option>
+                        <option value="accountant">📊 Бухгалтер (Налоги, ИП, чеки)</option>
+                    </select>
+                    <textarea id="aiInput" class="form-control mb-3" rows="4" placeholder="Задай вопрос своему специалисту..."></textarea>
+                    <button class="btn-dark-ui w-100" id="btnAskAi" onclick="askAi()">Спросить</button>
+                    <div id="aiResponse" class="mt-4 p-3 bg-light rounded-3 border" style="display:none; white-space: pre-wrap; font-size: 14px; color: #24292e;"></div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="card-ui mb-4">
+                    <div class="card-title"><i class="bi bi-image text-success me-2"></i> Дизайнер (Web Баннеры)</div>
+                    <div class="input-group">
+                        <input type="text" id="aiWebTopic" class="form-control" placeholder="Тема (например: скидки на мясо)">
+                        <button class="btn-green" onclick="genWebBanner()">Создать</button>
+                    </div>
+                </div>
+                <div class="card-ui">
+                    <div class="card-title"><i class="bi bi-printer text-warning me-2"></i> Полиграфия (Печать 4K)</div>
+                    <div class="input-group mb-3">
+                        <input type="text" id="aiPrintTopic" class="form-control" placeholder="Что рисуем на плакате?">
+                        <button class="btn-dark-ui" onclick="genPrintBanner()">Сгенерировать</button>
+                    </div>
+                    <div id="printResult" class="text-center p-3 border rounded-3 bg-light" style="display:none;">
+                        <a id="printLink" href="#" target="_blank" class="fw-bold text-success text-decoration-none"><i class="bi bi-cloud-download me-1"></i> Скачать готовый файл для печати</a>
+                    </div>
+                </div>
             </div>
         </div>
-        {% endfor %}
     </div>
+
+    <div id="tab-warehouse" class="tab-pane">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold m-0">Склад</h2>
+            <button class="btn-green" onclick="showAddProductModal()">+ Добавить товар</button>
+        </div>
+        
+        <div class="card-ui p-0">
+            <table class="table-custom">
+                <thead><tr><th>Товар</th><th>Описание</th><th>Цена</th><th>Остаток</th><th>Статус</th><th>Действия</th></tr></thead>
+                <tbody id="productsTable">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-promo" class="tab-pane">
+        <h2 class="fw-bold mb-4">Промо Движок</h2>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card-ui">
+                    <div class="card-title">Ручные Промокоды</div>
+                    <p class="text-muted small">Коды, которые клиенты вводят в корзине.</p>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="Код (напр: ПЯТНИЦА)">
+                        <input type="number" class="form-control" placeholder="% скидки">
+                        <button class="btn-dark-ui">Создать</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card-ui">
+                    <div class="card-title">Автоматические Акции</div>
+                    <p class="text-muted small">Применяются сами при выполнении условий.</p>
+                    <div class="p-3 bg-light rounded border mb-2 d-flex justify-content-between align-items-center">
+                        <div><span class="fw-bold">Бесплатная доставка</span><br><small class="text-muted">Если корзина > 2000 ₽</small></div>
+                        <span class="badge bg-success">Активно</span>
+                    </div>
+                    <button class="btn btn-outline-secondary w-100 mt-2">+ Новое правило</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-users" class="tab-pane">
+        <h2 class="fw-bold mb-4">Клиенты и CRM</h2>
+        <div class="card-ui text-center p-5">
+            <i class="bi bi-cone-striped text-warning" style="font-size: 3rem;"></i>
+            <h4 class="mt-3 fw-bold">Раздел в разработке</h4>
+            <p class="text-muted">Здесь будет полная статистика по рефералам, начисленным бонусам и таблица заказов.</p>
+        </div>
+    </div>
+
 </div>
 
-<div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal">
-    🛒 Оформить (<span id="cartSum">0</span> ₽)
-</div>
-
-<div class="modal fade" id="ageModal" data-bs-backdrop="static" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center p-4 rounded-4 border-0 shadow">
-      <h3 class="fw-bold text-danger mb-3">Вам есть 18 лет?</h3>
-      <p class="text-muted mb-4 small">Для доступа к этому разделу требуется подтверждение возраста.</p>
-      <div class="d-flex justify-content-center gap-2">
-          <button class="btn btn-light px-4" data-bs-dismiss="modal">Нет</button>
-          <button class="btn btn-danger px-4 fw-bold" onclick="confirmAge()">Да, мне есть 18</button>
-      </div>
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0" style="border-radius: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <h4 class="fw-bold" id="modalTitle">Новый товар</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="p_id">
+                <div class="row g-3">
+                    <div class="col-md-8"><label class="form-label small text-muted fw-bold">Название</label><input type="text" id="p_name" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label small text-muted fw-bold">Эмодзи / Картинка</label><input type="text" id="p_img" class="form-control" value="📦"></div>
+                    <div class="col-12"><label class="form-label small text-muted fw-bold">Описание</label><input type="text" id="p_desc" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label small text-muted fw-bold">Цена (₽)</label><input type="number" id="p_price" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label small text-muted fw-bold">Старая цена</label><input type="number" id="p_old" class="form-control" value="0"></div>
+                    <div class="col-md-4"><label class="form-label small text-muted fw-bold">Остаток (шт)</label><input type="number" id="p_stock" class="form-control" value="10"></div>
+                    <div class="col-md-6"><label class="form-label small text-muted fw-bold">Категория (ID)</label><input type="number" id="p_cat" class="form-control" value="1"></div>
+                    <div class="col-md-6 pt-4">
+                        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="p_18"><label class="form-check-label text-danger fw-bold">Товар 18+</label></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 pr-4 pb-4">
+                <button class="btn-green w-100 py-2" onclick="saveProduct()">Сохранить</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-
-<div class="modal fade" id="cartModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content rounded-4 p-4 border-0 shadow">
-      <h4 class="fw-bold mb-4">Оформление заказа</h4>
-      {% if not user_phone %}
-      <input type="text" id="orderName" class="form-control form-control-lg bg-light border-0 mb-3" placeholder="Как к вам обращаться?">
-      <input type="tel" id="orderPhone" class="form-control form-control-lg bg-light border-0 mb-4" placeholder="Ваш телефон (для кабинета)">
-      {% else %}
-      <p class="text-success fw-bold mb-4">Вы авторизованы</p>
-      {% endif %}
-      <button class="btn w-100 py-3 fw-bold text-white mb-3" style="background:#2e7d32; border-radius:12px;" onclick="checkout()">Оплатить заказ</button>
-      <div class="text-center text-muted small" style="opacity: 0.6;">
-          <i class="bi bi-lock-fill"></i> Ваши данные защищены. SSL Secure
-      </div>
-    </div>
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    let total = 0;
-    
-    function filterCat(catId, el) {
-        document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active'));
-        el.classList.add('active');
-        document.querySelectorAll('.product-item').forEach(item => {
-            if (catId === 'all' || item.getAttribute('data-cat') == catId) {
-                if (!item.classList.contains('item-18') || item.classList.contains('unlocked')) item.style.display = 'block';
-            } else { item.style.display = 'none'; }
-        });
+    // Навигация
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(tabId === 'tab-warehouse') loadProducts();
     }
 
-    function unlock18Plus(el) {
-        if(localStorage.getItem('isAdult') === 'true') {
-            document.querySelectorAll('.item-18').forEach(item => item.classList.add('unlocked'));
-            filterCat('all', document.querySelector('.cat-pill')); // Reset active pill visually
-            el.classList.add('active');
-            document.querySelectorAll('.product-item').forEach(item => {
-                 item.style.display = item.classList.contains('item-18') ? 'block' : 'none';
-            });
-        } else { new bootstrap.Modal(document.getElementById('ageModal')).show(); }
+    // --- AI Функции ---
+    async function askAi() {
+        const btn = document.getElementById('btnAskAi');
+        const role = document.getElementById('aiRole').value;
+        const msg = document.getElementById('aiInput').value;
+        if(!msg) return;
+        
+        btn.disabled = true; btn.innerText = "Анализирую...";
+        try {
+            const res = await fetch('/api/ai/agent', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role, msg})});
+            const data = await res.json();
+            const box = document.getElementById('aiResponse');
+            box.style.display = 'block';
+            box.innerText = data.reply;
+        } catch(e) { alert("Ошибка соединения с ИИ"); }
+        btn.disabled = false; btn.innerText = "Спросить";
     }
 
-    function confirmAge() {
-        localStorage.setItem('isAdult', 'true');
-        bootstrap.Modal.getInstance(document.getElementById('ageModal')).hide();
-        unlock18Plus(document.querySelector('.cat-18'));
+    async function genWebBanner() {
+        alert("Задание ушло дизайнеру. Ожидайте...");
+        await fetch('/api/ai/banner', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({topic: document.getElementById('aiWebTopic').value})});
+        alert("Баннер сгенерирован и применен к сайту!");
     }
 
-    function addToCart(price) {
-        total += price;
-        document.getElementById('cartSum').innerText = total;
-        document.getElementById('cartBtn').style.display = 'block';
+    async function genPrintBanner() {
+        const res = await fetch('/api/ai/print', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt: document.getElementById('aiPrintTopic').value})});
+        const data = await res.json();
+        document.getElementById('printLink').href = data.url;
+        document.getElementById('printResult').style.display = 'block';
     }
 
-    async function checkout() {
-        const phone = document.getElementById('orderPhone') ? document.getElementById('orderPhone').value : '{{ user_phone }}';
-        const name = document.getElementById('orderName') ? document.getElementById('orderName').value : 'Клиент';
-        if(!phone) return alert('Нужен телефон!');
-        await fetch('/api/checkout', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, name, cart_total: total}) });
-        alert('Заказ принят!'); location.reload();
+    // --- CRUD Склада ---
+    const prodModal = new bootstrap.Modal(document.getElementById('productModal'));
+
+    async function loadProducts() {
+        const res = await fetch('/api/admin/products');
+        const data = await res.json();
+        document.getElementById('productsTable').innerHTML = data.map(p => `
+            <tr>
+                <td><div class="d-flex align-items-center"><span class="emoji-icon me-3">${p.img}</span> <div><div class="fw-bold">${p.name}</div><div class="small text-muted">${p.cat_name || 'Без категории'}</div></div></div></td>
+                <td><small class="text-muted">${p.desc}</small></td>
+                <td class="fw-bold">${p.price} ₽</td>
+                <td>${p.stock} шт</td>
+                <td>${p.is_18 ? '<span class="badge bg-danger">18+</span>' : '<span class="badge bg-success">Обычный</span>'}</td>
+                <td>
+                    <button class="btn btn-sm btn-light border me-1" onclick='editProduct(${JSON.stringify(p)})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-light border text-danger" onclick='deleteProduct(${p.id})'><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
     }
+
+    function showAddProductModal() {
+        document.getElementById('p_id').value = '';
+        document.getElementById('p_name').value = ''; document.getElementById('p_desc').value = '';
+        document.getElementById('p_price').value = ''; document.getElementById('p_old').value = '0';
+        document.getElementById('p_stock').value = '10'; document.getElementById('p_cat').value = '1';
+        document.getElementById('p_img').value = '📦'; document.getElementById('p_18').checked = false;
+        document.getElementById('modalTitle').innerText = 'Новый товар';
+        prodModal.show();
+    }
+
+    function editProduct(p) {
+        document.getElementById('p_id').value = p.id;
+        document.getElementById('p_name').value = p.name; document.getElementById('p_desc').value = p.desc;
+        document.getElementById('p_price').value = p.price; document.getElementById('p_old').value = p.old_price;
+        document.getElementById('p_stock').value = p.stock; document.getElementById('p_cat').value = p.category_id;
+        document.getElementById('p_img').value = p.img; document.getElementById('p_18').checked = p.is_18 === 1;
+        document.getElementById('modalTitle').innerText = 'Редактировать товар';
+        prodModal.show();
+    }
+
+    async function saveProduct() {
+        const id = document.getElementById('p_id').value;
+        const payload = {
+            id: id, name: document.getElementById('p_name').value, desc: document.getElementById('p_desc').value,
+            price: document.getElementById('p_price').value, old_price: document.getElementById('p_old').value,
+            stock: document.getElementById('p_stock').value, cat_id: document.getElementById('p_cat').value,
+            img: document.getElementById('p_img').value, active: 1, is_18: document.getElementById('p_18').checked ? 1 : 0
+        };
+        const method = id ? 'PUT' : 'POST';
+        await fetch('/api/admin/products', {method: method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        prodModal.hide(); loadProducts();
+    }
+
+    async function deleteProduct(id) {
+        if(!confirm('Удалить товар?')) return;
+        await fetch('/api/admin/products', {method: 'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})});
+        loadProducts();
+    }
+
+    // Загружаем товары при старте, если вкладка активна
+    if(document.getElementById('tab-warehouse').classList.contains('active')) loadProducts();
 </script>
 </body>
 </html>

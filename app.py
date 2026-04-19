@@ -3,7 +3,7 @@ import sqlite3, json, urllib.parse, requests, uuid, datetime
 from flask import Flask, render_template, request, jsonify, session
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_shadow_v7'
+app.secret_key = 'nikolaich_shadow_v8'
 
 SHOP_INFO = "Магазин фермерских продуктов 'У Николаича'. г. Ярославль."
 AI_URL = "https://api.artemox.com/v1/chat/completions"
@@ -24,19 +24,71 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT, icon TEXT, sort_order INTEGER, is_hidden INTEGER DEFAULT 0)')
         c.execute('CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL, old_price REAL, stock INTEGER, category_id INTEGER, img TEXT, active INTEGER DEFAULT 1)')
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, active INTEGER DEFAULT 1)')
-        
-        # ОБНОВЛЕННАЯ ТАБЛИЦА КЛИЕНТОВ (ФИО, Соцсети, Адреса в JSON)
         c.execute('''CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT '', 
             social_link TEXT DEFAULT '', addresses TEXT DEFAULT '[]', bonuses INTEGER DEFAULT 0, 
             age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-            
         c.execute('CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
         
         c.execute("SELECT COUNT(*) FROM categories")
         if c.fetchone()[0] == 0:
-            c.executemany('INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)', [('Мясо','🥩', 1, 0), ('Молоко','🥛', 2, 0), ('Овощи','🥬', 3, 0), ('Для своих','🍷', 99, 1)])
-            c.executemany('INSERT INTO products (name, desc, price, stock, category_id, img) VALUES (?,?,?,?,?,?)', [('Стейк Рибай', 'Мраморная говядина', 850, 15, 1, '🥩'), ('Молоко Фермерское', '1 литр', 120, 50, 2, '🥛'), ('Картофель', 'Свежий урожай, 1 кг', 60, 100, 3, '🥔'), ('Настойка Николаича', 'Крепкая, кедровая', 900, 10, 4, '🍷')])
+            # 7 КАТЕГОРИЙ
+            cats = [
+                ('Мясо свежее','🥩', 1, 0), ('Молоко и Сыр','🧀', 2, 0), ('Овощи с грядки','🥬', 3, 0), 
+                ('Птица и Яйца','🥚', 4, 0), ('Домашняя лепка','🥟', 5, 0), ('Соленья и Варенья','🍯', 6, 0), 
+                ('VIP Клуб (18+)','🍷', 99, 1)
+            ]
+            c.executemany('INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)', cats)
+            
+            # 30+ ТОВАРОВ
+            prods = [
+                # Мясо (1)
+                ('Стейк Рибай', 'Мраморная говядина, выдержка 21 день', 850, 15, 1, '🥩'),
+                ('Шея свиная', 'Идеально для шашлыка, 1 кг', 550, 20, 1, '🥩'),
+                ('Бараньи ребрышки', 'Молодой барашек, 1 кг', 700, 10, 1, '🍖'),
+                ('Фарш домашний', 'Свинина + Говядина, 1 кг', 450, 25, 1, '🥩'),
+                ('Сало копченое', 'На вишневой щепе, 500г', 350, 15, 1, '🥓'),
+                
+                # Молоко и Сыр (2)
+                ('Молоко коровье', 'Утренний надой, 1 литр', 120, 50, 2, '🥛'),
+                ('Творог 9%', 'Деревенский, 500г', 250, 30, 2, '🥣'),
+                ('Сметана густая', 'Ложка стоит, 250г', 150, 40, 2, '🍶'),
+                ('Сыр Сулугуни', 'Домашний, слабосоленый, 300г', 380, 15, 2, '🧀'),
+                ('Масло сливочное', '82.5%, ГОСТ, 200г', 220, 25, 2, '🧈'),
+                
+                # Овощи (3)
+                ('Картофель', 'Сорт Гала, желтый, 1 кг', 60, 100, 3, '🥔'),
+                ('Помидоры розовые', 'Сладкие, мясистые, 1 кг', 280, 40, 3, '🍅'),
+                ('Огурцы хрустящие', 'С пупырышками, 1 кг', 180, 50, 3, '🥒'),
+                ('Лук репчатый', 'Острый, 1 кг', 50, 80, 3, '🧅'),
+                ('Зелень свежая', 'Укроп, петрушка, кинза (пучок)', 70, 60, 3, '🌿'),
+                
+                # Птица (4)
+                ('Курица суповая', 'Фермерская, тушка ~1.5 кг', 350, 20, 4, '🐔'),
+                ('Филе индейки', 'Диетическое мясо, 1 кг', 480, 15, 4, '🦃'),
+                ('Яйца куриные', 'Отборные, желток яркий, 10 шт', 130, 100, 4, '🥚'),
+                ('Яйца перепелиные', 'Полезные, 20 шт', 160, 40, 4, '🥚'),
+                
+                # Лепка (5)
+                ('Пельмени с говядиной', 'Ручная лепка, 1 кг', 650, 30, 5, '🥟'),
+                ('Вареники с картошкой', 'С жареным лучком, 1 кг', 350, 25, 5, '🥟'),
+                ('Котлеты по-киевски', 'С маслицем внутри, 4 шт', 420, 20, 5, '🧆'),
+                ('Блинчики с мясом', 'Тонкие, домашние, 500г', 320, 20, 5, '🥞'),
+                
+                # Соленья (6)
+                ('Огурчики соленые', 'Бочковые, с чесноком, 1л', 250, 15, 6, '🥒'),
+                ('Капуста квашеная', 'Хрустящая, с клюквой, 1 кг', 180, 20, 6, '🥗'),
+                ('Грибочки маринованные', 'Белые и подосиновики, 0.5л', 450, 10, 6, '🍄'),
+                ('Мед липовый', 'Своя пасека, 0.5л', 500, 15, 6, '🍯'),
+                ('Варенье малиновое', 'Как у бабушки, 0.5л', 350, 12, 6, '🍓'),
+                
+                # VIP 18+ (7)
+                ('Настойка Кедровая', 'На орешках, 0.5л', 900, 15, 7, '🍷'),
+                ('Хреновуха', 'Пробивает до слез, 0.5л', 850, 10, 7, '🥃'),
+                ('Самогон Пшеничный', 'Двойной перегон, 0.5л', 1200, 8, 7, '🍶'),
+                ('Наливка Вишневая', 'Сладкая, дамская, 0.5л', 950, 12, 7, '🍒')
+            ]
+            c.executemany('INSERT INTO products (name, desc, price, stock, category_id, img) VALUES (?,?,?,?,?,?)', prods)
     conn.commit()
 
 init_db()
@@ -64,7 +116,14 @@ def index():
     with sqlite3.connect('shop.db') as conn:
         conn.row_factory = sqlite3.Row
         cats = conn.execute("SELECT * FROM categories WHERE is_hidden=0 OR is_hidden=?", (1 if is_18_approved else 0,)).fetchall()
-        prods = conn.execute("SELECT * FROM products WHERE active=1").fetchall()
+        
+        # ИСПРАВЛЕННЫЙ ЗАПРОС ТОВАРОВ: Теперь товары фильтруются вместе с категориями
+        prods = conn.execute("""
+            SELECT p.* FROM products p 
+            JOIN categories c ON p.category_id = c.id 
+            WHERE p.active=1 AND (c.is_hidden=0 OR c.is_hidden=?)
+        """, (1 if is_18_approved else 0,)).fetchall()
+        
         banners = conn.execute("SELECT * FROM banners WHERE active=1").fetchall()
         return render_template('index.html', categories=cats, products=prods, banners=banners, user=user)
 
@@ -80,7 +139,6 @@ def request_18():
     user = get_or_create_user(phone)
     if user:
         with sqlite3.connect('shop.db') as conn:
-            # Сохраняем ФИО и ссылку на ВК при запросе
             conn.execute("UPDATE users SET full_name=?, social_link=?, age_verified=1 WHERE phone=?", (d.get('full_name',''), d.get('social_link',''), phone))
     session['phone'] = phone
     return jsonify({"status": "ok"})
@@ -120,7 +178,6 @@ def ai_chef():
     sys_prompt = f"{SHOP_INFO} Собери корзину под запрос ТОЛЬКО из каталога: {catalog}. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО 18+. Формат JSON: {{'message': 'Текст', 'cart_ids': [ID_товаров]}}"
     return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-2.5-pro", True))
 
-# --- АДМИНКА ---
 @app.route('/admin')
 def admin(): return render_template('admin.html')
 
@@ -134,9 +191,7 @@ def admin_users_get():
 def admin_users_update():
     d = request.json
     with sqlite3.connect('shop.db') as conn:
-        # Сохраняем все данные карточки клиента
-        conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=? WHERE id=?", 
-                     (d['full_name'], d['phone'], d['social_link'], d['addresses'], d['age_verified'], d['id']))
+        conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=? WHERE id=?", (d['full_name'], d['phone'], d['social_link'], d['addresses'], d['age_verified'], d['id']))
     return jsonify({"status": "ok"})
 
 @app.route('/api/admin/orders', methods=['GET', 'POST'])
@@ -166,8 +221,8 @@ def publish_banner():
 @app.route('/api/ai/agent', methods=['POST'])
 def ai_agent():
     role = request.json.get('role')
-    sys = f"{SHOP_INFO} Ты маркетолог. Придумывай механики продаж." if role == 'marketer' else f"{SHOP_INFO} Ты юрист. Отвечай по законам РФ."
-    return jsonify({"reply": call_ai(request.json.get('msg'), sys, "gemini-3.1-pro" if role == 'lawyer' else "gemini-2.5-pro", False)})
+    sys = f"{SHOP_INFO} Ты маркетолог." if role == 'marketer' else f"{SHOP_INFO} Ты юрист."
+    return jsonify({"reply": call_ai(request.json.get('msg'), sys, "gemini-2.5-pro", False)})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8085)

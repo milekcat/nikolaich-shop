@@ -37,9 +37,17 @@
         .floating-cart { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--accent); color: #fff; border-radius: 20px; padding: 18px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 2000; cursor: pointer; }
         
         .footer-legal { text-align: center; padding: 40px 20px; color: #a1a1a6; font-size: 12px; line-height: 1.6; }
-        .lock-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #e5e5ea; color: #8e8e93; padding: 10px 20px; font-size: 14px; font-weight: 700; gap: 8px; margin-top: 20px; cursor: pointer; transition: 0.2s; }
-        .lock-btn.success { background: #d1e7dd; color: #0f5132; }
-        .lock-btn.warning { background: #fff3cd; color: #856404; }
+        
+        /* ПАСХАЛКА: Маленький невидимый замочек */
+        .lock-btn { display: inline-block; padding: 10px; cursor: pointer; opacity: 0.15; transition: opacity 0.3s; margin-top: 15px; }
+        .lock-btn i { font-size: 16px; color: #a1a1a6; }
+        .lock-btn:hover { opacity: 0.8; }
+        
+        /* Но если одобрили или проверяют - делаем кнопку заметной */
+        .lock-btn.success { opacity: 1; display: inline-flex; align-items: center; justify-content: center; border-radius: 50px; background: #d1e7dd; color: #0f5132; padding: 10px 20px; font-size: 14px; font-weight: 700; gap: 8px; }
+        .lock-btn.success i { color: #0f5132; font-size: 18px; }
+        .lock-btn.warning { opacity: 1; display: inline-flex; align-items: center; justify-content: center; border-radius: 50px; background: #fff3cd; color: #856404; padding: 10px 20px; font-size: 14px; font-weight: 700; gap: 8px; }
+        .lock-btn.warning i { color: #856404; font-size: 18px; }
         
         .modal-content { border-radius: 28px 28px 0 0; border: none; }
         .modal.fade .modal-dialog { transform: translate(0, 100%); margin: auto; position: absolute; bottom: 0; left: 0; right: 0; max-width: 100%; }
@@ -100,13 +108,15 @@
     <div class="fw-bold mb-1">ООО "Ферма Николаича" • ИНН 7604123456</div>
     <div>Пользовательское соглашение • Политика конфиденциальности</div>
     
-    {% if user and user.age_verified == 2 %}
-        <div class="lock-btn success" onclick="filterCat(7, null)"><i class="bi bi-unlock-fill"></i> VIP Клуб Открыт</div>
-    {% elif user and user.age_verified == 1 %}
-        <div class="lock-btn warning"><i class="bi bi-hourglass-split"></i> Заявка на проверке</div>
-    {% else %}
-        <div class="lock-btn" data-bs-toggle="modal" data-bs-target="#vipModal"><i class="bi bi-lock-fill"></i> Доступ в VIP (18+)</div>
-    {% endif %}
+    <div class="mt-2">
+        {% if user and user.age_verified == 2 %}
+            <div class="lock-btn success" onclick="filterCat(7, null)"><i class="bi bi-unlock-fill"></i> VIP Клуб Открыт</div>
+        {% elif user and user.age_verified == 1 %}
+            <div class="lock-btn warning"><i class="bi bi-hourglass-split"></i> Заявка на проверке</div>
+        {% else %}
+            <div class="lock-btn" data-bs-toggle="modal" data-bs-target="#vipModal" title="Секретный раздел"><i class="bi bi-lock-fill"></i></div>
+        {% endif %}
+    </div>
 </div>
 
 <div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()">
@@ -167,7 +177,6 @@
         location.reload();
     }
 
-    // Отправка заявки в VIP
     async function sendVipRequest() {
         const phone = document.getElementById('vipPhone').value;
         const full_name = document.getElementById('vipFio').value;

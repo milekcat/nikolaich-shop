@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Николаич | CRM</title>
+    <title>Николаич | Центр Управления</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
@@ -10,9 +10,9 @@
         .sidebar { width: 280px; background: #fff; border-right: 1px solid #e5e5ea; padding: 25px; }
         .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
         .card-ui { background: #fff; border-radius: 20px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 24px; }
-        .nav-link { color: #8e8e93; font-weight: 600; border-radius: 12px; margin-bottom: 5px; }
+        .nav-link { color: #8e8e93; font-weight: 600; border-radius: 12px; margin-bottom: 5px; cursor: pointer;}
         .nav-link.active { background: #f2f2f7; color: #000; }
-        /* Суб-меню для разделения клиентов */
+        .stat-card { background: linear-gradient(135deg, #000 0%, #333 100%); color: #fff; border-radius: 20px; padding: 20px; }
         .sub-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .sub-nav-item { cursor: pointer; font-weight: 600; color: #8e8e93; padding: 5px 15px; border-radius: 20px; }
         .sub-nav-item.active { background: #000; color: #fff; }
@@ -23,19 +23,18 @@
 <div class="sidebar">
     <h4 class="fw-bold text-success mb-4"><i class="bi bi-shop"></i> Николаич</h4>
     <nav class="nav flex-column gap-1">
-        <a class="nav-link active" href="#" onclick="show('orders', this)"><i class="bi bi-cart me-2"></i> Заказы</a>
-        <a class="nav-link" href="#" onclick="show('crm', this)"><i class="bi bi-people me-2"></i> Клиенты (CRM)</a>
-        <a class="nav-link" href="#" onclick="show('ai', this)"><i class="bi bi-magic me-2"></i> ИИ & Баннеры</a>
+        <a class="nav-link active" onclick="show('orders', this)"><i class="bi bi-cart me-2"></i> Заказы</a>
+        <a class="nav-link" onclick="show('crm', this)"><i class="bi bi-people me-2"></i> База Клиентов</a>
+        <a class="nav-link" onclick="show('warehouse', this)"><i class="bi bi-box-seam me-2"></i> Склад и Каталог</a>
     </nav>
 </div>
 
 <div class="main-content">
-    
     <div id="orders" class="tab">
         <h2 class="fw-bold mb-4">Управление заказами</h2>
         <div class="card-ui p-0 overflow-hidden">
             <table class="table table-hover m-0 align-middle">
-                <thead class="table-light"><tr><th>ID</th><th>Клиент</th><th>Сумма</th><th>Состав</th><th>Статус</th></tr></thead>
+                <thead class="table-light"><tr><th>ID</th><th>Клиент</th><th>Сумма</th><th>Статус</th></tr></thead>
                 <tbody id="ordersTable"></tbody>
             </table>
         </div>
@@ -43,12 +42,10 @@
 
     <div id="crm" class="tab" style="display:none">
         <h2 class="fw-bold mb-3">База клиентов</h2>
-        
         <div class="sub-nav">
             <div class="sub-nav-item active" onclick="filterClients('all', this)">Обычные покупатели</div>
             <div class="sub-nav-item" onclick="filterClients('vip', this)"><i class="bi bi-star-fill text-warning"></i> VIP Клуб (18+)</div>
         </div>
-
         <div class="card-ui p-0 overflow-hidden">
             <table class="table table-hover m-0 align-middle">
                 <thead class="table-light"><tr><th>Телефон</th><th>ФИО</th><th>Статус 18+</th><th>Настройки</th></tr></thead>
@@ -57,162 +54,80 @@
         </div>
     </div>
 
-    <div id="ai" class="tab" style="display:none">
-        <h2 class="fw-bold mb-4">Нейро-сотрудники</h2>
-        <div class="row g-4">
-            <div class="col-md-6"><div class="card-ui h-100"><h5 class="fw-bold mb-3"><i class="bi bi-image text-primary"></i> ИИ-Дизайнер (Баннеры)</h5><input type="text" id="bannerTopic" class="form-control mb-3 bg-light border-0 p-3" placeholder="О чем акция?"><button class="btn btn-dark w-100 fw-bold py-2" onclick="genBanner(this)">Сгенерировать баннер</button><div id="bannerPreview" class="mt-4" style="display:none"><div class="p-3 rounded-4 mb-3" id="bCard" style="min-height:120px; color:#000;"><h4 id="bTitle" class="fw-bold"></h4><p id="bSub" class="m-0 opacity-75"></p></div><img id="bImg" class="w-100 rounded-4 mb-3 shadow-sm"><select id="bLink" class="form-select mb-3 bg-light border-0"><option value="1">Мясо</option><option value="4">18+ (Настойки)</option></select><button class="btn btn-success w-100 fw-bold py-2" onclick="publishBanner()">Опубликовать на главную</button></div></div></div>
-            <div class="col-md-6"><div class="card-ui h-100"><h5 class="fw-bold mb-3"><i class="bi bi-briefcase text-warning"></i> Бизнес-консультанты</h5><select id="aiRole" class="form-select mb-3 bg-light border-0"><option value="marketer">Маркетолог</option><option value="lawyer">Юрист</option></select><textarea id="aiMsg" class="form-control mb-3 bg-light border-0 p-3" rows="4" placeholder="Задайте вопрос..."></textarea><button class="btn btn-outline-dark w-100 fw-bold py-2" onclick="askAgent(this)">Спросить</button><div id="aiReply" class="mt-3 p-3 bg-light rounded-4 small" style="display:none; white-space: pre-wrap;"></div></div></div>
+    <div id="warehouse" class="tab" style="display:none">
+        <h2 class="fw-bold mb-4">Склад и Аналитика</h2>
+        <div class="row mb-4">
+            <div class="col-md-6"><div class="stat-card shadow-sm"><div class="opacity-75 small fw-bold text-uppercase mb-1">Выручка за всё время</div><h2 class="fw-bold m-0" id="statRev">0 ₽</h2></div></div>
+            <div class="col-md-6"><div class="stat-card shadow-sm" style="background: linear-gradient(135deg, #00b853 0%, #008a3e 100%);"><div class="opacity-75 small fw-bold text-uppercase mb-1">Всего заказов</div><h2 class="fw-bold m-0" id="statOrd">0</h2></div></div>
+        </div>
+        <div class="card-ui p-0 overflow-hidden">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold m-0">Управление товарами</h5>
+                <button class="btn btn-dark fw-bold rounded-pill px-4" onclick="openProductModal()"><i class="bi bi-plus-lg"></i> Добавить товар</button>
+            </div>
+            <table class="table table-hover m-0 align-middle">
+                <thead class="table-light"><tr><th>Товар</th><th>Категория</th><th>Цена</th><th>Ед. изм / Шаг</th><th>Старая цена</th><th>Остаток</th><th>Действия</th></tr></thead>
+                <tbody id="productsTable"></tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="userModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content border-0" style="border-radius: 20px;">
-        <div class="modal-header bg-light border-0" style="border-radius: 20px 20px 0 0;">
-            <h5 class="fw-bold m-0">Карточка клиента</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body p-4">
-            <input type="hidden" id="editUserId">
-            
-            <label class="form-label small fw-bold text-muted">ФИО</label>
-            <input type="text" id="editUserFio" class="form-control bg-light border-0 mb-3 p-2">
-            
-            <label class="form-label small fw-bold text-muted">Телефон</label>
-            <input type="text" id="editUserPhone" class="form-control bg-light border-0 mb-3 p-2">
-            
-            <label class="form-label small fw-bold text-muted">Ссылка на соцсеть (VK/TG)</label>
-            <input type="text" id="editUserSocial" class="form-control bg-light border-0 mb-3 p-2" placeholder="https://vk.com/...">
-            
-            <label class="form-label small fw-bold text-muted">Адреса доставки (Каждый с новой строки)</label>
-            <textarea id="editUserAddresses" class="form-control bg-light border-0 mb-3 p-2" rows="3" placeholder="г. Ярославль, ул. Пушкина..."></textarea>
-            
-            <label class="form-label small fw-bold text-muted">Доступ в VIP Клуб (18+)</label>
-            <select id="editUserAge" class="form-select bg-light border-0 mb-4 p-2">
-                <option value="0">Закрыт</option>
-                <option value="1">Ожидает проверки</option>
-                <option value="2">ОДОБРЕН (Доступ открыт)</option>
-            </select>
-            
-            <button class="btn btn-dark w-100 py-3 fw-bold rounded-3" onclick="saveUser()">Сохранить профиль</button>
-        </div>
-    </div></div>
-</div>
+<div class="modal fade" id="productModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4" style="border-radius: 20px;"><h5 class="fw-bold mb-4" id="pModalTitle">Добавить товар</h5><input type="hidden" id="pId"><div class="row g-3 mb-3"><div class="col-8"><label class="small fw-bold text-muted">Название</label><input type="text" id="pName" class="form-control bg-light border-0"></div><div class="col-4"><label class="small fw-bold text-muted">Эмодзи</label><input type="text" id="pImg" class="form-control bg-light border-0" placeholder="🥩"></div></div><div class="mb-3"><label class="small fw-bold text-muted">Описание (коротко)</label><input type="text" id="pDesc" class="form-control bg-light border-0"></div><div class="mb-3"><label class="small fw-bold text-muted">Категория</label><select id="pCat" class="form-select bg-light border-0"></select></div><div class="row g-3 mb-3"><div class="col-6"><label class="small fw-bold text-muted">Цена (₽)</label><input type="number" id="pPrice" class="form-control bg-light border-0"></div><div class="col-6"><label class="small fw-bold text-muted">Зачеркнутая цена</label><input type="number" id="pOldPrice" class="form-control bg-light border-0" value="0"></div></div><div class="row g-3 mb-3"><div class="col-4"><label class="small fw-bold text-muted">Остаток</label><input type="number" id="pStock" class="form-control bg-light border-0"></div><div class="col-4"><label class="small fw-bold text-muted">Ед. изм</label><select id="pUnit" class="form-select bg-light border-0"><option value="шт">шт</option><option value="кг">кг</option><option value="г">г</option><option value="уп">уп</option></select></div><div class="col-4"><label class="small fw-bold text-muted">Шаг (0.5)</label><input type="number" step="0.1" id="pStep" class="form-control bg-light border-0" value="1"></div></div><button class="btn btn-success w-100 py-3 fw-bold rounded-3" onclick="saveProduct()">Сохранить на склад</button></div></div></div>
+
+<div class="modal fade" id="userModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content border-0" style="border-radius: 20px;"><div class="modal-header bg-light border-0" style="border-radius: 20px 20px 0 0;"><h5 class="fw-bold m-0">Карточка клиента</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><input type="hidden" id="editUserId"><label class="form-label small fw-bold text-muted">ФИО</label><input type="text" id="editUserFio" class="form-control bg-light border-0 mb-3 p-2"><label class="form-label small fw-bold text-muted">Телефон</label><input type="text" id="editUserPhone" class="form-control bg-light border-0 mb-3 p-2"><label class="form-label small fw-bold text-muted">Ссылка ВК/TG</label><input type="text" id="editUserSocial" class="form-control bg-light border-0 mb-3 p-2"><label class="form-label small fw-bold text-muted">Адреса (с новой строки)</label><textarea id="editUserAddresses" class="form-control bg-light border-0 mb-3 p-2" rows="2"></textarea><label class="form-label small fw-bold text-muted">Доступ в VIP Клуб (18+)</label><select id="editUserAge" class="form-select bg-light border-0 mb-4 p-2"><option value="0">Закрыт</option><option value="1">Ожидает проверки</option><option value="2">ОДОБРЕН (Открыт)</option></select><button class="btn btn-dark w-100 py-3 fw-bold rounded-3" onclick="saveUser()">Сохранить профиль</button></div></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    let allUsers = [];
-    let currentFilter = 'all';
+    let allUsers = []; let categories = []; let currentFilter = 'all';
 
     function show(id, btn) {
-        document.querySelectorAll('.tab').forEach(t => t.style.display='none');
-        document.getElementById(id).style.display='block';
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        btn.classList.add('active');
-        if(id === 'orders') loadOrders();
-        if(id === 'crm') loadUsers();
+        document.querySelectorAll('.tab').forEach(t => t.style.display='none'); document.getElementById(id).style.display='block';
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active')); btn.classList.add('active');
+        if(id === 'orders') loadOrders(); if(id === 'crm') loadUsers(); if(id === 'warehouse') loadWarehouse();
     }
 
+    // ЗАКАЗЫ
     async function loadOrders() {
-        const res = await fetch('/api/admin/orders'); const data = await res.json();
-        document.getElementById('ordersTable').innerHTML = data.map(o => `
-            <tr><td class="fw-bold">#${o.id}</td><td>${o.full_name || o.phone}</td><td class="fw-bold text-success">${o.final_total} ₽</td><td class="small text-muted" style="max-width:200px;">${o.items}</td>
-            <td><select class="form-select form-select-sm border-0 bg-light fw-bold" onchange="updateOrderStatus(${o.id}, this.value)"><option value="Новый" ${o.status=='Новый'?'selected':''}>Новый</option><option value="В пути" ${o.status=='В пути'?'selected':''}>В пути</option><option value="Выполнен" ${o.status=='Выполнен'?'selected':''}>Выполнен</option></select></td></tr>
-        `).join('');
+        const data = await (await fetch('/api/admin/orders')).json();
+        document.getElementById('ordersTable').innerHTML = data.map(o => `<tr><td class="fw-bold">#${o.id}</td><td>${o.full_name || o.phone}</td><td class="fw-bold text-success">${o.final_total} ₽</td><td><select class="form-select border-0 bg-light fw-bold" onchange="updateOrderStatus(${o.id}, this.value)"><option value="Новый" ${o.status=='Новый'?'selected':''}>Новый</option><option value="Выполнен" ${o.status=='Выполнен'?'selected':''}>Выполнен</option></select></td></tr>`).join('');
     }
+    async function updateOrderStatus(id, status) { await fetch('/api/admin/orders', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id, status})}); }
 
-    async function updateOrderStatus(id, status) {
-        await fetch('/api/admin/orders', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id, status})});
-    }
-
-    async function loadUsers() {
-        const res = await fetch('/api/admin/users'); 
-        allUsers = await res.json();
-        renderUsers();
-    }
-
-    function filterClients(type, btn) {
-        document.querySelectorAll('.sub-nav-item').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = type;
-        renderUsers();
-    }
-
+    // CRM
+    async function loadUsers() { allUsers = await (await fetch('/api/admin/users')).json(); renderUsers(); }
+    function filterClients(type, btn) { document.querySelectorAll('.sub-nav-item').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentFilter = type; renderUsers(); }
     function renderUsers() {
-        let filtered = allUsers;
-        // Если выбрана вкладка VIP - показываем тех, кто одобрен(2) или ждет проверки(1)
-        if(currentFilter === 'vip') {
-            filtered = allUsers.filter(u => u.age_verified > 0);
-        }
-
-        document.getElementById('usersTable').innerHTML = filtered.map(u => {
-            let ageBadge = u.age_verified == 2 ? '<span class="badge bg-success">Одобрен</span>' : (u.age_verified == 1 ? '<span class="badge bg-warning text-dark">Ждет проверки</span>' : '<span class="badge bg-secondary">Нет доступа</span>');
-            
-            // Парсим адреса из JSON (если есть) чтобы показать количество
-            let addrCount = 0;
-            try { addrCount = JSON.parse(u.addresses).length; } catch(e) {}
-
-            return `<tr>
-                <td class="fw-bold">${u.phone}</td>
-                <td>${u.full_name || '<span class="text-muted">Не указано</span>'}</td>
-                <td>${ageBadge}</td>
-                <td><button class="btn btn-sm btn-dark fw-bold px-3 rounded-pill" onclick='openUserModal(${JSON.stringify(u)})'><i class="bi bi-pencil-square"></i> Карточка</button></td>
-            </tr>`;
-        }).join('');
+        let filtered = currentFilter === 'vip' ? allUsers.filter(u => u.age_verified > 0) : allUsers;
+        document.getElementById('usersTable').innerHTML = filtered.map(u => `<tr><td class="fw-bold">${u.phone}</td><td>${u.full_name || '-'}</td><td>${u.age_verified==2?'<span class="badge bg-success">Одобрен</span>':(u.age_verified==1?'<span class="badge bg-warning text-dark">Проверка</span>':'<span class="badge bg-secondary">Нет</span>')}</td><td><button class="btn btn-sm btn-dark rounded-pill px-3" onclick='openUserModal(${JSON.stringify(u)})'>Карточка</button></td></tr>`).join('');
     }
-
     function openUserModal(u) {
-        document.getElementById('editUserId').value = u.id;
-        document.getElementById('editUserFio').value = u.full_name || '';
-        document.getElementById('editUserPhone').value = u.phone || '';
-        document.getElementById('editUserSocial').value = u.social_link || '';
-        document.getElementById('editUserAge').value = u.age_verified;
-        
-        // Разворачиваем адреса из JSON в текст с переносами строк
-        let addressesText = '';
-        try { addressesText = JSON.parse(u.addresses).join('\n'); } catch(e) { addressesText = u.addresses || ''; }
-        document.getElementById('editUserAddresses').value = addressesText;
-
+        document.getElementById('editUserId').value = u.id; document.getElementById('editUserFio').value = u.full_name || ''; document.getElementById('editUserPhone').value = u.phone || ''; document.getElementById('editUserSocial').value = u.social_link || ''; document.getElementById('editUserAge').value = u.age_verified;
+        try { document.getElementById('editUserAddresses').value = JSON.parse(u.addresses).join('\n'); } catch(e) { document.getElementById('editUserAddresses').value = u.addresses || ''; }
         new bootstrap.Modal(document.getElementById('userModal')).show();
     }
-
     async function saveUser() {
-        // Собираем адреса из textarea обратно в JSON массив
-        const addrLines = document.getElementById('editUserAddresses').value.split('\n').filter(a => a.trim() !== '');
-        
-        const data = {
-            id: document.getElementById('editUserId').value,
-            full_name: document.getElementById('editUserFio').value,
-            phone: document.getElementById('editUserPhone').value,
-            social_link: document.getElementById('editUserSocial').value,
-            addresses: JSON.stringify(addrLines),
-            age_verified: document.getElementById('editUserAge').value
-        };
-
-        await fetch('/api/admin/users/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
-        loadUsers(); // Перезагружаем список
+        const data = { id: document.getElementById('editUserId').value, full_name: document.getElementById('editUserFio').value, phone: document.getElementById('editUserPhone').value, social_link: document.getElementById('editUserSocial').value, addresses: JSON.stringify(document.getElementById('editUserAddresses').value.split('\n').filter(a=>a.trim()!=='')), age_verified: document.getElementById('editUserAge').value };
+        await fetch('/api/admin/users/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); bootstrap.Modal.getInstance(document.getElementById('userModal')).hide(); loadUsers();
     }
 
-    // ИИ Генератор (оставил как было)
-    let currentBanner = null;
-    async function genBanner(btn) {
-        btn.innerText = 'Создаю...'; btn.disabled = true;
-        const res = await fetch('/api/ai/gen_banner', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({topic: document.getElementById('bannerTopic').value})});
-        currentBanner = await res.json();
-        document.getElementById('bTitle').innerText = currentBanner.title; document.getElementById('bSub').innerText = currentBanner.subtitle; document.getElementById('bCard').style.background = currentBanner.bg_color; document.getElementById('bImg').src = currentBanner.img_url; document.getElementById('bannerPreview').style.display = 'block';
-        btn.innerText = 'Сгенерировать баннер'; btn.disabled = false;
+    // СКЛАД
+    async function loadWarehouse() {
+        const stats = await (await fetch('/api/admin/analytics')).json();
+        document.getElementById('statRev').innerText = stats.total_revenue + ' ₽'; document.getElementById('statOrd').innerText = stats.total_orders;
+        const data = await (await fetch('/api/admin/warehouse')).json(); categories = data.categories;
+        document.getElementById('pCat').innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        document.getElementById('productsTable').innerHTML = data.products.map(p => `<tr><td class="fw-bold">${p.img} ${p.name}<br><small class="text-muted fw-normal">${p.desc}</small></td><td><span class="badge bg-light text-dark border">${p.cat_name}</span></td><td class="fw-bold text-success">${p.price} ₽</td><td>${p.unit} (шаг ${p.step})</td><td>${p.old_price > 0 ? p.old_price+' ₽' : '-'}</td><td class="${p.stock < 10 ? 'text-danger fw-bold' : ''}">${p.stock}</td><td><button class="btn btn-sm btn-light border me-1" onclick='openProductModal(${JSON.stringify(p)})'><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-danger opacity-75" onclick="deleteProduct(${p.id})"><i class="bi bi-trash"></i></button></td></tr>`).join('');
     }
-    async function publishBanner() {
-        await fetch('/api/banners/publish', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...currentBanner, link_cat: document.getElementById('bLink').value})});
-        alert('Опубликовано!');
+    function openProductModal(p = null) {
+        document.getElementById('pModalTitle').innerText = p ? 'Редактировать товар' : 'Новый товар'; document.getElementById('pId').value = p ? p.id : ''; document.getElementById('pName').value = p ? p.name : ''; document.getElementById('pDesc').value = p ? p.desc : ''; document.getElementById('pCat').value = p ? p.category_id : categories[0].id; document.getElementById('pPrice').value = p ? p.price : ''; document.getElementById('pOldPrice').value = p ? p.old_price : '0'; document.getElementById('pStock').value = p ? p.stock : ''; document.getElementById('pImg').value = p ? p.img : '🥩'; document.getElementById('pUnit').value = p ? p.unit : 'шт'; document.getElementById('pStep').value = p ? p.step : '1';
+        new bootstrap.Modal(document.getElementById('productModal')).show();
     }
-    async function askAgent(btn) {
-        btn.innerText = 'Думает...'; btn.disabled = true;
-        const res = await fetch('/api/ai/agent', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role: document.getElementById('aiRole').value, msg: document.getElementById('aiMsg').value})});
-        document.getElementById('aiReply').innerText = (await res.json()).reply; document.getElementById('aiReply').style.display = 'block';
-        btn.innerText = 'Спросить'; btn.disabled = false;
+    async function saveProduct() {
+        const data = { id: document.getElementById('pId').value, name: document.getElementById('pName').value, desc: document.getElementById('pDesc').value, price: document.getElementById('pPrice').value, old_price: document.getElementById('pOldPrice').value, stock: document.getElementById('pStock').value, category_id: document.getElementById('pCat').value, img: document.getElementById('pImg').value, unit: document.getElementById('pUnit').value, step: document.getElementById('pStep').value };
+        await fetch('/api/admin/product', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); bootstrap.Modal.getInstance(document.getElementById('productModal')).hide(); loadWarehouse();
     }
+    async function deleteProduct(id) { if(!confirm('Удалить товар?')) return; await fetch('/api/admin/product', {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})}); loadWarehouse(); }
 
     window.onload = loadOrders;
 </script>

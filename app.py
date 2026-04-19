@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import sqlite3
 import json
 import urllib.parse
@@ -89,9 +89,11 @@ def init_db():
         
         # Каталог
         c.execute('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT, icon TEXT, sort_order INTEGER, is_hidden INTEGER DEFAULT 0)')
+        
+        # ИСПРАВЛЕНА ОШИБКА: добавлено значение по умолчанию для old_price -> DEFAULT 0
         c.execute('''CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL, old_price REAL, 
-            stock INTEGER, category_id INTEGER, images TEXT DEFAULT "[]", 
+            id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, 
+            stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", 
             unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1
         )''')
         
@@ -121,10 +123,11 @@ def init_db():
                 ('Мясо свежее', '🥩', 1, 0), ('Молоко и Сыр', '🧀', 2, 0), 
                 ('Овощи с грядки', '🥬', 3, 0), ('VIP Клуб (18+)', '🍷', 99, 1)
             ])
-            # Демо-товар с фото
-            c.execute('''INSERT INTO products (name, desc, price, stock, category_id, images, unit, step) 
-                         VALUES (?,?,?,?,?,?,?,?)''', 
-                      ('Стейк Рибай', 'Мраморная говядина, выдержка 21 день', 850, 15, 1, 
+            
+            # ИСПРАВЛЕНА ОШИБКА: в INSERT добавлен 0 для колонки old_price
+            c.execute('''INSERT INTO products (name, desc, price, old_price, stock, category_id, images, unit, step) 
+                         VALUES (?,?,?,?,?,?,?,?,?)''', 
+                      ('Стейк Рибай', 'Мраморная говядина, выдержка 21 день', 850, 0, 15, 1, 
                        '["https://images.unsplash.com/photo-1600891964092-4316c288032e?w=500"]', 'кг', 0.1))
     conn.commit()
 
@@ -400,7 +403,6 @@ def admin_crud(entity):
                                  (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat']))
                                  
             elif entity == 'settings':
-                # Обновляем настройки (UPSERT)
                 for key, val in data.items(): 
                     conn.execute("INSERT INTO settings (key_name, value) VALUES (?,?) ON CONFLICT(key_name) DO UPDATE SET value=?", 
                                  (key, val, val))

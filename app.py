@@ -11,7 +11,7 @@ AI_URL = "https://api.artemox.com/v1/chat/completions"
 AI_API_KEY = "sk-YGn3Z94dTreSNguvMqqa2A"
 
 # ВАЖНО: Вставь сюда свой рабочий токен от группы ВК!
-VK_TOKEN = "ТВОЙ_ТОКЕН_ВК_СЮДА" 
+VK_TOKEN = "vk1.a.CgacwOM7IRT16S4_n_lF2lJDd44w_9W5k9LlcEHiXhaonWK7QzPuUyqw0aec3zX6aP1TTcJlos5Mk0lY-YQMNLqhrtXmvRxpZGU6CmSGvUbXAcPK7ZsrQw-_xkl2Zq9g-wG37E_Re6C46yuEMwu99mbKSxWUGSmvG68B2hb_KuCPP1emLhJO_GLE01Pp9amTZbElXOU6g3TGycf8nxh70w" 
 VK_API_VERSION = "5.131"
 
 # --- VK API ---

@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v15_nocode'
+app.secret_key = 'nikolaich_erp_v17_ultimate'
 
 # Папка для загрузки фотографий товаров
 UPLOAD_FOLDER = 'static/uploads'
@@ -77,39 +77,35 @@ def call_ai(prompt, sys_prompt, model="gemini-2.5-pro", is_json=True):
 
 
 # ==========================================
-# 2. БАЗА ДАННЫХ
+# 2. БАЗА ДАННЫХ И ИНИЦИАЛИЗАЦИЯ
 # ==========================================
 
 def init_db():
     with sqlite3.connect('shop.db') as conn:
         c = conn.cursor()
         
-        # Настройки магазина
         c.execute('CREATE TABLE IF NOT EXISTS settings (key_name TEXT PRIMARY KEY, value TEXT)')
-        
-        # Каталог
         c.execute('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT, icon TEXT, sort_order INTEGER, is_hidden INTEGER DEFAULT 0)')
+        
         c.execute('''CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, 
             stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", 
             unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1
         )''')
         
-        # Баннеры
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, active INTEGER DEFAULT 1)')
         
-        # НОВОЕ: Блоки главной страницы (No-Code конструктор)
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (
             id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, 
             sort_order INTEGER, active INTEGER DEFAULT 1
         )''')
         
-        # Клиенты и Заказы
         c.execute('''CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", 
             social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, 
             age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
+        
         c.execute('''CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, 
             delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, 
@@ -117,26 +113,11 @@ def init_db():
             date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
         
-        # Базовое наполнение, если база пустая
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
                 ('shop_name', 'У Николаича'), 
                 ('footer_text', 'Фермерские продукты с доставкой. Безупречное качество.')
             ])
-            c.executemany('INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)', [
-                ('Мясо свежее', '🥩', 1, 0), ('Молоко и Сыр', '🧀', 2, 0), 
-                ('Овощи с грядки', '🥬', 3, 0), ('VIP Клуб (18+)', '🍷', 99, 1)
-            ])
-            c.execute('''INSERT INTO products (name, desc, price, old_price, stock, category_id, images, unit, step) 
-                         VALUES (?,?,?,?,?,?,?,?,?)''', 
-                      ('Стейк Рибай', 'Мраморная говядина, выдержка 21 день', 850, 0, 15, 1, 
-                       '["https://images.unsplash.com/photo-1600891964092-4316c288032e?w=500"]', 'кг', 0.1))
-            c.execute('''INSERT INTO products (name, desc, price, old_price, stock, category_id, images, unit, step) 
-                         VALUES (?,?,?,?,?,?,?,?,?)''', 
-                      ('Шея свиная (Акция)', 'Идеально для шашлыка', 550, 650, 20, 1, 
-                       '["https://images.unsplash.com/photo-1607623814075-e51df1bd682f?w=500"]', 'кг', 0.5))
-                       
-            # Наполняем стартовые блоки для главной страницы
             c.executemany('INSERT INTO homepage_blocks (title, block_type, category_id, sort_order, active) VALUES (?,?,?,?,?)', [
                 ('🔥 Товары по акции', 'sale', 0, 1, 1),
                 ('🥩 Лучшее мясо', 'category', 1, 2, 1),
@@ -190,12 +171,11 @@ def index():
                             WHERE p.active=1 AND (c.is_hidden=0 OR c.is_hidden=?)""", 
                          (1 if is_18_approved else 0,))
     
+    # Парсим JSON-строки с фотографиями в списки Python
     for p in prods: 
         p['images'] = json.loads(p['images']) if p['images'] else []
         
     banners = get_db_query("SELECT * FROM banners WHERE active=1")
-    
-    # НОВОЕ: Отправляем блоки в шаблон
     blocks = get_db_query("SELECT * FROM homepage_blocks WHERE active=1 ORDER BY sort_order")
     
     return render_template('index.html', settings=settings, categories=cats, products=prods, banners=banners, blocks=blocks, user=user)
@@ -260,7 +240,6 @@ def checkout():
         p_str = {"cash": "Наличными", "transfer": "Перевод на карту"}.get(p_type, p_type)
         
         msg = f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.\nДоставка: {d_str}.\nОплата: {p_str}."
-        
         if p_type == 'transfer': 
             msg += "\n\n💳 Ожидайте, сейчас Николаич пришлет реквизиты для перевода."
         if d_type == 'taxi': 
@@ -334,6 +313,7 @@ def admin():
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
+    """Загрузка фотографий товаров на сервер"""
     if 'file' not in request.files: 
         return jsonify({'error': 'No file part'})
     file = request.files['file']
@@ -346,6 +326,7 @@ def upload_file():
 
 @app.route('/api/admin/<entity>', methods=['GET', 'POST', 'DELETE'])
 def admin_crud(entity):
+    """Универсальный API для управления всеми таблицами из админки"""
     
     # GET ЗАПРОСЫ
     if request.method == 'GET':
@@ -368,7 +349,6 @@ def admin_crud(entity):
             return jsonify({s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")})
             
         elif entity == 'homepage_blocks': 
-            # НОВОЕ: Отдаем блоки для админки
             return jsonify(get_db_query("SELECT * FROM homepage_blocks ORDER BY sort_order"))
             
         elif entity == 'analytics': 
@@ -382,7 +362,7 @@ def admin_crud(entity):
             conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
         
-    # POST ЗАПРОСЫ
+    # POST ЗАПРОСЫ (Создание/Обновление)
     if request.method == 'POST':
         with sqlite3.connect('shop.db') as conn:
             if entity == 'product':
@@ -414,7 +394,6 @@ def admin_crud(entity):
                     conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat) VALUES (?,?,?,?,?)", 
                                  (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat']))
             
-            # НОВОЕ: Сохранение блоков главной страницы
             elif entity == 'homepage_blocks':
                 if data.get('id'): 
                     conn.execute("UPDATE homepage_blocks SET title=?, block_type=?, category_id=?, sort_order=?, active=? WHERE id=?", 
@@ -442,6 +421,7 @@ def admin_crud(entity):
 
 @app.route('/api/admin/vk_action', methods=['POST'])
 def admin_vk_action():
+    """Управление ручными и автоматическими рассылками из Админки"""
     data = request.json
     msg_type = data.get('msg_type')
     vk_link = data.get('vk_link')
@@ -459,6 +439,7 @@ def admin_vk_action():
     if msg_type == 'req': text = "💳 Оплата заказа:\nПереведи по номеру +7 (999) 000-00-00 (Сбербанк, Иван И.).\nКак переведешь - отправь скриншот сюда, братуха!"
     elif msg_type == 'taxi': text = f"🚕 Посмотрел такси до тебя. Выходит {custom_val} ₽. Оплачиваем или сам заберешь?"
     elif msg_type == 'paid': text = "✅ Денежку увидел! Заказ пакуется, скоро отправим!"
+    elif msg_type == 'direct': text = custom_val
     else: text = custom_val
         
     is_sent = send_vk_message(vk_link, f"👨‍🌾 Николаич:\n{text}")

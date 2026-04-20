@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         :root { 
-            --bg: #fdfbf7; /* Теплый фермерский оттенок фона */
+            --bg: #fdfbf7; 
             --accent: #00b853; 
             --text: #1d1d1f; 
         }
@@ -26,15 +26,15 @@
             position: sticky; 
             top: 0; 
             z-index: 1000; 
-            /* Сочный фон продуктов */
-            background: url('https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1974') center/cover;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            /* Сочный фон с фермерскими продуктами */
+            background: url('https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1974') center 40%/cover no-repeat;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
         .header-overlay {
-            /* Эффект матового стекла, чтобы текст читался на фоне продуктов */
-            background: rgba(255, 255, 255, 0.85); 
-            backdrop-filter: blur(8px); 
-            -webkit-backdrop-filter: blur(8px);
+            /* Темное матовое стекло, чтобы продукты было видно, но текст читался идеально */
+            background: rgba(0, 0, 0, 0.55); 
+            backdrop-filter: blur(4px); 
+            -webkit-backdrop-filter: blur(4px);
             padding-top: 15px; 
             padding-bottom: 10px;
         }
@@ -45,32 +45,36 @@
             align-items: center; 
             margin-bottom: 15px; 
         }
+        .header-top h3 { color: #fff !important; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
+        .header-top .bi-person-circle { color: #fff !important; filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5)); }
         
         .ai-search-btn { 
-            background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); 
-            color: #d61a5e; 
+            background: linear-gradient(135deg, #00b853 0%, #008a3e 100%); 
+            color: #fff; 
             border-radius: 18px; 
-            padding: 14px 20px; 
+            padding: 12px 20px; 
             font-weight: 800; 
             margin: 0 20px 10px 20px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             gap: 8px; 
-            box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4); 
+            box-shadow: 0 4px 15px rgba(0, 184, 83, 0.4); 
             cursor: pointer; 
             transition: transform 0.1s; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .ai-search-btn:active { transform: scale(0.98); }
         
-        /* 2. КАТЕГОРИИ НА ТРАВЕ */
+        /* 2. КАТЕГОРИИ НА ГУСТОМ ГАЗОНЕ */
         .cat-scroll-wrapper {
-            /* Сочная зеленая трава */
-            background: url('https://images.unsplash.com/photo-1533460004989-cef01064af7e?q=80&w=2070') center/cover;
+            /* Яркий, густой зеленый газон */
+            background: url('https://images.unsplash.com/photo-1558904541-efa843a96f0f?q=80&w=2072') center/cover;
             padding: 15px 0;
-            box-shadow: inset 0 5px 15px rgba(0,0,0,0.3);
-            border-top: 2px solid #008a3e;
-            border-bottom: 2px solid #008a3e;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.5);
+            border-top: 2px solid #005c29;
+            border-bottom: 2px solid #005c29;
         }
         .cat-scroll { 
             display: flex; 
@@ -82,19 +86,19 @@
         .cat-pill { 
             background: rgba(255, 255, 255, 0.95); 
             border-radius: 20px; 
-            padding: 10px 20px; 
+            padding: 10px 22px; 
             font-weight: 800; 
             font-size: 14px; 
             white-space: nowrap; 
             cursor: pointer; 
             transition: 0.2s; 
             color: #1d1d1f;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.8);
         }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
 
-        /* Баннеры (Карусель) */
+        /* Баннеры */
         .banner-track { 
             display: flex; 
             overflow-x: auto; 
@@ -132,29 +136,29 @@
         /* 3. КАРТОЧКИ ТОВАРОВ НА ДЕРЕВЕ */
         .prod-grid { padding: 0 20px; }
         .p-card { 
-            /* Красивое фактурное дерево */
-            background: url('https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=2070') center/cover;
+            /* Красивые деревянные досочки (теплый коричневый цвет) */
+            background: url('https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?q=80&w=1000') center/cover;
             border-radius: 20px; 
             padding: 12px; 
             height: 100%; 
             display: flex; 
             flex-direction: column; 
             box-shadow: 0 6px 15px rgba(0,0,0,0.15); 
-            border: 2px solid #5a3a22; /* Темная древесная рамка */
+            border: 2px solid #5c3a21;
             position: relative;
             overflow: hidden;
         }
         
-        /* Затемнение дерева для идеальной читаемости текста */
+        /* Затемнение дерева, чтобы белый текст читался идеально */
         .p-card::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%);
+            background: rgba(0, 0, 0, 0.45);
             z-index: 1;
             pointer-events: none;
         }
-        .p-card > * { position: relative; z-index: 2; } /* Поднимаем контент над затемнением */
+        .p-card > * { position: relative; z-index: 2; }
 
         .p-img-box { 
             width: 100%; 
@@ -168,7 +172,7 @@
             align-items: center;
             justify-content: center;
             border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         .p-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
@@ -184,19 +188,19 @@
         .old-price { font-size: 13px; text-decoration: line-through; color: #ffaaaa; font-weight: 500; }
         .p-unit { 
             font-size: 12px; 
-            color: #ffdab3; /* Теплый древесный оттенок для текста */
+            color: #ffdab3; 
             font-weight: 600; 
             margin-bottom: auto; 
             text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
         }
         .p-name { 
-            font-size: 15px; 
+            font-size: 14px; 
             color: #fff; 
             font-weight: 800; 
             line-height: 1.2; 
             margin-top: 6px; 
             cursor: pointer;
-            height: 36px;
+            height: 34px;
             overflow: hidden;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
         }
@@ -210,7 +214,7 @@
             font-weight: 800; 
             transition: 0.2s; 
             margin-top: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         .btn-add.added { background: var(--accent); color: #fff; }
         
@@ -238,11 +242,11 @@
 <div class="sticky-top-area">
     <div class="header-overlay">
         <div class="header-top">
-            <h3 class="fw-bold m-0 tracking-tight"><i class="bi bi-shop text-success me-1"></i> {{ settings.shop_name }}</h3>
+            <h3 class="fw-bold m-0 tracking-tight"><i class="bi bi-shop me-1 text-success"></i> {{ settings.shop_name }}</h3>
             {% if user %}
                 <div class="badge bg-light text-success fw-bold p-2 px-3 fs-6 rounded-pill border shadow-sm">💎 Кабинет</div>
             {% else %}
-                <i class="bi bi-person-circle fs-2 text-secondary" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#loginModal"></i>
+                <i class="bi bi-person-circle fs-2" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#loginModal"></i>
             {% endif %}
         </div>
 
@@ -272,7 +276,6 @@
     {% endfor %}
 </div>
 {% endif %}
-
 
 <div id="mainContentBlocks">
     {% for block in blocks %}
@@ -328,7 +331,6 @@
         </div>
     </div>
 </div>
-
 
 <div class="footer-legal">
     <div class="fw-bold mb-1">{{ settings.shop_name }}</div>

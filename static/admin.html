@@ -21,11 +21,15 @@
         .table th { font-weight: 600; color: #8e8e93; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eee; }
         .table td { vertical-align: middle; border-bottom: 1px solid #f8f9fa; }
         
+        /* Стили для чатов */
         .chat-box { background: #fff; border-radius: 16px; border: 1px solid #eee; height: 400px; display: flex; flex-direction: column; overflow: hidden; }
         .chat-messages { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #f9f9fa; }
         .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
         .chat-user { align-self: flex-end; background: #007aff; color: white; border-bottom-right-radius: 4px; }
         .chat-ai { align-self: flex-start; background: #e5e5ea; color: black; border-bottom-left-radius: 4px; white-space: pre-wrap; }
+        
+        .chat-client { align-self: flex-start; background: #fff; color: black; border: 1px solid #eee; border-bottom-left-radius: 4px; }
+        .chat-admin { align-self: flex-end; background: #00b853; color: white; border-bottom-right-radius: 4px; }
     </style>
 </head>
 <body>
@@ -43,12 +47,13 @@
 </div>
 
 <div class="main-content">
+    
     <div id="orders" class="tab">
         <h3 class="fw-bold mb-4">Управление заказами</h3>
         <div class="card-ui p-0 overflow-hidden">
             <div class="table-responsive">
-                <table class="table table-hover m-0">
-                    <thead class="table-light"><tr><th>Заказ / Клиент</th><th>Логистика & Оплата</th><th>Сумма</th><th>Статус заказа</th><th>Авто-Чат (VK)</th></tr></thead>
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light"><tr><th>Заказ / Клиент</th><th>Логистика & Оплата</th><th>Сумма</th><th>Статус заказа</th><th>Управление</th></tr></thead>
                     <tbody id="tableOrders"></tbody>
                 </table>
             </div>
@@ -76,7 +81,7 @@
         <div class="card-ui p-0 overflow-hidden mt-4">
             <div class="table-responsive">
                 <table class="table table-hover m-0 align-middle">
-                    <thead class="table-light"><tr><th>Телефон / ФИО</th><th>Статус 18+ / Роль</th><th>VK Ссылка</th><th>Действия</th></tr></thead>
+                    <thead class="table-light"><tr><th>Телефон / ФИО</th><th>Статус / Роль</th><th>VK Ссылка</th><th>Действия</th></tr></thead>
                     <tbody id="tableUsers"></tbody>
                 </table>
             </div>
@@ -114,7 +119,7 @@
     </div>
 
     <div id="site" class="tab" style="display:none">
-        <h3 class="fw-bold mb-4">Конструктор сайта</h3>
+        <h3 class="fw-bold mb-4">Конструктор сайта и Настройки</h3>
         <div class="sub-nav">
             <div class="sub-nav-item active" onclick="toggleSub('bSiteBlocks', ['bSiteBanners', 'bSiteGlobal', 'bSitePromos'], this)">Блоки Главной (No-Code)</div>
             <div class="sub-nav-item" onclick="toggleSub('bSiteBanners', ['bSiteBlocks', 'bSiteGlobal', 'bSitePromos'], this)">Рекламные Баннеры</div>
@@ -163,21 +168,24 @@
                         <label class="small fw-bold text-muted mb-1">Название магазина (Логотип)</label>
                         <input type="text" id="setShopName" class="form-control bg-light border mb-3 p-2">
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
-                        <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="3"></textarea>
+                        <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
+                        <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для авто-ответов ВК)</label>
+                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк, Иван И.)"></textarea>
+                        <label class="small fw-bold text-muted mb-1">Секретный код VK (Для приема сообщений Webhook)</label>
+                        <input type="text" id="setVkCode" class="form-control bg-light border mb-4 p-2" placeholder="00000000">
                         
                         <hr class="my-4">
-                        <h5 class="fw-bold mb-4">Настройки логистики и Нагрузки</h5>
-                        
+                        <h5 class="fw-bold mb-4">Логистика и Нагрузка</h5>
                         <div class="row mb-3">
                             <div class="col-6">
-                                <label class="small fw-bold text-muted mb-1">Режим работы (Нагрузка)</label>
+                                <label class="small fw-bold text-muted mb-1">Режим работы</label>
                                 <select id="setHighDemand" class="form-select bg-light border p-2 fw-bold">
                                     <option value="0">🟢 Обычный режим</option>
-                                    <option value="1">🔴 Высокий спрос (Яндекс)</option>
+                                    <option value="1">🔴 Высокий спрос</option>
                                 </select>
                             </div>
                             <div class="col-6">
-                                <label class="small fw-bold text-muted mb-1">Минимальная сумма заказа (₽)</label>
+                                <label class="small fw-bold text-muted mb-1">Мин. заказ (₽)</label>
                                 <input type="number" id="setMinOrder" class="form-control bg-light border p-2">
                             </div>
                         </div>
@@ -187,7 +195,7 @@
                         
                         <div class="row">
                             <div class="col-6">
-                                <label class="small fw-bold text-muted mb-1">Стоимость курьера (₽)</label>
+                                <label class="small fw-bold text-muted mb-1">Курьер магазина (₽)</label>
                                 <input type="number" id="setCourierCost" class="form-control bg-light border mb-3 p-2">
                             </div>
                             <div class="col-6">
@@ -240,10 +248,49 @@
     </div>
 </div>
 
+<div class="modal fade" id="orderChatModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px; overflow:hidden;">
+            <div class="row g-0 h-100" style="min-height: 600px;">
+                <div class="col-md-5 bg-light p-4 border-end d-flex flex-column">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h4 class="fw-bold m-0" id="ocTitle">Заказ</h4>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div id="ocInfo" class="mb-4 small" style="line-height: 1.6;"></div>
+                    
+                    <div class="mb-4">
+                        <label class="small fw-bold text-muted mb-1">Сменить статус заказа (с авто-уведомлением)</label>
+                        <select id="ocStatus" class="form-select fw-bold border-2 p-2 shadow-sm" onchange="sendOrderMsg('status', this.value)"></select>
+                    </div>
+                    
+                    <div class="mt-auto">
+                        <h6 class="fw-bold mb-2 text-muted small">Быстрые сообщения в VK</h6>
+                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="sendOrderMsg('req')"><i class="bi bi-credit-card text-primary me-2"></i> Отправить реквизиты для оплаты</button>
+                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="promptTaxi()"><i class="bi bi-taxi-front text-warning me-2"></i> Отправить цену такси</button>
+                        <button class="btn btn-success shadow-sm w-100 fw-bold text-start" onclick="sendOrderMsg('paid')"><i class="bi bi-check-circle me-2"></i> Подтвердить получение денег</button>
+                    </div>
+                </div>
+                
+                <div class="col-md-7 d-flex flex-column bg-white position-relative">
+                    <div class="p-3 border-bottom bg-white fw-bold shadow-sm z-1"><i class="bi bi-chat-dots text-primary me-2"></i>Чат с клиентом ВКонтакте</div>
+                    <div id="ocMessages" class="flex-grow-1 p-4 overflow-auto" style="background: #fdfbf7; max-height: 500px; display:flex; flex-direction:column; gap:12px;">
+                        </div>
+                    <div class="p-3 border-top bg-white d-flex gap-2">
+                        <input type="text" id="ocInput" class="form-control bg-light border-0 rounded-pill px-4" placeholder="Написать сообщение клиенту..." onkeypress="if(event.key === 'Enter') sendOrderMsg('custom', document.getElementById('ocInput').value)">
+                        <button class="btn btn-primary rounded-circle shadow-sm" style="width: 45px; height: 45px;" onclick="sendOrderMsg('custom', document.getElementById('ocInput').value)"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let categoriesList = []; let currentProductImages = []; 
     let aiChatHistory = [];
+    let currentActiveOrder = null;
 
     function showTab(id, btn) {
         document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
@@ -282,41 +329,81 @@
         new bootstrap.Modal(document.getElementById('universalModal')).show();
     }
 
+    /* ================= ЗАКАЗЫ И ЧАТ ================= */
     async function loadOrders() {
         const data = await apiCall('orders');
         if(!data) return;
         document.getElementById('tableOrders').innerHTML = data.map(o => {
-            let chatBtns = '';
-            if(o.social_link) {
-                if(o.payment_type === 'transfer') chatBtns += `<button class="btn btn-sm btn-dark w-100 mb-1 rounded-pill" onclick="sendVkAction('${o.social_link}', 'req')">💳 Реквизиты</button><br>`;
-                if(o.delivery_type === 'taxi') chatBtns += `<button class="btn btn-sm btn-warning w-100 mb-1 rounded-pill" onclick="taxiPrompt('${o.social_link}')">🚕 Цена такси</button><br>`;
-                chatBtns += `<button class="btn btn-sm btn-success w-100 rounded-pill" onclick="sendVkAction('${o.social_link}', 'paid')">✅ Оплачено</button>`;
-            } else { chatBtns = '<span class="badge bg-secondary">Нет VK</span>'; }
-            
-            const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger fw-bold">Адрес: ${o.address}</span>` : '';
-            
+            const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger fw-bold"><i class="bi bi-geo-alt"></i> ${o.address}</span>` : '';
             return `<tr>
                 <td><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div></td>
                 <td class="small">Тип: <b>${o.delivery_type}</b><br>Оплата: <b>${o.payment_type}</b>${addressHtml}</td>
                 <td class="fw-bold text-success fs-6">${o.final_total} ₽</td>
-                <td><select class="form-select form-select-sm border bg-light fw-bold" onchange="apiCall('orders', 'POST', {id: ${o.id}, status: this.value, social_link: '${o.social_link}'})">
-                    <option value="Новый" ${o.status=='Новый'?'selected':''}>Новый</option><option value="Собран" ${o.status=='Собран'?'selected':''}>Собран</option><option value="В пути" ${o.status=='В пути'?'selected':''}>В пути</option><option value="Выполнен" ${o.status=='Выполнен'?'selected':''}>Выполнен</option><option value="Отменен" ${o.status=='Отменен'?'selected':''}>Отменен</option>
-                </select></td>
-                <td>${chatBtns}</td>
+                <td><span class="badge bg-dark">${o.status}</span></td>
+                <td><button class="btn btn-primary fw-bold rounded-pill px-3 shadow-sm btn-sm" onclick="openOrderManage(${o.id})"><i class="bi bi-chat-dots me-1"></i> Управление и Чат</button></td>
             </tr>`;
         }).join('');
     }
-    
-    function taxiPrompt(link) {
-        openModal('Стоимость такси', '<input type="number" id="taxiPrice" class="form-control p-3 bg-light border rounded-4" placeholder="Введите сумму (например, 250)">', 'Отправить клиенту', async () => {
-            const price = document.getElementById('taxiPrice').value; if(price) sendVkAction(link, 'taxi', price);
-        });
-    }
-    async function sendVkAction(link, type, custom_val = '') {
-        const res = await apiCall('vk_action', 'POST', {vk_link: link, msg_type: type, custom_val: custom_val});
-        if(res && res.status === 'ok') alert('Успешно отправлено в VK!');
+
+    async function openOrderManage(orderId) {
+        currentActiveOrder = orderId;
+        const res = await apiCall('order_chat/' + orderId);
+        if(!res || res.error) return alert("Ошибка загрузки заказа");
+        
+        const o = res.order; const u = res.user; const msgs = res.messages;
+        
+        document.getElementById('ocTitle').innerText = `Заказ #${o.id}`;
+        
+        let itemsHtml = Object.values(o.items).map(i => `<li>${i.name} — ${i.qty}${i.unit}</li>`).join('');
+        document.getElementById('ocInfo').innerHTML = `
+            <b>Клиент:</b> ${u.full_name || u.phone} <a href="${u.social_link}" target="_blank">(VK)</a><br>
+            <b>Сумма чека:</b> ${o.final_total} ₽<br>
+            <b>Оплата:</b> ${o.payment_type}<br>
+            <b>Доставка:</b> ${o.delivery_type}<br>
+            <b>Адрес:</b> ${o.address || '-'}<br>
+            <b class="mt-2 d-block">Состав:</b><ul>${itemsHtml}</ul>
+        `;
+
+        const statuses = ['Новый', 'Собран', 'В пути', 'Выполнен', 'Отменен'];
+        document.getElementById('ocStatus').innerHTML = statuses.map(s => `<option value="${s}" ${o.status===s ? 'selected' : ''}>${s}</option>`).join('');
+
+        renderOrderChatMessages(msgs);
+        new bootstrap.Modal(document.getElementById('orderChatModal')).show();
     }
 
+    function renderOrderChatMessages(msgs) {
+        const box = document.getElementById('ocMessages');
+        if(msgs.length === 0) {
+            box.innerHTML = '<div class="text-center text-muted small mt-5">Здесь будет видна история сообщений.</div>';
+            return;
+        }
+        box.innerHTML = msgs.map(m => {
+            const time = m.created_at.split(' ')[1].substring(0,5);
+            if(m.is_incoming === 1) return `<div class="chat-bubble chat-client"><b>Клиент:</b><br>${m.text}<div class="text-end small text-muted mt-1" style="font-size:10px;">${time}</div></div>`;
+            return `<div class="chat-bubble chat-admin"><b>Вы:</b><br>${m.text}<div class="text-end small text-white-50 mt-1" style="font-size:10px;">${time}</div></div>`;
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendOrderMsg(type, customVal = '') {
+        if(!currentActiveOrder) return;
+        if(type === 'custom' && !customVal.trim()) return;
+        
+        document.getElementById('ocInput').value = '';
+        const res = await apiCall('chat_send', 'POST', {order_id: currentActiveOrder, msg_type: type, text: type==='custom'?customVal:'', status: type==='status'?customVal:'', custom_val: type==='taxi'?customVal:''});
+        
+        if(res && res.status === 'ok') {
+            if(type === 'status') { loadOrders(); alert("Статус обновлен и сообщение отправлено!"); }
+            else { const refresh = await apiCall('order_chat/' + currentActiveOrder); renderOrderChatMessages(refresh.messages); }
+        } else { alert("Ошибка отправки! Привязан ли у клиента VK?"); }
+    }
+
+    function promptTaxi() {
+        const price = prompt("Введите стоимость такси в рублях (Например: 350):");
+        if(price) sendOrderMsg('taxi', price);
+    }
+
+    /* ================= CRM И СИСАДМИН ================= */
     async function loadUsers() {
         const data = await apiCall('users');
         if(!data) return;
@@ -328,18 +415,10 @@
                 <td>${roleHtml}</td>
                 <td><a href="${u.social_link}" target="_blank" class="small text-decoration-none fw-bold">${u.social_link ? 'VK Профиль' : '-'}</a></td>
                 <td>
-                    <button class="btn btn-sm btn-primary rounded-pill px-3 me-1 shadow-sm" title="Написать клиенту" onclick="sendDirectMsg('${u.social_link}')"><i class="bi bi-send-fill"></i></button>
-                    <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" onclick='openUserModal(${JSON.stringify(u)})'>Профиль</button>
+                    <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" onclick='openUserModal(${JSON.stringify(u)})'>Профиль / Баланс</button>
                 </td>
             </tr>`;
         }).join('');
-    }
-
-    function sendDirectMsg(link) {
-        if(!link || link === 'null') return alert("У клиента не привязан VK!");
-        openModal('Личное сообщение в VK', `<textarea id="dmText" class="form-control bg-light border p-3 rounded-4" rows="4" placeholder="Напишите текст сообщения..."></textarea>`, 'Отправить', async () => {
-            const text = document.getElementById('dmText').value; if(text) sendVkAction(link, 'direct', text);
-        });
     }
 
     function openUserModal(u) {
@@ -374,22 +453,14 @@
         });
     }
 
-    async function generateBroadcastText(btn) {
-        const topic = document.getElementById('aiBroadcastTopic').value; if(!topic) return alert("Укажите тему для генерации!");
-        btn.innerText = 'Маркетолог думает...'; btn.disabled = true;
-        const res = await fetch('/api/ai/agent_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role: 'marketer', messages: [{"role": "user", "content": "Напиши продающий текст для массовой рассылки VK. Тема: " + topic}]})});
-        const data = await res.json();
-        if(data && data.reply) document.getElementById('broadcastText').value = data.reply;
-        btn.innerText = 'Сгенерировать текст'; btn.disabled = false;
-    }
-
     async function sendBroadcast() {
-        const text = document.getElementById('broadcastText').value; if(!text) return alert("Сначала напишите или сгенерируйте текст!");
+        const text = document.getElementById('broadcastText').value; if(!text) return alert("Сначала напишите текст!");
         if(!confirm("Сообщение будет отправлено ВСЕМ клиентам в базе с VK. Продолжить?")) return;
         const res = await apiCall('vk_action', 'POST', {msg_type: 'broadcast', custom_val: text});
         if(res && res.status === 'ok') { alert(`Успешно! Доставлено: ${res.sent} из ${res.total} клиентов.`); document.getElementById('broadcastText').value = ''; }
     }
 
+    /* ================= СКЛАД И НАСТРОЙКИ ================= */
     async function loadWarehouse() {
         const data = await apiCall('warehouse');
         if(!data) return;
@@ -484,6 +555,8 @@
             document.getElementById('setFreeDelivery').value = settings.free_delivery_threshold || '3000';
             document.getElementById('setMinOrder').value = settings.min_order_sum || '500';
             document.getElementById('setHighDemand').value = settings.high_demand || '0';
+            document.getElementById('setPayment').value = settings.payment_details || '';
+            document.getElementById('setVkCode').value = settings.vk_confirm_code || '';
         }
         const wh = await apiCall('warehouse'); if(wh) categoriesList = wh.categories;
         const banners = await apiCall('banners');
@@ -499,7 +572,8 @@
             shop_name: document.getElementById('setShopName').value, footer_text: document.getElementById('setFooterText').value,
             package_cost: document.getElementById('setPackageCost').value, courier_cost: document.getElementById('setCourierCost').value,
             free_delivery_threshold: document.getElementById('setFreeDelivery').value, min_order_sum: document.getElementById('setMinOrder').value,
-            high_demand: document.getElementById('setHighDemand').value
+            high_demand: document.getElementById('setHighDemand').value, payment_details: document.getElementById('setPayment').value,
+            vk_confirm_code: document.getElementById('setVkCode').value
         }); 
         alert('Настройки сохранены!'); 
     }
@@ -521,7 +595,6 @@
     function openBannerModal(b = null) {
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.link_cat==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
         const aiCatOptions = categoriesList.map(c => `<option value="${c.id}" data-name="${c.name}">${c.icon} ${c.name}</option>`).join('');
-        
         openModal(b ? 'Настройка баннера' : 'Новый баннер', `
             <input type="hidden" id="bId" value="${b ? b.id : ''}">
             <div class="bg-primary bg-opacity-10 p-4 rounded-4 mb-4 border border-primary border-opacity-25">
@@ -582,15 +655,22 @@
         try {
             const res = await apiCall('ai/gen_banner', 'POST', {topic: topic, category_name: catName});
             if(res && !res.error && res.title) {
-                document.getElementById('bTitle').value = res.title;
-                document.getElementById('bSub').value = res.subtitle;
-                document.getElementById('bUrl').value = res.img_url;
-                document.getElementById('bColor').value = res.bg_color;
+                document.getElementById('bTitle').value = res.title; document.getElementById('bSub').value = res.subtitle;
+                document.getElementById('bUrl').value = res.img_url; document.getElementById('bColor').value = res.bg_color;
                 if(catId) document.getElementById('bLink').value = catId;
                 alert('Готово! ИИ заполнил поля ручной настройки.');
-            } else { alert('ИИ перегружен или вернул ошибку. Попробуйте еще раз или заполните вручную.'); }
+            } else { alert('ИИ перегружен или вернул ошибку. Заполните данные вручную в нижнем блоке.'); }
         } catch(e) { alert('Ошибка связи с сервером API.'); }
         btn.innerHTML = '<i class="bi bi-stars me-1"></i> Сгенерировать дизайн и текст'; btn.disabled = false;
+    }
+
+    async function generateBroadcastText(btn) {
+        const topic = document.getElementById('aiBroadcastTopic').value; if(!topic) return alert("Укажите тему для генерации!");
+        btn.innerText = 'Маркетолог думает...'; btn.disabled = true;
+        const res = await fetch('/api/ai/agent_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role: 'marketer', messages: [{"role": "user", "content": "Напиши продающий текст для рассылки ВК. Тема: " + topic}]})});
+        const data = await res.json();
+        if(data && data.reply) document.getElementById('broadcastText').value = data.reply;
+        btn.innerText = 'Сгенерировать текст'; btn.disabled = false;
     }
 
     function clearAiChat() {
@@ -616,27 +696,17 @@
         aiChatHistory.push({role: "user", content: msg});
         input.value = '';
         renderAiChat();
-        
         const space = document.getElementById('aiChatSpace');
         space.innerHTML += `<div class="chat-bubble chat-ai" id="aiTyping"><i>Специалист печатает...</i></div>`;
         space.scrollTop = space.scrollHeight;
-
         try {
-            const res = await fetch('/api/ai/agent_chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({role: role, messages: aiChatHistory})
-            });
+            const res = await fetch('/api/ai/agent_chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({role: role, messages: aiChatHistory}) });
             const data = await res.json();
             document.getElementById('aiTyping').remove();
             if(data && data.reply) { aiChatHistory.push({role: "assistant", content: data.reply}); } 
             else { aiChatHistory.push({role: "assistant", content: "Произошла ошибка связи."}); }
             renderAiChat();
-        } catch(e) {
-            document.getElementById('aiTyping').remove();
-            aiChatHistory.push({role: "assistant", content: "Сбой сети."});
-            renderAiChat();
-        }
+        } catch(e) { document.getElementById('aiTyping').remove(); aiChatHistory.push({role: "assistant", content: "Сбой сети."}); renderAiChat(); }
     }
 
     async function deleteEntity(entity, id, callback) {

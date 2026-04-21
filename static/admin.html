@@ -33,7 +33,7 @@
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Настройки Сайта</a>
         <a class="nav-link" onclick="showTab('ai', this)"><i class="bi bi-magic me-2 fs-5 text-primary"></i> Нейросети</a>
     </nav>
-    <div class="mt-auto small text-muted text-center fw-bold">ERP System v18.0 PRO</div>
+    <div class="mt-auto small text-muted text-center fw-bold">ERP System v21.0 PRO</div>
 </div>
 
 <div class="main-content">
@@ -52,7 +52,6 @@
     
     <div id="crm" class="tab" style="display:none">
         <h3 class="fw-bold mb-4">Клиенты и Умные Рассылки</h3>
-        
         <div class="card-ui" style="border: 2px solid #007aff; background: #f8fbff;">
             <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-broadcast"></i> Массовая VK Рассылка</h5>
             <div class="row g-4">
@@ -63,13 +62,12 @@
                 </div>
                 <div class="col-md-4 border-start ps-4">
                     <label class="small fw-bold text-muted mb-1"><i class="bi bi-magic text-warning"></i> ИИ Маркетолог</label>
-                    <p class="small text-muted mb-2">Напишите тему (повод), и нейросеть сама составит рекламный текст.</p>
+                    <p class="small text-muted mb-2">Напишите тему, и нейросеть составит продающий текст.</p>
                     <input type="text" id="aiBroadcastTopic" class="form-control bg-white border mb-3 p-2 shadow-sm rounded-3" placeholder="Например: Скидка 10% на свежее мясо">
                     <button class="btn btn-dark w-100 fw-bold py-2 rounded-3 shadow-sm" onclick="generateBroadcastText(this)">Сгенерировать текст</button>
                 </div>
             </div>
         </div>
-        
         <div class="card-ui p-0 overflow-hidden mt-4">
             <div class="table-responsive">
                 <table class="table table-hover m-0 align-middle">
@@ -82,7 +80,6 @@
     
     <div id="warehouse" class="tab" style="display:none">
         <h3 class="fw-bold mb-4">Склад и Каталог</h3>
-        
         <div class="sub-nav">
             <div class="sub-nav-item active" onclick="toggleSub('bProducts', ['bCategories'], this)">Товары</div>
             <div class="sub-nav-item" onclick="toggleSub('bCategories', ['bProducts'], this)">Категории раздела</div>
@@ -115,7 +112,6 @@
 
     <div id="site" class="tab" style="display:none">
         <h3 class="fw-bold mb-4">Конструктор сайта</h3>
-        
         <div class="sub-nav">
             <div class="sub-nav-item active" onclick="toggleSub('bSiteBlocks', ['bSiteBanners', 'bSiteGlobal'], this)">Блоки Главной (No-Code)</div>
             <div class="sub-nav-item" onclick="toggleSub('bSiteBanners', ['bSiteBlocks', 'bSiteGlobal'], this)">Рекламные Баннеры</div>
@@ -151,10 +147,8 @@
                         <h5 class="fw-bold mb-4">Названия и тексты</h5>
                         <label class="small fw-bold text-muted mb-1">Название магазина (Логотип)</label>
                         <input type="text" id="setShopName" class="form-control bg-light border mb-3 p-2">
-                        
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
                         <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="3"></textarea>
-                        
                         <button class="btn btn-success w-100 fw-bold py-2 rounded-3 shadow-sm" onclick="saveSettings()">Сохранить настройки</button>
                     </div>
                 </div>
@@ -182,7 +176,7 @@
 </div>
 
 <div class="modal fade" id="universalModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 p-4 shadow-lg" style="border-radius: 24px;">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold m-0" id="modalTitle">Заголовок</h4>
@@ -196,15 +190,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    let categoriesList = []; 
-    let currentProductImages = []; 
+    let categoriesList = []; let currentProductImages = []; 
 
     function showTab(id, btn) {
         document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
         document.getElementById(id).style.display = 'block';
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
         btn.classList.add('active');
-        
         if(id === 'orders') loadOrders();
         if(id === 'warehouse') loadWarehouse();
         if(id === 'site') loadSettings();
@@ -224,11 +216,7 @@
         try {
             const response = await fetch(`/api/admin/${endpoint}`, options);
             return await response.json();
-        } catch (e) {
-            console.error('API Error:', e);
-            alert('Ошибка связи с сервером');
-            return null;
-        }
+        } catch (e) { alert('Ошибка связи с сервером'); return null; }
     }
 
     function openModal(title, htmlBody, btnText, saveCallback) {
@@ -236,22 +224,15 @@
         document.getElementById('modalBody').innerHTML = htmlBody;
         const btn = document.getElementById('modalBtn');
         btn.innerText = btnText;
-        
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        
-        newBtn.onclick = () => {
-            saveCallback();
-            bootstrap.Modal.getInstance(document.getElementById('universalModal')).hide();
-        };
+        const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.onclick = () => { saveCallback(); bootstrap.Modal.getInstance(document.getElementById('universalModal')).hide(); };
         new bootstrap.Modal(document.getElementById('universalModal')).show();
     }
 
-    // --- ЗАКАЗЫ ---
+    /* --- ЗАКАЗЫ --- */
     async function loadOrders() {
         const data = await apiCall('orders');
         if(!data) return;
-        
         document.getElementById('tableOrders').innerHTML = data.map(o => {
             let chatBtns = '';
             if(o.social_link) {
@@ -259,113 +240,82 @@
                 if(o.delivery_type === 'taxi') chatBtns += `<button class="btn btn-sm btn-warning w-100 mb-1 rounded-pill" onclick="taxiPrompt('${o.social_link}')">🚕 Цена такси</button><br>`;
                 chatBtns += `<button class="btn btn-sm btn-success w-100 rounded-pill" onclick="sendVkAction('${o.social_link}', 'paid')">✅ Оплачено</button>`;
             } else { chatBtns = '<span class="badge bg-secondary">Нет VK</span>'; }
-
-            return `
-                <tr>
-                    <td><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div></td>
-                    <td class="small">Доставка: <b>${o.delivery_type}</b><br>Оплата: <b>${o.payment_type}</b></td>
-                    <td class="fw-bold text-success fs-6">${o.final_total} ₽</td>
-                    <td>
-                        <select class="form-select form-select-sm border bg-light fw-bold" onchange="updateOrderStatus(${o.id}, this.value, '${o.social_link}')">
-                            <option value="Новый" ${o.status=='Новый'?'selected':''}>Новый</option>
-                            <option value="Собран" ${o.status=='Собран'?'selected':''}>Собран</option>
-                            <option value="В пути" ${o.status=='В пути'?'selected':''}>В пути</option>
-                            <option value="Выполнен" ${o.status=='Выполнен'?'selected':''}>Выполнен</option>
-                            <option value="Отменен" ${o.status=='Отменен'?'selected':''}>Отменен</option>
-                        </select>
-                    </td>
-                    <td>${chatBtns}</td>
-                </tr>
-            `;
+            return `<tr>
+                <td><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div></td>
+                <td class="small">Доставка: <b>${o.delivery_type}</b><br>Оплата: <b>${o.payment_type}</b></td>
+                <td class="fw-bold text-success fs-6">${o.final_total} ₽</td>
+                <td><select class="form-select form-select-sm border bg-light fw-bold" onchange="apiCall('orders', 'POST', {id: ${o.id}, status: this.value, social_link: '${o.social_link}'})">
+                    <option value="Новый" ${o.status=='Новый'?'selected':''}>Новый</option><option value="Собран" ${o.status=='Собран'?'selected':''}>Собран</option><option value="В пути" ${o.status=='В пути'?'selected':''}>В пути</option><option value="Выполнен" ${o.status=='Выполнен'?'selected':''}>Выполнен</option><option value="Отменен" ${o.status=='Отменен'?'selected':''}>Отменен</option>
+                </select></td>
+                <td>${chatBtns}</td>
+            </tr>`;
         }).join('');
     }
-
-    async function updateOrderStatus(id, status, social_link) { await apiCall('orders', 'POST', {id, status, social_link}); }
     
     function taxiPrompt(link) {
         openModal('Стоимость такси', '<input type="number" id="taxiPrice" class="form-control p-3 bg-light border rounded-4" placeholder="Введите сумму (например, 250)">', 'Отправить клиенту', async () => {
-            const price = document.getElementById('taxiPrice').value;
-            if(price) sendVkAction(link, 'taxi', price);
+            const price = document.getElementById('taxiPrice').value; if(price) sendVkAction(link, 'taxi', price);
         });
     }
-
     async function sendVkAction(link, type, custom_val = '') {
         const res = await apiCall('vk_action', 'POST', {vk_link: link, msg_type: type, custom_val: custom_val});
         if(res && res.status === 'ok') alert('Успешно отправлено в VK!');
     }
 
-    // --- CRM ---
+    /* --- CRM --- */
     async function loadUsers() {
         const data = await apiCall('users');
         if(!data) return;
-        document.getElementById('tableUsers').innerHTML = data.map(u => `
-            <tr>
-                <td><div class="fw-bold">${u.phone}</div><div class="small text-muted">${u.full_name || 'Без имени'}</div></td>
-                <td>${u.age_verified == 2 ? '<span class="badge bg-success">Одобрен</span>' : (u.age_verified == 1 ? '<span class="badge bg-warning text-dark">Проверка</span>' : '<span class="badge bg-secondary">Нет</span>')}</td>
-                <td><a href="${u.social_link}" target="_blank" class="small text-decoration-none fw-bold">${u.social_link ? 'VK Профиль' : '-'}</a></td>
-                <td>
-                    <button class="btn btn-sm btn-primary rounded-pill px-3 me-1 shadow-sm" title="Написать клиенту" onclick="sendDirectMsg('${u.social_link}')"><i class="bi bi-send-fill"></i></button>
-                    <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" onclick='openUserModal(${JSON.stringify(u)})'>Профиль</button>
-                </td>
-            </tr>
-        `).join('');
+        document.getElementById('tableUsers').innerHTML = data.map(u => `<tr>
+            <td><div class="fw-bold">${u.phone}</div><div class="small text-muted">${u.full_name || 'Без имени'}</div></td>
+            <td>${u.age_verified == 2 ? '<span class="badge bg-success">Одобрен</span>' : (u.age_verified == 1 ? '<span class="badge bg-warning text-dark">Проверка</span>' : '<span class="badge bg-secondary">Нет</span>')}</td>
+            <td><a href="${u.social_link}" target="_blank" class="small text-decoration-none fw-bold">${u.social_link ? 'VK Профиль' : '-'}</a></td>
+            <td>
+                <button class="btn btn-sm btn-primary rounded-pill px-3 me-1 shadow-sm" title="Написать клиенту" onclick="sendDirectMsg('${u.social_link}')"><i class="bi bi-send-fill"></i></button>
+                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" onclick='openUserModal(${JSON.stringify(u)})'>Профиль</button>
+            </td>
+        </tr>`).join('');
     }
 
     function sendDirectMsg(link) {
         if(!link || link === 'null') return alert("У клиента не привязан VK!");
         openModal('Личное сообщение в VK', `<textarea id="dmText" class="form-control bg-light border p-3 rounded-4" rows="4" placeholder="Напишите текст сообщения..."></textarea>`, 'Отправить', async () => {
-            const text = document.getElementById('dmText').value;
-            if(text) sendVkAction(link, 'direct', text);
+            const text = document.getElementById('dmText').value; if(text) sendVkAction(link, 'direct', text);
         });
     }
 
     function openUserModal(u) {
-        const html = `
+        openModal('Карточка клиента', `
             <input type="hidden" id="uId" value="${u.id}">
-            <label class="small fw-bold text-muted mb-1">ФИО</label>
-            <input type="text" id="uFio" class="form-control bg-light border mb-3 p-2" value="${u.full_name}">
-            <label class="small fw-bold text-muted mb-1">Телефон</label>
-            <input type="tel" id="uPhone" class="form-control bg-light border mb-3 p-2" value="${u.phone}">
-            <label class="small fw-bold text-muted mb-1">Ссылка VK</label>
-            <input type="text" id="uSocial" class="form-control bg-light border mb-3 p-2" value="${u.social_link}">
+            <label class="small fw-bold text-muted mb-1">ФИО</label><input type="text" id="uFio" class="form-control bg-light border mb-3 p-2" value="${u.full_name}">
+            <label class="small fw-bold text-muted mb-1">Телефон</label><input type="tel" id="uPhone" class="form-control bg-light border mb-3 p-2" value="${u.phone}">
+            <label class="small fw-bold text-muted mb-1">Ссылка VK</label><input type="text" id="uSocial" class="form-control bg-light border mb-3 p-2" value="${u.social_link}">
             <label class="small fw-bold text-muted mb-1">Доступ к 18+ (VIP)</label>
             <select id="uAge" class="form-select bg-light border mb-2 p-2">
-                <option value="0" ${u.age_verified==0?'selected':''}>Нет доступа</option>
-                <option value="1" ${u.age_verified==1?'selected':''}>Заявка на проверке</option>
-                <option value="2" ${u.age_verified==2?'selected':''}>Полный доступ</option>
+                <option value="0" ${u.age_verified==0?'selected':''}>Нет доступа</option><option value="1" ${u.age_verified==1?'selected':''}>Заявка на проверке</option><option value="2" ${u.age_verified==2?'selected':''}>Полный доступ</option>
             </select>
-        `;
-        openModal('Карточка клиента', html, 'Сохранить', async () => {
+        `, 'Сохранить', async () => {
             await apiCall('users', 'POST', { id: document.getElementById('uId').value, full_name: document.getElementById('uFio').value, phone: document.getElementById('uPhone').value, social_link: document.getElementById('uSocial').value, age_verified: document.getElementById('uAge').value });
             loadUsers();
         });
     }
 
     async function generateBroadcastText(btn) {
-        const topic = document.getElementById('aiBroadcastTopic').value;
-        if(!topic) return alert("Укажите тему для генерации!");
-        
+        const topic = document.getElementById('aiBroadcastTopic').value; if(!topic) return alert("Укажите тему для генерации!");
         btn.innerText = 'Маркетолог думает...'; btn.disabled = true;
-        const msg = "Напиши короткий, сочный и дружелюбный рекламный текст для массовой рассылки клиентам во ВКонтакте. Тема акции: " + topic;
-        const res = await apiCall('ai/agent', 'POST', {role: 'marketer', msg: msg});
-        
+        const res = await apiCall('ai/agent', 'POST', {role: 'marketer', msg: "Напиши продающий текст для массовой рассылки VK. Тема: " + topic});
         if(res && res.reply) document.getElementById('broadcastText').value = res.reply;
         btn.innerText = 'Сгенерировать текст'; btn.disabled = false;
     }
 
     async function sendBroadcast() {
-        const text = document.getElementById('broadcastText').value;
-        if(!text) return alert("Сначала напишите или сгенерируйте текст!");
-        if(!confirm("ВНИМАНИЕ! Сообщение будет отправлено ВСЕМ клиентам в базе, у которых привязан VK. Продолжить?")) return;
-        
+        const text = document.getElementById('broadcastText').value; if(!text) return alert("Сначала напишите или сгенерируйте текст!");
+        if(!confirm("Сообщение будет отправлено ВСЕМ клиентам в базе с VK. Продолжить?")) return;
         const res = await apiCall('vk_action', 'POST', {msg_type: 'broadcast', custom_val: text});
-        if(res && res.status === 'ok') {
-            alert(`Успешно! Доставлено: ${res.sent} из ${res.total} клиентов.`);
-            document.getElementById('broadcastText').value = '';
-        }
+        if(res && res.status === 'ok') { alert(`Успешно! Доставлено: ${res.sent} из ${res.total} клиентов.`); document.getElementById('broadcastText').value = ''; }
     }
 
-    // --- СКЛАД ---
+    /* --- СКЛАД --- */
     async function loadWarehouse() {
         const data = await apiCall('warehouse');
         if(!data) return;
@@ -373,90 +323,62 @@
         
         document.getElementById('tableProducts').innerHTML = data.products.map(p => {
             let imgHtml = p.images && p.images.length > 0 ? `<img src="${p.images[0]}" class="img-preview">` : '';
-            return `
-                <tr>
-                    <td><div class="d-flex align-items-center">${imgHtml}<div><span class="fw-bold">${p.name}</span><br><span class="badge bg-secondary mt-1">${p.cat_name}</span></div></div></td>
-                    <td><div class="fw-bold text-success">${p.price} ₽</div>${p.old_price > 0 ? `<small class="text-danger text-decoration-line-through">${p.old_price} ₽</small>` : ''}</td>
-                    <td>${p.unit} <span class="text-muted small">(${p.step})</span></td>
-                    <td><span class="badge ${p.stock < 10 ? 'bg-danger' : 'bg-dark'}">${p.stock}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openProductModal(${JSON.stringify(p)})'><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("product", ${p.id}, loadWarehouse)'><i class="bi bi-trash"></i></button>
-                    </td>
-                </tr>
-            `;
+            return `<tr>
+                <td><div class="d-flex align-items-center">${imgHtml}<div><span class="fw-bold">${p.name}</span><br><span class="badge bg-secondary mt-1">${p.cat_name}</span></div></div></td>
+                <td><div class="fw-bold text-success">${p.price} ₽</div>${p.old_price > 0 ? `<small class="text-danger text-decoration-line-through">${p.old_price} ₽</small>` : ''}</td>
+                <td>${p.unit} <span class="text-muted small">(${p.step})</span></td>
+                <td><span class="badge ${p.stock < 10 ? 'bg-danger' : 'bg-dark'}">${p.stock}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openProductModal(${JSON.stringify(p)})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("product", ${p.id}, loadWarehouse)'><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`;
         }).join('');
 
-        document.getElementById('tableCategories').innerHTML = categoriesList.map(c => `
-            <tr>
-                <td class="fw-bold fs-6">${c.icon} ${c.name}</td>
-                <td>${c.sort_order}</td>
-                <td>${c.is_hidden ? '<span class="badge bg-danger">Да (18+)</span>' : '<span class="badge bg-light text-dark">Нет</span>'}</td>
-                <td>
-                    <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openCategoryModal(${JSON.stringify(c)})'><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("category", ${c.id}, loadWarehouse)'><i class="bi bi-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
+        document.getElementById('tableCategories').innerHTML = categoriesList.map(c => `<tr>
+            <td class="fw-bold fs-6">${c.icon} ${c.name}</td><td>${c.sort_order}</td>
+            <td>${c.is_hidden ? '<span class="badge bg-danger">Да (18+)</span>' : '<span class="badge bg-light text-dark">Нет</span>'}</td>
+            <td><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openCategoryModal(${JSON.stringify(c)})'><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("category", ${c.id}, loadWarehouse)'><i class="bi bi-trash"></i></button></td>
+        </tr>`).join('');
     }
 
     async function uploadPhotos() {
-        const files = document.getElementById('pFileUpload').files;
-        document.getElementById('uploadStatus').innerText = "Загрузка...";
+        const files = document.getElementById('pFileUpload').files; document.getElementById('uploadStatus').innerText = "Загрузка...";
         for(let i=0; i<files.length; i++) {
             const formData = new FormData(); formData.append('file', files[i]);
-            try {
-                const res = await fetch('/api/upload', {method: 'POST', body: formData});
-                const data = await res.json();
-                if(data.url) currentProductImages.push(data.url);
-            } catch(e) {}
+            try { const res = await fetch('/api/upload', {method: 'POST', body: formData}); const data = await res.json(); if(data.url) currentProductImages.push(data.url); } catch(e) {}
         }
-        document.getElementById('uploadStatus').innerText = "";
-        renderPhotoPreviews();
+        document.getElementById('uploadStatus').innerText = ""; renderPhotoPreviews();
     }
     
     function renderPhotoPreviews() {
         const box = document.getElementById('pPhotoPreviewBox');
-        if(box) {
-            box.innerHTML = currentProductImages.map((url, idx) => `
-                <div style="position:relative; display:inline-block; margin-right:10px; margin-bottom:10px;">
-                    <img src="${url}" class="img-preview" style="width:70px; height:70px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
-                    <button class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0" style="padding: 0 5px; transform: translate(30%, -30%); font-size:10px;" onclick="currentProductImages.splice(${idx}, 1); renderPhotoPreviews(); event.stopPropagation();">X</button>
-                </div>
-            `).join('');
-        }
+        if(box) box.innerHTML = currentProductImages.map((url, idx) => `<div style="position:relative; display:inline-block; margin-right:10px; margin-bottom:10px;"><img src="${url}" class="img-preview" style="width:70px; height:70px; box-shadow:0 2px 5px rgba(0,0,0,0.1);"><button class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0" style="padding: 0 5px; transform: translate(30%, -30%); font-size:10px;" onclick="currentProductImages.splice(${idx}, 1); renderPhotoPreviews(); event.stopPropagation();">X</button></div>`).join('');
     }
 
     function openProductModal(p = null) {
         currentProductImages = p && p.images ? [...p.images] : [];
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${p && p.category_id==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
-        
-        const html = `
+        openModal(p ? 'Редактирование товара' : 'Новый товар', `
             <input type="hidden" id="pId" value="${p ? p.id : ''}">
-            <label class="small fw-bold text-muted mb-1">Фотографии</label>
-            <input type="file" id="pFileUpload" class="form-control bg-light border mb-1 p-2" multiple accept="image/*" onchange="uploadPhotos()">
-            <div id="uploadStatus" class="small text-primary mb-2 fw-bold"></div>
-            <div id="pPhotoPreviewBox" class="d-flex flex-wrap mb-3 border-bottom pb-2"></div>
-            
-            <label class="small fw-bold text-muted mb-1">Название и Описание</label>
-            <input type="text" id="pName" class="form-control bg-light border mb-2 p-2 fw-bold" placeholder="Например: Стейк Рибай" value="${p ? p.name : ''}">
-            <textarea id="pDesc" class="form-control bg-light border mb-3 p-2" rows="2">${p ? p.desc : ''}</textarea>
-            
-            <label class="small fw-bold text-muted mb-1">Категория</label>
-            <select id="pCat" class="form-select bg-light border mb-3 p-2 fw-bold">${catOptions}</select>
-            
-            <div class="row g-2 mb-3">
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Цена (₽)</label><input type="number" id="pPrice" class="form-control bg-light border p-2 fw-bold text-success" value="${p ? p.price : ''}"></div>
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Старая цена</label><input type="number" id="pOld" class="form-control bg-light border p-2 text-danger fw-bold" placeholder="0 = нет скидки" value="${p ? p.old_price : '0'}"></div>
-            </div>
-            
-            <div class="row g-2 mb-2">
-                <div class="col-4"><label class="small fw-bold text-muted mb-1">Остаток</label><input type="number" id="pStock" class="form-control bg-light border p-2" value="${p ? p.stock : '10'}"></div>
-                <div class="col-4"><label class="small fw-bold text-muted mb-1">Ед. изм</label><input type="text" id="pUnit" class="form-control bg-light border p-2" placeholder="шт, кг" value="${p ? p.unit : 'шт'}"></div>
-                <div class="col-4"><label class="small fw-bold text-muted mb-1">Шаг (0.5)</label><input type="number" step="0.1" id="pStep" class="form-control bg-light border p-2" value="${p ? p.step : '1'}"></div>
-            </div>
-        `;
-        openModal(p ? 'Редактирование товара' : 'Новый товар', html, 'Сохранить товар', async () => {
+            <div class="row"><div class="col-md-8 border-end pe-4">
+                <label class="small fw-bold text-muted mb-1">Название</label><input type="text" id="pName" class="form-control bg-light border mb-2 p-2 fw-bold" placeholder="Стейк Рибай" value="${p ? p.name : ''}">
+                <label class="small fw-bold text-muted mb-1">Описание</label><textarea id="pDesc" class="form-control bg-light border mb-3 p-2" rows="2">${p ? p.desc : ''}</textarea>
+                <label class="small fw-bold text-muted mb-1">Категория</label><select id="pCat" class="form-select bg-light border mb-3 p-2 fw-bold">${catOptions}</select>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Цена (₽)</label><input type="number" id="pPrice" class="form-control bg-light border p-2 fw-bold text-success" value="${p ? p.price : ''}"></div>
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Старая цена</label><input type="number" id="pOld" class="form-control bg-light border p-2 text-danger fw-bold" placeholder="0 = нет скидки" value="${p ? p.old_price : '0'}"></div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><label class="small fw-bold text-muted mb-1">Остаток</label><input type="number" id="pStock" class="form-control bg-light border p-2" value="${p ? p.stock : '10'}"></div>
+                    <div class="col-4"><label class="small fw-bold text-muted mb-1">Ед. изм</label><input type="text" id="pUnit" class="form-control bg-light border p-2" placeholder="шт, кг" value="${p ? p.unit : 'шт'}"></div>
+                    <div class="col-4"><label class="small fw-bold text-muted mb-1">Шаг (0.5)</label><input type="number" step="0.1" id="pStep" class="form-control bg-light border p-2" value="${p ? p.step : '1'}"></div>
+                </div>
+            </div><div class="col-md-4">
+                <label class="small fw-bold text-muted mb-1">Фотографии</label><input type="file" id="pFileUpload" class="form-control bg-light border mb-1 p-2" multiple accept="image/*" onchange="uploadPhotos()">
+                <div id="uploadStatus" class="small text-primary mb-2 fw-bold"></div><div id="pPhotoPreviewBox" class="d-flex flex-wrap mb-3 pb-2"></div>
+            </div></div>
+        `, 'Сохранить товар', async () => {
             await apiCall('product', 'POST', { id: document.getElementById('pId').value, name: document.getElementById('pName').value, desc: document.getElementById('pDesc').value, price: document.getElementById('pPrice').value, old_price: document.getElementById('pOld').value, stock: document.getElementById('pStock').value, category_id: document.getElementById('pCat').value, images: currentProductImages, unit: document.getElementById('pUnit').value, step: document.getElementById('pStep').value });
             loadWarehouse();
         });
@@ -464,135 +386,78 @@
     }
 
     function openCategoryModal(c = null) {
-        const html = `
+        openModal(c ? 'Изменить категорию' : 'Новая категория', `
             <input type="hidden" id="cId" value="${c ? c.id : ''}">
-            <label class="small fw-bold text-muted mb-1">Название категории</label>
-            <input type="text" id="cName" class="form-control bg-light border mb-3 p-2 fw-bold" value="${c ? c.name : ''}">
+            <label class="small fw-bold text-muted mb-1">Название</label><input type="text" id="cName" class="form-control bg-light border mb-3 p-2 fw-bold" value="${c ? c.name : ''}">
             <div class="row g-2 mb-3">
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Эмодзи иконка</label><input type="text" id="cIcon" class="form-control bg-light border p-2" value="${c ? c.icon : '🛒'}"></div>
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Порядок вывода</label><input type="number" id="cSort" class="form-control bg-light border p-2" value="${c ? c.sort_order : '1'}"></div>
             </div>
             <label class="small fw-bold text-muted mb-1">Ограничение доступа</label>
-            <select id="cHidden" class="form-select bg-light border p-2">
-                <option value="0" ${c && c.is_hidden==0 ? 'selected' : ''}>Открыта для всех</option>
-                <option value="1" ${c && c.is_hidden==1 ? 'selected' : ''}>Скрытая (Только VIP 18+)</option>
-            </select>
-        `;
-        openModal(c ? 'Изменить категорию' : 'Новая категория', html, 'Сохранить', async () => {
+            <select id="cHidden" class="form-select bg-light border p-2"><option value="0" ${c && c.is_hidden==0 ? 'selected' : ''}>Открыта для всех</option><option value="1" ${c && c.is_hidden==1 ? 'selected' : ''}>Скрытая (Только VIP 18+)</option></select>
+        `, 'Сохранить', async () => {
             await apiCall('category', 'POST', { id: document.getElementById('cId').value, name: document.getElementById('cName').value, icon: document.getElementById('cIcon').value, sort_order: document.getElementById('cSort').value, is_hidden: document.getElementById('cHidden').value });
             loadWarehouse();
         });
     }
 
-    // --- САЙТ И БЛОКИ ---
+    /* --- САЙТ И БЛОКИ --- */
     async function loadSettings() {
         const settings = await apiCall('settings');
-        if(settings) {
-            document.getElementById('setShopName').value = settings.shop_name || '';
-            document.getElementById('setFooterText').value = settings.footer_text || '';
-        }
-        
-        const wh = await apiCall('warehouse');
-        if(wh) categoriesList = wh.categories;
-
+        if(settings) { document.getElementById('setShopName').value = settings.shop_name || ''; document.getElementById('setFooterText').value = settings.footer_text || ''; }
+        const wh = await apiCall('warehouse'); if(wh) categoriesList = wh.categories;
         const banners = await apiCall('banners');
-        if(banners) {
-            document.getElementById('tableBanners').innerHTML = banners.map(b => `
-                <tr>
-                    <td><div class="fw-bold">${b.title}</div><div class="small text-muted">${b.subtitle}</div></td>
-                    <td><div style="width:24px; height:24px; background:${b.bg_color}; border-radius:6px; border:1px solid #ddd;"></div></td>
-                    <td>
-                        <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBannerModal(${JSON.stringify(b)})'><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("banners", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
+        if(banners) document.getElementById('tableBanners').innerHTML = banners.map(b => `<tr><td><div class="fw-bold">${b.title}</div><div class="small text-muted">${b.subtitle}</div></td><td><div style="width:24px; height:24px; background:${b.bg_color}; border-radius:6px; border:1px solid #ddd;"></div></td><td><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBannerModal(${JSON.stringify(b)})'><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("banners", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
         const blocks = await apiCall('homepage_blocks');
-        if(blocks) {
-            document.getElementById('tableBlocks').innerHTML = blocks.map(b => {
-                let typeName = b.block_type === 'sale' ? '<span class="badge bg-danger">Акции (Скидки)</span>' : '<span class="badge bg-primary">Категория товаров</span>';
-                return `
-                <tr>
-                    <td class="fw-bold">${b.title}</td>
-                    <td>${typeName}</td>
-                    <td>${b.sort_order}</td>
-                    <td>
-                        <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBlockModal(${JSON.stringify(b)})'><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("homepage_blocks", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button>
-                    </td>
-                </tr>
-            `}).join('');
-        }
+        if(blocks) document.getElementById('tableBlocks').innerHTML = blocks.map(b => `<tr><td class="fw-bold">${b.title}</td><td>${b.block_type === 'sale' ? '<span class="badge bg-danger">Акции (Скидки)</span>' : '<span class="badge bg-primary">Категория товаров</span>'}</td><td>${b.sort_order}</td><td><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBlockModal(${JSON.stringify(b)})'><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill" onclick='deleteEntity("homepage_blocks", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
     }
 
-    async function saveSettings() {
-        await apiCall('settings', 'POST', { shop_name: document.getElementById('setShopName').value, footer_text: document.getElementById('setFooterText').value });
-        alert('Глобальные настройки сохранены!');
-    }
+    async function saveSettings() { await apiCall('settings', 'POST', { shop_name: document.getElementById('setShopName').value, footer_text: document.getElementById('setFooterText').value }); alert('Глобальные настройки сохранены!'); }
 
     function openBlockModal(b = null) {
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.category_id==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
-        const html = `
+        openModal(b ? 'Настройка блока' : 'Создать блок', `
             <input type="hidden" id="blId" value="${b ? b.id : ''}">
-            <label class="small fw-bold text-muted mb-1">Название блока на сайте</label>
-            <input type="text" id="blTitle" class="form-control bg-light border mb-3 p-2 fw-bold" placeholder="Например: 🔥 Хиты продаж" value="${b ? b.title : ''}">
-            
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <label class="small fw-bold text-muted mb-1">Тип товаров</label>
-                    <select id="blType" class="form-select bg-light border p-2 fw-bold" onchange="document.getElementById('blCatWrap').style.display = this.value === 'category' ? 'block' : 'none'">
-                        <option value="sale" ${b && b.block_type=='sale' ? 'selected' : ''}>Товары по скидке (Акция)</option>
-                        <option value="category" ${b && b.block_type=='category' ? 'selected' : ''}>Товары из Категории</option>
-                    </select>
-                </div>
-                <div class="col-6">
-                    <label class="small fw-bold text-muted mb-1">Порядок вывода</label>
-                    <input type="number" id="blSort" class="form-control bg-light border p-2" value="${b ? b.sort_order : '1'}">
-                </div>
-            </div>
-
-            <div id="blCatWrap" style="display: ${b && b.block_type=='category' ? 'block' : 'none'}">
-                <label class="small fw-bold text-muted mb-1">Какую категорию выводить?</label>
-                <select id="blCat" class="form-select bg-light border mb-3 p-2">${catOptions}</select>
-            </div>
-            
-            <label class="small fw-bold text-muted mb-1">Статус</label>
-            <select id="blActive" class="form-select bg-light border p-2">
-                <option value="1" ${b && b.active==1 ? 'selected' : ''}>Включен (Показывать)</option>
-                <option value="0" ${b && b.active==0 ? 'selected' : ''}>Выключен (Скрыть)</option>
-            </select>
-        `;
-        openModal(b ? 'Настройка блока' : 'Создать блок товаров', html, 'Сохранить на сайт', async () => {
+            <label class="small fw-bold text-muted mb-1">Название блока на сайте</label><input type="text" id="blTitle" class="form-control bg-light border mb-3 p-2 fw-bold" placeholder="🔥 Хиты продаж" value="${b ? b.title : ''}">
+            <div class="row g-2 mb-3"><div class="col-6"><label class="small fw-bold text-muted mb-1">Тип товаров</label><select id="blType" class="form-select bg-light border p-2 fw-bold" onchange="document.getElementById('blCatWrap').style.display = this.value === 'category' ? 'block' : 'none'"><option value="sale" ${b && b.block_type=='sale' ? 'selected' : ''}>Товары по скидке (Акция)</option><option value="category" ${b && b.block_type=='category' ? 'selected' : ''}>Товары из Категории</option></select></div><div class="col-6"><label class="small fw-bold text-muted mb-1">Порядок вывода</label><input type="number" id="blSort" class="form-control bg-light border p-2" value="${b ? b.sort_order : '1'}"></div></div>
+            <div id="blCatWrap" style="display: ${b && b.block_type=='category' ? 'block' : 'none'}"><label class="small fw-bold text-muted mb-1">Какую категорию выводить?</label><select id="blCat" class="form-select bg-light border mb-3 p-2">${catOptions}</select></div>
+            <label class="small fw-bold text-muted mb-1">Статус</label><select id="blActive" class="form-select bg-light border p-2"><option value="1" ${b && b.active==1 ? 'selected' : ''}>Включен (Показывать)</option><option value="0" ${b && b.active==0 ? 'selected' : ''}>Выключен (Скрыть)</option></select>
+        `, 'Сохранить', async () => {
             await apiCall('homepage_blocks', 'POST', { id: document.getElementById('blId').value, title: document.getElementById('blTitle').value, block_type: document.getElementById('blType').value, category_id: document.getElementById('blCat').value, sort_order: document.getElementById('blSort').value, active: document.getElementById('blActive').value });
             loadSettings();
         });
     }
 
+    // ПРОДВИНУТЫЙ ГЕНЕРАТОР БАННЕРОВ ИИ
     function openBannerModal(b = null) {
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.link_cat==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
-        const html = `
+        const aiCatOptions = categoriesList.map(c => `<option value="${c.id}" data-name="${c.name}">${c.icon} ${c.name}</option>`).join('');
+        
+        openModal(b ? 'Настройка баннера' : 'Новый баннер', `
             <input type="hidden" id="bId" value="${b ? b.id : ''}">
-            <div class="bg-primary bg-opacity-10 p-3 rounded-4 mb-4 border border-primary border-opacity-25">
-                <label class="small fw-bold text-primary mb-2"><i class="bi bi-magic text-warning"></i> Нейро-генератор баннеров</label>
-                <div class="d-flex gap-2">
-                    <input type="text" id="aiBanGenTopic" class="form-control border shadow-sm" placeholder="О чем баннер? (Например: Свежая зелень)">
-                    <button class="btn btn-primary fw-bold text-nowrap shadow-sm" type="button" onclick="runAiBannerGen(this)">Создать</button>
-                </div>
+            
+            <div class="bg-primary bg-opacity-10 p-4 rounded-4 mb-4 border border-primary border-opacity-25">
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-magic text-warning me-2"></i>Умный генератор баннеров</h6>
+                <label class="small fw-bold text-muted mb-1">1. Идея баннера (опишите своими словами)</label>
+                <textarea id="aiBanGenTopic" class="form-control border-0 shadow-sm mb-3 p-2 rounded-3" rows="2" placeholder="Например: Скидка выходного дня на всё мясо для шашлыка"></textarea>
+                <label class="small fw-bold text-muted mb-1">2. К какой категории привязать?</label>
+                <select id="aiBanGenCat" class="form-select border-0 shadow-sm mb-3 p-2 rounded-3 fw-bold">
+                    <option value="">-- Без привязки (на главную) --</option>
+                    ${aiCatOptions}
+                </select>
+                <button class="btn btn-primary w-100 fw-bold py-2 rounded-3 shadow-sm" type="button" onclick="runAiBannerGen(this)">
+                    <i class="bi bi-stars me-1"></i> Сгенерировать дизайн и текст
+                </button>
             </div>
-            <label class="small fw-bold text-muted mb-1">Крупный текст</label>
-            <input type="text" id="bTitle" class="form-control bg-light border mb-2 p-2 fw-bold" value="${b ? b.title : ''}">
-            <label class="small fw-bold text-muted mb-1">Мелкий текст</label>
-            <input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
-            <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label>
-            <input type="text" id="bUrl" class="form-control bg-light border mb-3 p-2" value="${b ? b.img_url : ''}">
+
+            <label class="small fw-bold text-muted mb-1">Крупный текст</label><input type="text" id="bTitle" class="form-control bg-light border mb-2 p-2 fw-bold" value="${b ? b.title : ''}">
+            <label class="small fw-bold text-muted mb-1">Мелкий текст</label><input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
+            <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label><input type="text" id="bUrl" class="form-control bg-light border mb-3 p-2" value="${b ? b.img_url : ''}">
             <div class="row g-2 mb-3">
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Цвет плашки</label><input type="color" id="bColor" class="form-control bg-light border w-100 p-1" value="${b ? b.bg_color : '#ffffff'}"></div>
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Куда ведет клик</label><select id="bLink" class="form-select bg-light border p-2 fw-bold">${catOptions}</select></div>
             </div>
-        `;
-        openModal(b ? 'Настройка баннера' : 'Новый баннер', html, 'Опубликовать', async () => {
+        `, 'Опубликовать', async () => {
             await apiCall('banners', 'POST', { id: document.getElementById('bId').value, title: document.getElementById('bTitle').value, subtitle: document.getElementById('bSub').value, img_url: document.getElementById('bUrl').value, bg_color: document.getElementById('bColor').value, link_cat: document.getElementById('bLink').value });
             loadSettings();
         });
@@ -600,39 +465,38 @@
 
     async function runAiBannerGen(btn) {
         const topic = document.getElementById('aiBanGenTopic').value;
-        if(!topic) return alert("Укажите тему для ИИ!");
-        btn.innerText = 'Рисую...'; btn.disabled = true;
+        const catSelect = document.getElementById('aiBanGenCat');
+        const catId = catSelect.value;
+        const catName = catId ? catSelect.options[catSelect.selectedIndex].getAttribute('data-name') : '';
+
+        if(!topic && !catName) return alert("Опишите идею или выберите категорию для ИИ!");
+        
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Рисую...'; btn.disabled = true;
         try {
-            const res = await apiCall('ai/gen_banner', 'POST', {topic: topic});
+            const res = await apiCall('ai/gen_banner', 'POST', {topic: topic, category_name: catName});
             if(res && !res.error) {
                 document.getElementById('bTitle').value = res.title;
                 document.getElementById('bSub').value = res.subtitle;
                 document.getElementById('bUrl').value = res.img_url;
                 document.getElementById('bColor').value = res.bg_color;
+                if(catId) document.getElementById('bLink').value = catId;
             } else { alert('Ошибка при генерации ИИ. Попробуйте еще раз.'); }
         } catch(e) {}
-        btn.innerText = 'Создать'; btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars me-1"></i> Сгенерировать дизайн и текст'; btn.disabled = false;
     }
 
-    // --- НЕЙРОСЕТИ ---
+    /* --- НЕЙРОСЕТИ --- */
     async function askAiAgent(btn) {
-        const msg = document.getElementById('aiMsg').value;
-        const role = document.getElementById('aiRole').value;
-        if(!msg) return;
-        
-        btn.innerText = 'Специалист думает...'; btn.disabled = true;
+        const msg = document.getElementById('aiMsg').value; const role = document.getElementById('aiRole').value; if(!msg) return;
+        btn.innerText = 'Думает...'; btn.disabled = true;
         const res = await apiCall('ai/agent', 'POST', {role: role, msg: msg});
-        if(res && res.reply) {
-            document.getElementById('aiReply').innerText = res.reply;
-            document.getElementById('aiReply').style.display = 'block';
-        }
+        if(res && res.reply) { document.getElementById('aiReply').innerText = res.reply; document.getElementById('aiReply').style.display = 'block'; }
         btn.innerText = 'Спросить'; btn.disabled = false;
     }
 
     async function deleteEntity(entity, id, callback) {
         if(!confirm('Точно удалить? Это навсегда.')) return;
-        await apiCall(entity, 'DELETE', {id: id});
-        callback();
+        await apiCall(entity, 'DELETE', {id: id}); callback();
     }
 
     window.onload = () => { loadOrders(); };

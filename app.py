@@ -12,7 +12,8 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v33_legal_geo'
+app.secret_key = 'nikolaich_erp_v35_ultimate'
+app.permanent_session_lifetime = datetime.timedelta(days=30) # Вечная сессия на месяц
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -43,11 +44,8 @@ def send_vk_message(db_user_id, user_vk_link, text):
     except Exception as e: print(f"VK Error: {e}")
     return False
 
-# ИСПРАВЛЕННЫЙ ВЫЗОВ ИИ (Без response_format, который крашит прокси)
 def call_ai(prompt, sys_prompt, model="gemini-2.5-flash", is_json=True, messages_history=None):
     payload = {"model": model, "temperature": 0.3}
-    
-    # Добавляем жесткую инструкцию вернуть ТОЛЬКО JSON без форматирования
     if is_json:
         sys_prompt += " ВЫДАЙ СТРОГО ТОЛЬКО JSON. НАЧНИ С { И ЗАКОНЧИ }. НИКАКИХ ДРУГИХ СЛОВ, НИКАКОГО МАРКДАУНА."
 
@@ -58,25 +56,20 @@ def call_ai(prompt, sys_prompt, model="gemini-2.5-flash", is_json=True, messages
 
     try:
         r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
-        
         if r.status_code != 200:
-            print(f"API Error ({r.status_code}) with {model}. Switch to gemini-2.5-pro...")
             payload["model"] = "gemini-2.5-pro"
             r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
             if r.status_code != 200:
-                return {"error": f"Сервер ИИ недоступен. Код: {r.status_code}. Ответ: {r.text[:100]}"} if is_json else f"Ошибка ИИ: {r.status_code}"
+                return {"error": f"Сервер ИИ недоступен. Код: {r.status_code}"} if is_json else "Ошибка ИИ."
 
         response_text = r.json()['choices'][0]['message']['content']
-        
         if is_json:
             match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if match:
                 try: return json.loads(match.group(0))
                 except: return {"error": "Сбой формата: ИИ вернул поврежденный JSON."}
             return {"error": "Сбой формата: ИИ не вернул JSON."}
-            
         return response_text
-
     except Exception as e: 
         return {"error": f"Сбой сети: {str(e)}"} if is_json else f"Сбой сети: {e}"
 
@@ -88,17 +81,29 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1)''')
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, active INTEGER DEFAULT 1)')
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0, password TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, address TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY, user_id INTEGER, is_incoming INTEGER, text TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS promocodes (id INTEGER PRIMARY KEY, code TEXT UNIQUE, discount_percent REAL DEFAULT 0, discount_rub REAL DEFAULT 0, min_sum REAL DEFAULT 0, is_active INTEGER DEFAULT 1, is_sysadmin_only INTEGER DEFAULT 0)''')
+
+        # Обновления структуры
+        try: c.execute('ALTER TABLE users ADD COLUMN vk_id TEXT DEFAULT ""')
+        except: pass
+        try: c.execute('ALTER TABLE users ADD COLUMN balance REAL DEFAULT 0')
+        except: pass
+        try: c.execute('ALTER TABLE users ADD COLUMN is_sysadmin INTEGER DEFAULT 0')
+        except: pass
+        try: c.execute('ALTER TABLE users ADD COLUMN password TEXT DEFAULT ""')
+        except: pass
+        try: c.execute('ALTER TABLE orders ADD COLUMN address TEXT DEFAULT ""')
+        except: pass
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
                 ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'),
                 ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'),
-                ('min_order_sum', '500'), ('high_demand', '0'), 
-                ('payment_details', '+7 (999) 000-00-00 (Сбербанк, Николаич)'), ('vk_confirm_code', '00000000')
+                ('min_order_sum', '500'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00 (Сбербанк, Николаич)'), 
+                ('vk_confirm_code', '00000000'), ('admin_pin', '0000')
             ])
             c.execute("INSERT OR IGNORE INTO promocodes (code, is_sysadmin_only) VALUES ('СисадминВоздвижение', 1)")
     conn.commit()
@@ -117,6 +122,7 @@ def get_user_by_identifier(identifier, is_vk=False):
     field = "vk_id" if is_vk else "phone"
     return get_db_query(f"SELECT * FROM users WHERE {field}=?", (identifier,), fetch_one=True)
 
+# ================= ВЕБХУК VK =================
 @app.route('/api/vk_webhook', methods=['POST'])
 def vk_webhook():
     data = request.json
@@ -134,6 +140,7 @@ def vk_webhook():
                 conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], text))
     return 'ok'
 
+# ================= АВТОРИЗАЦИЯ =================
 @app.route('/api/auth/vk', methods=['POST'])
 def auth_vk():
     data = request.json
@@ -159,6 +166,7 @@ def auth_vk():
             if not user['full_name']:
                 conn.execute("UPDATE users SET full_name=?, social_link=? WHERE id=?", (full_name, social_link, user['id']))
     
+    session.permanent = True
     session['user_identifier'] = vk_id
     session['auth_type'] = 'vk'
     return jsonify({"status": "ok"})
@@ -166,9 +174,17 @@ def auth_vk():
 @app.route('/api/auth/shadow', methods=['POST'])
 def auth_shadow():
     phone = request.json.get('phone')
-    if not get_user_by_identifier(phone):
+    password = request.json.get('password', '')
+    
+    user = get_user_by_identifier(phone)
+    if user:
+        if user['password'] and user['password'] != password:
+            return jsonify({"error": "Неверный пароль. Введите правильный пароль или восстановите его через администратора."}), 403
+    else:
         with sqlite3.connect('shop.db') as conn: 
-            conn.execute("INSERT INTO users (phone, ref_code) VALUES (?, ?)", (phone, f"REF-{uuid.uuid4().hex[:6].upper()}"))
+            conn.execute("INSERT INTO users (phone, password, ref_code) VALUES (?, ?, ?)", (phone, password, f"REF-{uuid.uuid4().hex[:6].upper()}"))
+            
+    session.permanent = True
     session['user_identifier'] = phone
     session['auth_type'] = 'phone'
     return jsonify({"status": "ok"})
@@ -178,11 +194,13 @@ def auth_logout():
     session.clear()
     return jsonify({"status": "ok"})
 
+# ================= ВИТРИНА =================
 @app.route('/')
 def index():
     auth_val = session.get('user_identifier')
     auth_type = session.get('auth_type', 'phone')
     user = get_user_by_identifier(auth_val, is_vk=(auth_type=='vk')) if auth_val else None
+    
     is_18_approved = (user and user['age_verified'] == 2)
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     cats = get_db_query("SELECT * FROM categories WHERE is_hidden=0 OR is_hidden=? ORDER BY sort_order", (1 if is_18_approved else 0,))
@@ -197,6 +215,7 @@ def user_cabinet():
     auth_val = session.get('user_identifier')
     if not auth_val: return jsonify({"error": "unauthorized"})
     user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
+    if not user: return jsonify({"error": "user not found"})
     orders = get_db_query("SELECT * FROM orders WHERE user_id=? ORDER BY id DESC", (user['id'],))
     for o in orders: o['items'] = json.loads(o['items'])
     return jsonify({"user": user, "orders": orders})
@@ -206,12 +225,28 @@ def user_update():
     auth_val = session.get('user_identifier')
     if not auth_val: return jsonify({"error": "unauthorized"})
     user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
+    
     data = request.json
-    addr_json = json.dumps([data.get('address', '')]) if data.get('address') else "[]"
-    new_phone = data.get('phone', user['phone'])
+    addresses = json.loads(user['addresses']) if user['addresses'] else []
+    if data.get('new_address') and data['new_address'] not in addresses:
+        addresses.append(data['new_address'])
+        
+    # Если это удаление адреса
+    if data.get('remove_address') and data['remove_address'] in addresses:
+        addresses.remove(data['remove_address'])
+
     with sqlite3.connect('shop.db') as conn:
-        conn.execute("UPDATE users SET full_name=?, social_link=?, addresses=?, phone=? WHERE id=?", 
-                     (data.get('full_name', ''), data.get('social_link', ''), addr_json, new_phone, user['id']))
+        query = "UPDATE users SET full_name=?, social_link=?, addresses=?, phone=? "
+        params = [data.get('full_name', ''), data.get('social_link', ''), json.dumps(addresses), data.get('phone', user['phone'])]
+        
+        if data.get('password'):
+            query += ", password=? "
+            params.append(data['password'])
+            
+        query += "WHERE id=?"
+        params.append(user['id'])
+        conn.execute(query, tuple(params))
+        
     return jsonify({"status": "ok"})
 
 @app.route('/api/18plus/request', methods=['POST'])
@@ -231,8 +266,12 @@ def calc_cart():
     base_total = float(data.get('items_total', 0))
     delivery_type = data.get('delivery_type', 'pickup')
     promo_code = data.get('promo_code', '').strip()
+    phone = data.get('phone', '').strip()
     
+    # Пытаемся найти юзера по сессии или по переданному телефону
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
+    if not user and phone:
+        user = get_user_by_identifier(phone)
     
     package_cost = float(settings.get('package_cost', 29)) if base_total > 0 else 0
     courier_cost = float(settings.get('courier_cost', 150))
@@ -277,9 +316,22 @@ def calc_cart():
 @app.route('/api/checkout', methods=['POST'])
 def checkout():
     data = request.json
+    phone = data.get('phone', '').strip()
+    if not phone: return jsonify({"error": "Введите номер телефона!"}), 400
+
+    # БЕЗОТКАЗНАЯ ЛОГИКА: Если сессия слетела, находим или создаем профиль по телефону из корзины
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify({"error": "Unauthorized"}), 401
-    
+    if not user:
+        user = get_user_by_identifier(phone)
+        if not user:
+            with sqlite3.connect('shop.db') as conn:
+                conn.execute("INSERT INTO users (phone, social_link, addresses, ref_code) VALUES (?, ?, ?, ?)", 
+                             (phone, data.get('social_link', ''), json.dumps([data.get('address', '')]), f"REF-{uuid.uuid4().hex[:6].upper()}"))
+            user = get_user_by_identifier(phone)
+        session.permanent = True
+        session['user_identifier'] = phone
+        session['auth_type'] = 'phone'
+
     calc = data.get('calc')
     d_type = data.get('delivery_type', 'pickup')
     p_type = data.get('payment_type', 'cash')
@@ -288,7 +340,8 @@ def checkout():
     
     with sqlite3.connect('shop.db') as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, address) VALUES (?,?,?,?,?,?,?,?,?,?)", (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(data.get('cart')), d_type, p_type, address))
+        cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, address) VALUES (?,?,?,?,?,?,?,?,?,?)", 
+                    (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(data.get('cart')), d_type, p_type, address))
         order_id = cur.lastrowid
         
         if sysadmin_pay > 0:
@@ -300,7 +353,6 @@ def checkout():
             
     if user['social_link']:
         settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-        # ЮРИДИЧЕСКАЯ ЧИСТОТА: МЕНЯЕМ СЛОВО В СООБЩЕНИЯХ
         d_str = {"pickup": "Самовывоз", "courier": "Логистический пакет (внутри магазина)", "taxi": "Логистический пакет (через Яндекс)"}.get(d_type, d_type)
         p_str = {"cash": "Наличными", "transfer": "Перевод"}.get(p_type, p_type)
         msg = f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.\nКомплектация: {d_str}.\nОплата: {p_str}."
@@ -311,6 +363,7 @@ def checkout():
         
     return jsonify({"status": "ok", "order_id": order_id})
 
+# ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): return render_template('admin.html')
 
@@ -324,6 +377,7 @@ def upload_file():
 
 @app.route('/api/admin/<entity>', methods=['GET', 'POST', 'DELETE'])
 def admin_crud(entity):
+    # --- GET ---
     if request.method == 'GET':
         if entity == 'warehouse': 
             prods = get_db_query("SELECT p.*, c.name as cat_name FROM products p JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC")
@@ -337,10 +391,19 @@ def admin_crud(entity):
         elif entity == 'promocodes': return jsonify(get_db_query("SELECT * FROM promocodes ORDER BY id DESC"))
 
     data = request.json
+    
+    # --- DELETE ---
     if request.method == 'DELETE':
-        with sqlite3.connect('shop.db') as conn: conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
+        if entity == 'orders':
+            settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+            if data.get('pin') != settings.get('admin_pin', '0000'):
+                return jsonify({"error": "Неверный PIN-код для удаления!"}), 403
+                
+        with sqlite3.connect('shop.db') as conn: 
+            conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
         
+    # --- POST ---
     if request.method == 'POST':
         with sqlite3.connect('shop.db') as conn:
             if entity == 'product':
@@ -364,7 +427,7 @@ def admin_crud(entity):
             elif entity == 'orders':
                 conn.execute("UPDATE orders SET status=? WHERE id=?", (data['status'], data['id']))
             elif entity == 'users':
-                conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, is_sysadmin=? WHERE id=?", (data['full_name'], data['phone'], data['social_link'], data.get('addresses','[]'), data['age_verified'], data.get('balance', 0), data.get('is_sysadmin', 0), data['id']))
+                conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, is_sysadmin=?, password=? WHERE id=?", (data['full_name'], data['phone'], data['social_link'], data.get('addresses','[]'), data['age_verified'], data.get('balance', 0), data.get('is_sysadmin', 0), data.get('password', ''), data['id']))
         return jsonify({"status": "ok"})
 
 @app.route('/api/admin/order_chat/<int:order_id>', methods=['GET'])
@@ -415,7 +478,7 @@ def admin_vk_action():
     
     return jsonify({"status": "error", "msg": "Unknown action"})
 
-# --- ИИ МАРШРУТЫ (ИСПОЛЬЗУЮТ gemini-2.5-flash) ---
+# --- ИИ МАРШРУТЫ ---
 @app.route('/api/ai/upsell', methods=['POST'])
 def ai_upsell():
     cart_items = request.json.get('cart_items', [])
@@ -431,7 +494,7 @@ def ai_chef():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     prods = get_db_query("SELECT p.id, p.name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND c.is_hidden=0")
     catalog = ", ".join([f"ID {p['id']}: {p['name']}" for p in prods])
-    sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери продукты из: {catalog}. Без 18+. Выдай JSON: ключи 'message' и 'cart_ids' (список)."
+    sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери продукты из: {catalog}. Без 18+. JSON: 'message', 'cart_ids'."
     return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-2.5-flash", True))
 
 @app.route('/api/ai/gen_banner', methods=['POST'])

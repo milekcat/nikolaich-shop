@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v24_perfect'
+app.secret_key = 'nikolaich_erp_v25_perfect'
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -51,7 +51,7 @@ def call_ai(prompt, sys_prompt, model="gemini-2.5-pro", is_json=True, messages_h
         
     if is_json: payload["response_format"] = {"type": "json_object"}
     try:
-        r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=50)
+        r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=40)
         return json.loads(r.json()['choices'][0]['message']['content']) if is_json else r.json()['choices'][0]['message']['content']
     except Exception as e: 
         return {"error": str(e)} if is_json else f"Ошибка ИИ: {e}"
@@ -67,15 +67,15 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
+        # Динамически добавляем колонку address, если её нет (обновление БД на ходу)
+        try: c.execute('ALTER TABLE orders ADD COLUMN address TEXT DEFAULT ""')
+        except: pass
+
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
-                ('shop_name', 'У Николаича'), 
-                ('footer_text', 'Фермерские продукты с доставкой.'),
-                ('package_cost', '29'),
-                ('courier_cost', '150'),
-                ('free_delivery_threshold', '3000'),
-                ('min_order_sum', '500'),
-                ('high_demand', '0')
+                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты с доставкой.'),
+                ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'),
+                ('min_order_sum', '500'), ('high_demand', '0')
             ])
             c.executemany('INSERT INTO homepage_blocks (title, block_type, category_id, sort_order, active) VALUES (?,?,?,?,?)', [('🔥 Товары по акции', 'sale', 0, 1, 1)])
     conn.commit()
@@ -172,9 +172,11 @@ def checkout():
     calc = data.get('calc')
     d_type = data.get('delivery_type', 'pickup')
     p_type = data.get('payment_type', 'cash')
+    address = data.get('address', '')
+    
     with sqlite3.connect('shop.db') as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type) VALUES (?,?,?,?,?,?,?,?,?)", (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], 0, json.dumps(data.get('cart')), d_type, p_type))
+        cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, address) VALUES (?,?,?,?,?,?,?,?,?,?)", (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], 0, json.dumps(data.get('cart')), d_type, p_type, address))
         order_id = cur.lastrowid
     session['phone'] = data.get('phone')
     
@@ -182,6 +184,7 @@ def checkout():
         d_str = {"pickup": "Самовывоз", "courier": "Курьер", "taxi": "Такси"}.get(d_type, d_type)
         p_str = {"cash": "Наличными", "transfer": "Перевод"}.get(p_type, p_type)
         msg = f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.\nДоставка: {d_str}.\nОплата: {p_str}."
+        if address: msg += f"\nАдрес: {address}"
         if p_type == 'transfer': msg += "\n\n💳 Ожидайте, сейчас Николаич пришлет реквизиты."
         if d_type == 'taxi': msg += "\n\n🚕 Николаич уточняет тариф такси. Скоро пришлет стоимость!"
         send_vk_message(user['social_link'], msg)
@@ -284,7 +287,7 @@ def admin_crud(entity):
                 conn.execute("UPDATE orders SET status=? WHERE id=?", (data['status'], data['id']))
                 if data.get('social_link'): send_vk_message(data['social_link'], f"🚜 Статус заказа #{data['id']} изменен на: {data['status']}!")
             elif entity == 'users':
-                conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, age_verified=? WHERE id=?", (data['full_name'], data['phone'], data['social_link'], data['age_verified'], data['id']))
+                conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=? WHERE id=?", (data['full_name'], data['phone'], data['social_link'], data.get('addresses','[]'), data['age_verified'], data['id']))
         return jsonify({"status": "ok"})
 
 @app.route('/api/admin/vk_action', methods=['POST'])

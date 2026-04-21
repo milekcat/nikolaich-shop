@@ -12,7 +12,7 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v32_correct_models'
+app.secret_key = 'nikolaich_erp_v33_legal_geo'
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -43,38 +43,42 @@ def send_vk_message(db_user_id, user_vk_link, text):
     except Exception as e: print(f"VK Error: {e}")
     return False
 
-# ИСПРАВЛЕНО: Теперь используем gemini-2.5-flash и gemini-2.5-pro
+# ИСПРАВЛЕННЫЙ ВЫЗОВ ИИ (Без response_format, который крашит прокси)
 def call_ai(prompt, sys_prompt, model="gemini-2.5-flash", is_json=True, messages_history=None):
     payload = {"model": model, "temperature": 0.3}
+    
+    # Добавляем жесткую инструкцию вернуть ТОЛЬКО JSON без форматирования
+    if is_json:
+        sys_prompt += " ВЫДАЙ СТРОГО ТОЛЬКО JSON. НАЧНИ С { И ЗАКОНЧИ }. НИКАКИХ ДРУГИХ СЛОВ, НИКАКОГО МАРКДАУНА."
+
     if messages_history:
         payload["messages"] = [{"role": "system", "content": sys_prompt}] + messages_history
     else:
         payload["messages"] = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}]
-        
-    if is_json:
-        payload["messages"][0]["content"] += " ОТВЕЧАЙ СТРОГО В ФОРМАТЕ JSON. НАЧИНАЙ С { И ЗАКАНЧИВАЙ }."
 
     try:
         r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
         
-        # Если первая модель недоступна, переключаемся на вторую из твоего тарифа (gemini-2.5-pro)
         if r.status_code != 200:
-            print(f"API Error ({r.status_code}) with {model}. Switching to gemini-2.5-pro...")
+            print(f"API Error ({r.status_code}) with {model}. Switch to gemini-2.5-pro...")
             payload["model"] = "gemini-2.5-pro"
             r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
-            r.raise_for_status()
+            if r.status_code != 200:
+                return {"error": f"Сервер ИИ недоступен. Код: {r.status_code}. Ответ: {r.text[:100]}"} if is_json else f"Ошибка ИИ: {r.status_code}"
 
         response_text = r.json()['choices'][0]['message']['content']
+        
         if is_json:
             match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if match:
                 try: return json.loads(match.group(0))
-                except: return {"error": "Ошибка синтаксиса JSON от ИИ."}
-            return {"error": "ИИ вернул текст без JSON."}
+                except: return {"error": "Сбой формата: ИИ вернул поврежденный JSON."}
+            return {"error": "Сбой формата: ИИ не вернул JSON."}
+            
         return response_text
 
     except Exception as e: 
-        return {"error": f"Локальная ошибка: {str(e)}"} if is_json else f"Локальная ошибка: {e}"
+        return {"error": f"Сбой сети: {str(e)}"} if is_json else f"Сбой сети: {e}"
 
 def init_db():
     with sqlite3.connect('shop.db') as conn:
@@ -91,7 +95,7 @@ def init_db():
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
-                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты с доставкой.'),
+                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'),
                 ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'),
                 ('min_order_sum', '500'), ('high_demand', '0'), 
                 ('payment_details', '+7 (999) 000-00-00 (Сбербанк, Николаич)'), ('vk_confirm_code', '00000000')
@@ -113,7 +117,6 @@ def get_user_by_identifier(identifier, is_vk=False):
     field = "vk_id" if is_vk else "phone"
     return get_db_query(f"SELECT * FROM users WHERE {field}=?", (identifier,), fetch_one=True)
 
-# ================= ВЕБХУК VK =================
 @app.route('/api/vk_webhook', methods=['POST'])
 def vk_webhook():
     data = request.json
@@ -131,7 +134,6 @@ def vk_webhook():
                 conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], text))
     return 'ok'
 
-# ================= АВТОРИЗАЦИЯ =================
 @app.route('/api/auth/vk', methods=['POST'])
 def auth_vk():
     data = request.json
@@ -176,7 +178,6 @@ def auth_logout():
     session.clear()
     return jsonify({"status": "ok"})
 
-# ================= ВИТРИНА =================
 @app.route('/')
 def index():
     auth_val = session.get('user_identifier')
@@ -299,17 +300,17 @@ def checkout():
             
     if user['social_link']:
         settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-        d_str = {"pickup": "Самовывоз", "courier": "Курьер", "taxi": "Такси"}.get(d_type, d_type)
+        # ЮРИДИЧЕСКАЯ ЧИСТОТА: МЕНЯЕМ СЛОВО В СООБЩЕНИЯХ
+        d_str = {"pickup": "Самовывоз", "courier": "Логистический пакет (внутри магазина)", "taxi": "Логистический пакет (через Яндекс)"}.get(d_type, d_type)
         p_str = {"cash": "Наличными", "transfer": "Перевод"}.get(p_type, p_type)
-        msg = f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.\nДоставка: {d_str}.\nОплата: {p_str}."
+        msg = f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.\nКомплектация: {d_str}.\nОплата: {p_str}."
         if address: msg += f"\nАдрес: {address}"
         if p_type == 'transfer': msg += f"\n\n💳 Ожидайте, сейчас Николаич пришлет реквизиты."
-        if d_type == 'taxi': msg += "\n\n🚕 Николаич уточняет тариф такси. Скоро пришлет стоимость!"
+        if d_type == 'taxi': msg += "\n\n🚕 Николаич уточняет тариф логистики до вас. Скоро пришлет стоимость!"
         send_vk_message(user['id'], user['social_link'], msg)
         
     return jsonify({"status": "ok", "order_id": order_id})
 
-# ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): return render_template('admin.html')
 
@@ -394,9 +395,9 @@ def admin_chat_send():
         send_vk_message(user['id'], user['social_link'], msg_text)
         return jsonify({"status": "ok"})
 
-    if msg_type == 'req': text = f"💳 Оплата заказа:\nПереведите по реквизитам:\n{settings.get('payment_details', 'Не указано')}\nПосле перевода отправьте скриншот сюда."
-    elif msg_type == 'taxi': text = f"🚕 Николаич проверил тариф такси до вас: {data.get('custom_val', '')} ₽. Оплачиваем или сами заберете?"
-    elif msg_type == 'paid': text = "✅ Денежку увидел! Ваш заказ передан в сборку."
+    if msg_type == 'req': text = f"💳 Оплата комплектации:\nПереведите по реквизитам:\n{settings.get('payment_details', 'Не указано')}\nПосле перевода отправьте скриншот сюда."
+    elif msg_type == 'taxi': text = f"🚕 Николаич проверил тариф Яндекс.Логистики до вас: {data.get('custom_val', '')} ₽. Оплачиваем или сами заберете?"
+    elif msg_type == 'paid': text = "✅ Денежку увидел! Ваш заказ передан в комплектацию."
     
     success = send_vk_message(user['id'], user['social_link'], f"👨‍🌾 Николаич:\n{text}")
     return jsonify({"status": "ok" if success else "error"})
@@ -414,7 +415,7 @@ def admin_vk_action():
     
     return jsonify({"status": "error", "msg": "Unknown action"})
 
-# --- ИИ МАРШРУТЫ ---
+# --- ИИ МАРШРУТЫ (ИСПОЛЬЗУЮТ gemini-2.5-flash) ---
 @app.route('/api/ai/upsell', methods=['POST'])
 def ai_upsell():
     cart_items = request.json.get('cart_items', [])
@@ -430,14 +431,14 @@ def ai_chef():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     prods = get_db_query("SELECT p.id, p.name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND c.is_hidden=0")
     catalog = ", ".join([f"ID {p['id']}: {p['name']}" for p in prods])
-    sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери продукты из: {catalog}. Без 18+. JSON: 'message', 'cart_ids'."
+    sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери продукты из: {catalog}. Без 18+. Выдай JSON: ключи 'message' и 'cart_ids' (список)."
     return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-2.5-flash", True))
 
 @app.route('/api/ai/gen_banner', methods=['POST'])
 def ai_gen_banner():
     topic = request.json.get('topic', '')
     cat_name = request.json.get('category_name', '')
-    sys_prompt = "Ты маркетолог. Верни СТРОГО JSON: ключи title, subtitle, bg_color (hex), img_prompt (на англ)."
+    sys_prompt = "Ты маркетолог. Выдай JSON: ключи title, subtitle, bg_color (hex), img_prompt (на англ)."
     prompt = f"Идея: {topic}. Категория: {cat_name}."
     res = call_ai(prompt, sys_prompt, "gemini-2.5-flash", True)
     if "error" not in res:

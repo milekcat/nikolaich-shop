@@ -11,13 +11,13 @@
         body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { display: none; }
         
-        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress&cs=tinysrgb&w=1920&v=5'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress&cs=tinysrgb&w=1920&v=7'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 10px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
         .header-top h3 { color: #fff !important; text-shadow: 1px 1px 5px rgba(0,0,0,1); font-weight: 900; margin: 0; }
         .header-top .bi-person-circle { color: #fff !important; filter: drop-shadow(1px 1px 3px rgba(0,0,0,0.9)); cursor: pointer; }
         
-        .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress&cs=tinysrgb&w=1920&v=5'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; margin-top: 15px; }
+        .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress&cs=tinysrgb&w=1920&v=7'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; margin-top: 15px; }
         .cat-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 0 20px; scroll-behavior: smooth; }
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
@@ -28,7 +28,7 @@
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
 
         .prod-grid { padding: 0 20px; }
-        .p-card { background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800&v=5') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
+        .p-card { background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800&v=7') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 15, 5, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         .p-img-box { width: 100%; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 12px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
@@ -151,7 +151,6 @@
 
 <div class="footer-legal">
     <div class="fw-bold mb-1">{{ settings.shop_name }}</div><div>{{ settings.footer_text }}</div>
-    
     <div class="mt-2">
         {% if user and user.age_verified == 2 %}
             <div class="lock-btn success" onclick="filterCat(99, null)"><i class="bi bi-unlock-fill"></i> VIP Клуб Открыт</div>
@@ -176,6 +175,7 @@
             <div class="bg-white p-3 rounded-4 shadow-sm mb-4">
                 <div class="fw-bold fs-5" id="cabPhone"></div>
                 <div class="text-muted small" id="cabName"></div>
+                <div id="cabBalanceContainer"></div>
                 <button class="btn btn-outline-danger btn-sm mt-3 fw-bold rounded-pill px-4" onclick="logout()">Выйти</button>
             </div>
 
@@ -220,6 +220,15 @@
             </div>
 
             <div class="checkout-box">
+                <h6 class="fw-bold mb-2"><i class="bi bi-tag text-danger"></i> Промокод / Сертификат</h6>
+                <div class="d-flex gap-2">
+                    <input type="text" id="promoCode" class="form-control bg-white border fw-bold" placeholder="Введите код">
+                    <button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button>
+                </div>
+                <div id="promoStatus" class="mt-2 small fw-bold"></div>
+            </div>
+
+            <div class="checkout-box">
                 <h6 class="fw-bold mb-2"><i class="bi bi-truck text-primary"></i> Доставка</h6>
                 <select class="form-select bg-white border-0 fw-bold mb-2" id="deliveryType" onchange="calcCart()">
                     <option value="pickup">Самовывоз (Бесплатно)</option>
@@ -244,10 +253,11 @@
 
             <div class="d-flex justify-content-between mb-1 text-muted"><span>Пакет/Сборка</span><span id="tPack" class="fw-bold text-dark">0 ₽</span></div>
             <div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
-            <div class="d-flex justify-content-between mb-4 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-4 text-muted"><span>Скидка / Баланс</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div>
             
             <label class="small text-muted fw-bold ms-2 mb-1">Номер телефона</label>
-            <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}">
+            <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
             <label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для чеков)</label>
             <input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}">
             
@@ -299,6 +309,11 @@
         const res = await fetch('/api/user/cabinet'); const data = await res.json();
         if(data.error) return alert("Нужно авторизоваться");
         document.getElementById('cabPhone').innerText = data.user.phone; document.getElementById('cabName').innerText = data.user.full_name || 'Профиль не заполнен полностью';
+        
+        if (data.user.is_sysadmin === 1) {
+            document.getElementById('cabBalanceContainer').innerHTML = `<div class="mt-2 p-2 bg-dark text-white rounded-3 small fw-bold"><i class="bi bi-wallet2 text-warning"></i> Личный счет (Сисадмин): <span class="text-warning">${data.user.balance} ₽</span></div>`;
+        }
+        
         const statusColors = {'Новый': 'secondary', 'Собран': 'warning text-dark', 'В пути': 'primary', 'Выполнен': 'success', 'Отменен': 'danger'};
         if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted small">У вас еще нет заказов.</div>'; } 
         else {
@@ -356,7 +371,6 @@
 
     function recalcTotals() { 
         itemsTotal = 0; let count = 0; 
-        // ИСПРАВЛЕННАЯ ФОРМУЛА: цена умножается на РЕАЛЬНОЕ КОЛИЧЕСТВО (вес)
         for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } 
         document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; 
         document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; 
@@ -367,9 +381,7 @@
     async function prepareCart() { 
         const html = []; 
         for(let id in cart) { 
-            const item = cart[id]; 
-            // ИСПРАВЛЕННАЯ ФОРМУЛА: цена умножается на РЕАЛЬНОЕ КОЛИЧЕСТВО (вес)
-            const itemSum = item.price * item.qty; 
+            const item = cart[id]; const itemSum = item.price * item.qty; 
             let imgHtml = item.img ? `<img src="${item.img}" style="width:40px; height:40px; object-fit:cover; border-radius:8px; margin-right:12px;">` : ''; 
             html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${imgHtml}<div class="fw-bold lh-1" style="font-size:13px;">${item.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width: 40px; text-align: center;">${item.qty} ${item.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width: 25%;">${itemSum.toFixed(0)} ₽</div></div>`); 
         } 
@@ -383,12 +395,26 @@
     async function calcCart() { 
         if (Object.keys(cart).length === 0) return; 
         const d_type = document.getElementById('deliveryType').value; 
+        const promoCode = document.getElementById('promoCode').value;
+        const userPhone = document.getElementById('checkoutPhone').value;
         
         document.getElementById('addressBox').style.display = (d_type === 'pickup') ? 'none' : 'block';
 
-        const res = await fetch('/api/cart/calc', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items_total: itemsTotal, delivery_type: d_type})}); 
+        const res = await fetch('/api/cart/calc', {
+            method:'POST', headers:{'Content-Type':'application/json'}, 
+            body:JSON.stringify({items_total: itemsTotal, delivery_type: d_type, promo_code: promoCode, phone: userPhone})
+        }); 
         lastCalc = await res.json(); 
         
+        // Статус промокода
+        const pStatus = document.getElementById('promoStatus');
+        pStatus.innerText = lastCalc.promo_status || '';
+        if(lastCalc.promo_status && (lastCalc.promo_status.includes('Неверный') || lastCalc.promo_status.includes('только для') || lastCalc.promo_status.includes('Минимальная'))) {
+            pStatus.className = "mt-2 small fw-bold text-danger";
+        } else {
+            pStatus.className = "mt-2 small fw-bold text-success";
+        }
+
         let delHint = "Заберете сами на ферме.";
         if(d_type == 'courier') delHint = `Курьер магазина. Бесплатно от ${lastCalc.free_threshold || 3000}₽`;
         if(d_type == 'taxi') delHint = "Отправим Яндексом. Стоимость Николаич напишет в чате VK.";
@@ -398,11 +424,15 @@
         document.getElementById('tDel').innerText = d_type == 'taxi' ? 'По тарифу такси' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); 
         document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; 
         
+        const totalDiscount = (lastCalc.discount || 0) + (lastCalc.sysadmin_pay || 0);
+        document.getElementById('tDiscount').innerText = totalDiscount > 0 ? '- ' + totalDiscount.toFixed(0) + ' ₽' : '0 ₽';
+
         const btn = document.getElementById('checkoutBtn');
         const minOrder = lastCalc.min_order || 0;
-        if (itemsTotal < minOrder) {
+        
+        if (lastCalc.items_total < minOrder) {
             btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary');
-            btn.innerHTML = `Добавьте ещё на ${minOrder - itemsTotal} ₽`;
+            btn.innerHTML = `Добавьте ещё на ${minOrder - lastCalc.items_total} ₽`;
         } else {
             btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success');
             btn.innerHTML = `Оформить за <span id="tFinal">${lastCalc.final_total.toFixed(0)}</span> ₽`;

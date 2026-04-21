@@ -28,8 +28,8 @@
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
 
         .prod-grid { padding: 0 20px; }
-        .p-card { background-color: #4a2e1b; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
-        .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 15, 5, 0.45); z-index: 1; pointer-events: none; }
+        .p-card { background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
+        .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 15, 5, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         .p-img-box { width: 100%; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 12px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
         .p-img-box img { width: 100%; height: 100%; object-fit: cover; }
@@ -49,7 +49,6 @@
         .upsell-card { min-width: 140px; background: #fff; border-radius: 16px; padding: 10px; border: 1px solid #eee; text-align: center; }
         .upsell-card img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; margin-bottom: 8px; }
         
-        /* Стили для Кабинета */
         .order-card { background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
         .status-badge { font-size: 11px; padding: 5px 10px; border-radius: 20px; font-weight: bold; }
         .status-Новый { background: #e2e3e5; color: #383d41; }
@@ -74,7 +73,7 @@
     </div>
     <div class="cat-scroll-wrapper">
         <div class="cat-scroll">
-            <div class="cat-pill active" onclick="filterCat('all', this)">Всё меню</div>
+            <div class="cat-pill active" onclick="filterCat('all', this)">Весь каталог</div>
             {% for c in categories %}
                 <div class="cat-pill" onclick="filterCat({{ c.id }}, this)">{{ c.icon }} {{ c.name }}</div>
             {% endfor %}
@@ -161,8 +160,7 @@
             </div>
 
             <h5 class="fw-bold mb-3">История заказов</h5>
-            <div id="cabinetOrders" style="overflow-y: auto; max-height: 60vh;">
-                </div>
+            <div id="cabinetOrders" style="overflow-y: auto; max-height: 60vh;"></div>
         </div>
     </div>
 </div>
@@ -205,7 +203,7 @@
                 <h6 class="fw-bold mb-2"><i class="bi bi-truck text-primary"></i> Доставка</h6>
                 <select class="form-select bg-white border-0 fw-bold mb-2" id="deliveryType" onchange="calcCart()">
                     <option value="pickup">Самовывоз (Бесплатно)</option>
-                    <option value="courier">Курьер магазина (+5% к ценам)</option>
+                    <option value="courier">Курьер магазина (По тарифу)</option>
                     <option value="taxi">Отправка на Такси (Оплата по тарифу)</option>
                 </select>
                 <div id="delHint" class="small text-muted">Заберете сами на ферме.</div>
@@ -218,8 +216,9 @@
                 </select>
             </div>
 
-            <div class="d-flex justify-content-between mb-2 text-muted"><span>Сумма товаров</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
-            <div class="d-flex justify-content-between mb-4 text-muted"><span>Доставка</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-1 text-muted"><span>Пакет/Сборка</span><span id="tPack" class="fw-bold text-dark">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-4 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
             
             <label class="small text-muted fw-bold ms-2 mb-1">Номер телефона</label>
             <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}">
@@ -236,7 +235,7 @@
         <div class="modal-content p-4 text-center">
             <i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i>
             <h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3>
-            <p class="text-muted mb-4">🚜 Чтобы Николаич мог прислать вам чек и реквизиты, <b>нажмите на кнопку ниже и отправьте нашему боту любой смайлик!</b> (ВКонтакте запрещает нам писать первыми).</p>
+            <p class="text-muted mb-4">🚜 Чтобы Николаич мог прислать вам чек и реквизиты, <b>нажмите на кнопку ниже и отправьте нашему боту любой смайлик!</b></p>
             <a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="location.reload()"><i class="bi bi-send-fill me-2"></i> Написать Николаичу в VK</a>
             <button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.reload()">Закрыть</button>
         </div>
@@ -257,36 +256,16 @@
         if(track) { setInterval(() => { if (track.scrollLeft + track.clientWidth >= track.scrollWidth) track.scrollTo({ left: 0, behavior: 'smooth' }); else track.scrollBy({ left: track.clientWidth * 0.85, behavior: 'smooth' }); }, 5000); } 
     });
 
-    // --- КАБИНЕТ ---
     async function openCabinet() {
-        const res = await fetch('/api/user/cabinet');
-        const data = await res.json();
+        const res = await fetch('/api/user/cabinet'); const data = await res.json();
         if(data.error) return alert("Нужно авторизоваться");
-        
-        document.getElementById('cabPhone').innerText = data.user.phone;
-        document.getElementById('cabName').innerText = data.user.full_name || 'Профиль не заполнен полностью';
-        
+        document.getElementById('cabPhone').innerText = data.user.phone; document.getElementById('cabName').innerText = data.user.full_name || 'Профиль не заполнен полностью';
         const statusColors = {'Новый': 'secondary', 'Собран': 'warning text-dark', 'В пути': 'primary', 'Выполнен': 'success', 'Отменен': 'danger'};
-        
-        if(data.orders.length === 0) {
-            document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted small">У вас еще нет заказов.</div>';
-        } else {
+        if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted small">У вас еще нет заказов.</div>'; } 
+        else {
             document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => {
                 const itemsList = Object.values(o.items).map(i => `${i.name} (${i.qty}${i.unit})`).join(', ');
-                return `
-                <div class="order-card">
-                    <div class="d-flex justify-content-between mb-2">
-                        <div class="fw-bold">Заказ #${o.id}</div>
-                        <span class="badge bg-${statusColors[o.status] || 'dark'}">${o.status}</span>
-                    </div>
-                    <div class="small text-muted mb-2 lh-1">${o.date.split(' ')[0]}</div>
-                    <div class="small mb-3 lh-sm" style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${itemsList}</div>
-                    <div class="d-flex justify-content-between align-items-end">
-                        <div class="small fw-bold text-muted">${o.delivery_type === 'pickup' ? 'Самовывоз' : 'Доставка'}</div>
-                        <div class="fw-bold fs-5 text-success">${o.final_total} ₽</div>
-                    </div>
-                </div>
-                `;
+                return `<div class="order-card"><div class="d-flex justify-content-between mb-2"><div class="fw-bold">Заказ #${o.id}</div><span class="badge bg-${statusColors[o.status] || 'dark'}">${o.status}</span></div><div class="small text-muted mb-2 lh-1">${o.date.split(' ')[0]}</div><div class="small mb-3 lh-sm" style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${itemsList}</div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted">${o.delivery_type === 'pickup' ? 'Самовывоз' : 'Доставка'}</div><div class="fw-bold fs-5 text-success">${o.final_total} ₽</div></div></div>`;
             }).join('');
         }
         new bootstrap.Modal(document.getElementById('cabinetModal')).show();
@@ -295,7 +274,6 @@
     async function login() { const phone = document.getElementById('loginPhone').value; await fetch('/api/auth/shadow', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone})}); location.reload(); }
     async function logout() { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); }
 
-    // --- ВИТРИНА ---
     function filterCat(id, btn) { 
         if(btn) { document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active')); btn.classList.add('active'); } 
         const mainBlocks = document.getElementById('mainContentBlocks'); const filterBlock = document.getElementById('filteredProductsBlock'); 
@@ -328,26 +306,19 @@
 
     function add(btn, id, price, name, step, unit, img) { 
         if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img}; } 
-        cart[id].qty = Math.round(cart[id].qty * 1000) / 1000;
-        recalcTotals(); 
+        cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); 
         if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); }
     }
 
     function updateCartItem(id, changeMultiplier) {
-        if(cart[id]) {
-            cart[id].qty += changeMultiplier * cart[id].step;
-            cart[id].qty = Math.round(cart[id].qty * 1000) / 1000;
-            if(cart[id].qty <= 0) { delete cart[id]; }
-            recalcTotals(); prepareCart();
-        }
+        if(cart[id]) { cart[id].qty += changeMultiplier * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) { delete cart[id]; } recalcTotals(); prepareCart(); }
     }
 
     function recalcTotals() { 
         itemsTotal = 0; let count = 0; 
-        for(let id in cart) { itemsTotal += cart[id].price * (cart[id].qty / cart[id].step); count++; } 
+        for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } 
         document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; 
-        document.getElementById('cartCount').innerText = count + ' позиций'; 
-        document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; 
+        document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; 
         if(lastCalc) calcCart(); 
         if(count === 0) { const modal = bootstrap.Modal.getInstance(document.getElementById('cartModal')); if(modal) modal.hide(); }
     }
@@ -355,38 +326,31 @@
     async function prepareCart() { 
         const html = []; 
         for(let id in cart) { 
-            const item = cart[id]; const itemSum = item.price * (item.qty / item.step); 
+            const item = cart[id]; const itemSum = item.price * item.qty; 
             let imgHtml = item.img ? `<img src="${item.img}" style="width:40px; height:40px; object-fit:cover; border-radius:8px; margin-right:12px;">` : ''; 
-            html.push(`
-                <div class="d-flex justify-content-between border-bottom py-3 align-items-center">
-                    <div class="d-flex align-items-center" style="width:45%;">${imgHtml}<div class="fw-bold lh-1" style="font-size:13px;">${item.name}</div></div>
-                    <div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm">
-                        <button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button>
-                        <div class="fw-bold mx-1" style="font-size:13px; min-width: 40px; text-align: center;">${item.qty} ${item.unit}</div>
-                        <button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button>
-                    </div>
-                    <div class="fw-bold text-end" style="width: 25%;">${itemSum.toFixed(0)} ₽</div>
-                </div>
-            `); 
+            html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${imgHtml}<div class="fw-bold lh-1" style="font-size:13px;">${item.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width: 40px; text-align: center;">${item.qty} ${item.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width: 25%;">${itemSum.toFixed(0)} ₽</div></div>`); 
         } 
         document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>'; 
         await calcCart(); 
-        
         const res = await fetch('/api/ai/upsell', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cart_items: Object.values(cart).map(i => i.name)})}); 
         const prods = await res.json(); 
-        if(prods.length > 0) { document.getElementById('upsellBox').innerHTML = prods.map(p => `
-            <div class="upsell-card"><img src="${p.images[0] || ''}"><div class="fw-bold lh-1" style="font-size:11px; height:24px; overflow:hidden;">${p.name}</div><div class="text-success fw-bold small mb-2">${p.price} ₽</div><button class="btn btn-sm btn-dark w-100 rounded-pill" onclick="add(null, ${p.id}, ${p.price}, '${p.name}', ${p.step}, '${p.unit}', '${p.images[0] || ''}'); prepareCart();">+ ${p.step}</button></div>
-        `).join(''); } else { document.getElementById('upsellBox').innerHTML = '<div class="small text-muted">Всё собрано!</div>'; } 
+        if(prods.length > 0) { document.getElementById('upsellBox').innerHTML = prods.map(p => `<div class="upsell-card"><img src="${p.images[0] || ''}"><div class="fw-bold lh-1" style="font-size:11px; height:24px; overflow:hidden;">${p.name}</div><div class="text-success fw-bold small mb-2">${p.price} ₽</div><button class="btn btn-sm btn-dark w-100 rounded-pill" onclick="add(null, ${p.id}, ${p.price}, '${p.name}', ${p.step}, '${p.unit}', '${p.images[0] || ''}'); prepareCart();">+ ${p.step}</button></div>`).join(''); } else { document.getElementById('upsellBox').innerHTML = '<div class="small text-muted">Всё собрано!</div>'; } 
     }
 
     async function calcCart() { 
         if (Object.keys(cart).length === 0) return; 
         const d_type = document.getElementById('deliveryType').value; 
-        document.getElementById('delHint').innerText = {"pickup": "Заберете сами на ферме.", "courier": "Включена наценка 5% за услуги курьера.", "taxi": "Отправим Яндексом. Стоимость Николаич напишет в чате VK."}[d_type]; 
         const res = await fetch('/api/cart/calc', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items_total: itemsTotal, delivery_type: d_type})}); 
         lastCalc = await res.json(); 
-        document.getElementById('tItems').innerHTML = lastCalc.items_total.toFixed(0) + ' ₽' + (d_type === 'courier' ? ' <span class="badge bg-warning text-dark ms-1">+5% наценка</span>' : ''); 
+        
+        let delHint = "Заберете сами на ферме.";
+        if(d_type == 'courier') delHint = `Курьер магазина. Бесплатно от ${lastCalc.free_threshold || 3000}₽`;
+        if(d_type == 'taxi') delHint = "Отправим Яндексом. Стоимость Николаич напишет в чате VK.";
+        document.getElementById('delHint').innerText = delHint;
+        
+        document.getElementById('tPack').innerText = lastCalc.package_cost > 0 ? lastCalc.package_cost + ' ₽' : 'Бесплатно';
         document.getElementById('tDel').innerText = d_type == 'taxi' ? 'По тарифу такси' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); 
+        document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; 
         document.getElementById('tFinal').innerText = lastCalc.final_total.toFixed(0); 
     }
 
@@ -394,10 +358,8 @@
         if(Object.keys(cart).length === 0) return; 
         const soc = document.getElementById('checkoutSocial').value; const p_type = document.getElementById('paymentType').value; 
         if(p_type === 'transfer' && !soc) return alert("Укажите Вашу ссылку на VK для получения реквизитов!"); 
-        
         const res = await fetch('/api/checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone: document.getElementById('checkoutPhone').value, social_link: soc, delivery_type: document.getElementById('deliveryType').value, payment_type: p_type, cart: cart, calc: lastCalc})}); 
         const data = await res.json();
-        
         if(data.status === 'ok') {
             bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
             document.getElementById('successOrderId').innerText = `#${data.order_id}`;

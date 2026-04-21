@@ -42,7 +42,7 @@
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Настройки Сайта</a>
         <a class="nav-link" onclick="showTab('ai', this)"><i class="bi bi-magic me-2 fs-5 text-primary"></i> Нейро-сотрудники</a>
     </nav>
-    <div class="mt-auto small text-muted text-center fw-bold">ERP System v35.0 PRO</div>
+    <div class="mt-auto small text-muted text-center fw-bold">ERP System v37.0 LEGAL</div>
 </div>
 
 <div class="main-content">
@@ -169,10 +169,17 @@
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
                         <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
                         
-                        <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для авто-ответов ВК)</label>
-                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк, Иван И.)"></textarea>
+                        <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для авто-ответов бота)</label>
+                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк, Николаич)"></textarea>
                         
-                        <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock"></i> Безопасность</h5>
+                        <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
+                        <label class="small fw-bold text-muted mb-1">Текст Публичной Оферты</label>
+                        <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="6" placeholder="Введите полный текст публичной оферты..."></textarea>
+                        
+                        <label class="small fw-bold text-muted mb-1">Политика обработки персональных данных (ФЗ-152)</label>
+                        <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="6" placeholder="Введите текст политики конфиденциальности..."></textarea>
+
+                        <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Безопасность</h5>
                         <label class="small fw-bold text-muted mb-1">Секретный код VK (Для приема сообщений Webhook)</label>
                         <input type="text" id="setVkCode" class="form-control bg-light border mb-3 p-2" placeholder="00000000">
                         <label class="small fw-bold text-muted mb-1">PIN-код Администратора (Для удаления заказов)</label>
@@ -405,7 +412,7 @@
         if(res && res.status === 'ok') {
             if(type === 'status') { loadOrders(); alert("Статус обновлен и сообщение отправлено!"); }
             else { const refresh = await apiCall('order_chat/' + currentActiveOrder); renderOrderChatMessages(refresh.messages); }
-        } else { alert("Ошибка отправки! Привязан ли у клиента VK?"); }
+        } else { alert("Ошибка отправки:\n\n" + (res.error || "Неизвестная ошибка")); }
     }
 
     function promptTaxi() {
@@ -569,6 +576,8 @@
             document.getElementById('setPayment').value = settings.payment_details || '';
             document.getElementById('setVkCode').value = settings.vk_confirm_code || '';
             document.getElementById('setAdminPin').value = settings.admin_pin || '0000';
+            document.getElementById('setOfertaText').value = settings.oferta_text || '';
+            document.getElementById('setPrivacyText').value = settings.privacy_text || '';
         }
         const wh = await apiCall('warehouse'); if(wh) categoriesList = wh.categories;
         const banners = await apiCall('banners');
@@ -585,7 +594,8 @@
             package_cost: document.getElementById('setPackageCost').value, courier_cost: document.getElementById('setCourierCost').value,
             free_delivery_threshold: document.getElementById('setFreeDelivery').value, min_order_sum: document.getElementById('setMinOrder').value,
             high_demand: document.getElementById('setHighDemand').value, payment_details: document.getElementById('setPayment').value,
-            vk_confirm_code: document.getElementById('setVkCode').value, admin_pin: document.getElementById('setAdminPin').value
+            vk_confirm_code: document.getElementById('setVkCode').value, admin_pin: document.getElementById('setAdminPin').value,
+            oferta_text: document.getElementById('setOfertaText').value, privacy_text: document.getElementById('setPrivacyText').value
         }); 
         alert('Настройки сохранены!'); 
     }

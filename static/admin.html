@@ -281,8 +281,7 @@
                 chatBtns += `<button class="btn btn-sm btn-success w-100 rounded-pill" onclick="sendVkAction('${o.social_link}', 'paid')">✅ Оплачено</button>`;
             } else { chatBtns = '<span class="badge bg-secondary">Нет VK</span>'; }
             
-            // Вывод адреса в таблицу заказов
-            const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger">Адрес: ${o.address}</span>` : '';
+            const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger fw-bold">Адрес: ${o.address}</span>` : '';
             
             return `<tr>
                 <td><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div></td>
@@ -497,7 +496,6 @@
     function openBannerModal(b = null) {
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.link_cat==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
         const aiCatOptions = categoriesList.map(c => `<option value="${c.id}" data-name="${c.name}">${c.icon} ${c.name}</option>`).join('');
-        
         openModal(b ? 'Настройка баннера' : 'Новый баннер', `
             <input type="hidden" id="bId" value="${b ? b.id : ''}">
             

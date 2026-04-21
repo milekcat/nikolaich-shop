@@ -11,9 +11,9 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v18_master'
+app.secret_key = 'nikolaich_erp_v21_final'
 
-# Папка для загрузки фотографий товаров
+# Папка для загрузки фотографий
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -40,17 +40,19 @@ def send_vk_message(user_vk_link, text):
         r_id = requests.get(req_url).json()
         
         if r_id.get('response') and r_id['response']['type'] == 'user':
-            peer_id = r_id['response']['object_id']
             payload = {
-                "user_id": peer_id, 
+                "user_id": r_id['response']['object_id'], 
                 "random_id": 0, 
                 "message": text, 
                 "access_token": VK_TOKEN, 
                 "v": VK_API_VERSION
             }
-            requests.post("https://api.vk.com/method/messages.send", data=payload)
+            res = requests.post("https://api.vk.com/method/messages.send", data=payload).json()
+            print("VK API RESPONSE:", res) # Логируем ответ ВК для отладки
+            if 'error' in res:
+                return False
             return True
-    except Exception as e:
+    except Exception as e: 
         print(f"VK Error: {e}")
     return False
 
@@ -128,23 +130,20 @@ def init_db():
 init_db()
 
 def get_db_query(query, args=(), fetch_one=False):
-    """Вспомогательная функция для SQL запросов"""
     with sqlite3.connect('shop.db') as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.execute(query, args)
-        if fetch_one:
+        if fetch_one: 
             res = cur.fetchone()
             return dict(res) if res else None
         return [dict(row) for row in cur.fetchall()]
 
 def get_or_create_user(phone, name="Клиент", social_link=""):
-    """Ищет клиента по телефону или создает нового"""
-    if not phone: 
-        return None
+    if not phone: return None
     user = get_db_query("SELECT * FROM users WHERE phone=?", (phone,), fetch_one=True)
     if not user:
         ref_code = f"REF-{uuid.uuid4().hex[:6].upper()}"
-        with sqlite3.connect('shop.db') as conn:
+        with sqlite3.connect('shop.db') as conn: 
             conn.execute("INSERT INTO users (phone, name, social_link, ref_code) VALUES (?, ?, ?, ?)", 
                          (phone, name, social_link, ref_code))
         user = get_db_query("SELECT * FROM users WHERE phone=?", (phone,), fetch_one=True)
@@ -152,7 +151,7 @@ def get_or_create_user(phone, name="Клиент", social_link=""):
 
 
 # ==========================================
-# 3. ВИТРИНА ДЛЯ КЛИЕНТОВ (FRONTEND API)
+# 3. ВИТРИНА И ЛИЧНЫЙ КАБИНЕТ
 # ==========================================
 
 @app.route('/')
@@ -162,14 +161,8 @@ def index():
     is_18_approved = (user and user['age_verified'] == 2)
     
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    
-    cats = get_db_query("SELECT * FROM categories WHERE is_hidden=0 OR is_hidden=? ORDER BY sort_order", 
-                        (1 if is_18_approved else 0,))
-    
-    prods = get_db_query("""SELECT p.* FROM products p 
-                            JOIN categories c ON p.category_id = c.id 
-                            WHERE p.active=1 AND (c.is_hidden=0 OR c.is_hidden=?)""", 
-                         (1 if is_18_approved else 0,))
+    cats = get_db_query("SELECT * FROM categories WHERE is_hidden=0 OR is_hidden=? ORDER BY sort_order", (1 if is_18_approved else 0,))
+    prods = get_db_query("SELECT p.* FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND (c.is_hidden=0 OR c.is_hidden=?)", (1 if is_18_approved else 0,))
     
     for p in prods: 
         p['images'] = json.loads(p['images']) if p['images'] else []
@@ -184,12 +177,27 @@ def auth_shadow():
     session['phone'] = request.json.get('phone')
     return jsonify({"status": "ok"})
 
+@app.route('/api/auth/logout', methods=['POST'])
+def auth_logout():
+    session.pop('phone', None)
+    return jsonify({"status": "ok"})
+
+@app.route('/api/user/cabinet', methods=['GET'])
+def user_cabinet():
+    phone = session.get('phone')
+    if not phone: return jsonify({"error": "unauthorized"})
+    user = get_or_create_user(phone)
+    orders = get_db_query("SELECT * FROM orders WHERE user_id=? ORDER BY id DESC", (user['id'],))
+    for o in orders: 
+        o['items'] = json.loads(o['items'])
+    return jsonify({"user": user, "orders": orders})
+
 @app.route('/api/18plus/request', methods=['POST'])
 def request_18():
     data = request.json
     phone = data.get('phone')
     if get_or_create_user(phone):
-        with sqlite3.connect('shop.db') as conn:
+        with sqlite3.connect('shop.db') as conn: 
             conn.execute("UPDATE users SET full_name=?, social_link=?, age_verified=1 WHERE phone=?", 
                          (data.get('full_name',''), data.get('social_link',''), phone))
     session['phone'] = phone
@@ -203,10 +211,7 @@ def calc_cart():
     
     items_total = base_total * 1.05 if delivery_type == 'courier' else base_total
     package_cost = 29 if items_total > 0 else 0
-    delivery_cost = 0
-    
-    if delivery_type == 'courier':
-        delivery_cost = 0 if items_total >= 3000 else 150
+    delivery_cost = 0 if items_total >= 3000 else 150 if delivery_type == 'courier' else 0
     
     return jsonify({
         "items_total": items_total, 
@@ -227,26 +232,24 @@ def checkout():
         cur = conn.cursor()
         cur.execute("""INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, 
                        final_total, bonuses_spent, items, delivery_type, payment_type) 
-                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                       VALUES (?,?,?,?,?,?,?,?,?)""", 
                     (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], 
                      calc['final_total'], 0, json.dumps(data.get('cart')), d_type, p_type))
         order_id = cur.lastrowid
         
     session['phone'] = data.get('phone')
     
+    # Пытаемся отправить чек в ВК. Если не пустит (спам-фильтр ВК) - ничего страшного, 
+    # пользователь нажмет кнопку в модалке успеха и откроет диалог сам.
     if user['social_link']:
         d_str = {"pickup": "Самовывоз", "courier": "Курьер", "taxi": "Такси"}.get(d_type, d_type)
         p_str = {"cash": "Наличными", "transfer": "Перевод на карту"}.get(p_type, p_type)
-        
         msg = f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.\nДоставка: {d_str}.\nОплата: {p_str}."
-        if p_type == 'transfer': 
-            msg += "\n\n💳 Ожидайте, сейчас Николаич пришлет реквизиты для перевода."
-        if d_type == 'taxi': 
-            msg += "\n\n🚕 Николаич уточняет тариф такси до вашего адреса. Скоро напишет стоимость!"
-            
+        if p_type == 'transfer': msg += "\n\n💳 Ожидайте, сейчас Николаич пришлет реквизиты."
+        if d_type == 'taxi': msg += "\n\n🚕 Николаич уточняет тариф такси до вашего адреса."
         send_vk_message(user['social_link'], msg)
         
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "order_id": order_id})
 
 
 # ==========================================
@@ -257,19 +260,17 @@ def checkout():
 def ai_product_card():
     name = request.json.get('name')
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    prompt = f"{settings.get('shop_name', 'Наш магазин')}. Напиши аппетитное короткое описание и 1 классный совет по приготовлению для товара '{name}'. Верни результат в HTML-формате (без тегов html/body)."
+    prompt = f"{settings.get('shop_name', 'Наш магазин')}. Напиши аппетитное описание и совет для товара '{name}'. Верни HTML."
     return jsonify({"html": call_ai(prompt, "Ты профессиональный шеф-повар.", "gemini-2.5-pro", False)})
 
 @app.route('/api/ai/upsell', methods=['POST'])
 def ai_upsell():
     cart_items = request.json.get('cart_items', [])
-    if not cart_items: 
-        return jsonify([])
-        
+    if not cart_items: return jsonify([])
+    
     prods = get_db_query("SELECT id, name, images, price, unit, step FROM products WHERE active=1 AND category_id != 99")
-    for p in prods: 
-        p['images'] = json.loads(p['images'])
-        
+    for p in prods: p['images'] = json.loads(p['images'])
+    
     recommendations = [p for p in prods if p['name'] not in cart_items]
     random.shuffle(recommendations)
     return jsonify(recommendations[:3])
@@ -279,27 +280,30 @@ def ai_chef():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     prods = get_db_query("SELECT p.id, p.name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND c.is_hidden=0")
     catalog = ", ".join([f"ID {p['id']}: {p['name']}" for p in prods])
-    
-    sys_prompt = f"{settings.get('shop_name', 'Наш магазин')}. Собери корзину продуктов под запрос пользователя ТОЛЬКО из этого каталога: {catalog}. ЗАПРЕЩЕНО добавлять товары 18+. Формат JSON: {{'message': 'Твой комментарий', 'cart_ids': [Массив_ID_товаров]}}"
+    sys_prompt = f"{settings.get('shop_name', 'Наш магазин')}. Собери корзину продуктов ТОЛЬКО из: {catalog}. Без 18+. JSON: {{'message': 'Текст', 'cart_ids': [ID]}}"
     return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-2.5-pro", True))
 
 @app.route('/api/ai/gen_banner', methods=['POST'])
 def ai_gen_banner():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    topic = request.json.get('topic')
-    sys_prompt = "Ты креативный директор маркетплейса."
-    prompt = f"{settings.get('shop_name', 'Магазин')}. Придумай акцию на тему: {topic}. Выдай JSON: title (заголовок), subtitle (подзаголовок), bg_color (hex код пастельного цвета), img_prompt (короткий промпт на английском для генерации картинки без текста)."
+    topic = request.json.get('topic', '')
+    cat_name = request.json.get('category_name', '')
     
+    context = f" Идея: {topic}."
+    if cat_name: context += f" Ключевая категория: {cat_name}."
+    
+    sys_prompt = "Ты креативный директор маркетплейса."
+    prompt = f"Магазин: {settings.get('shop_name', 'Ферма')}.{context} Выдай JSON: title (заголовок 2-4 слова), subtitle (подзаголовок 4-7 слов), bg_color (hex код пастельного цвета), img_prompt (короткий промпт на английском для генерации 3D картинки продукта, без текста)."
     res = call_ai(prompt, sys_prompt, "gemini-2.5-pro", True)
+    
     if "error" not in res: 
-        res["img_url"] = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(res['img_prompt'])}?width=800&height=400&nologo=true"
+        res["img_url"] = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(res.get('img_prompt', 'food'))}?width=800&height=400&nologo=true"
     return jsonify(res)
 
 @app.route('/api/ai/agent', methods=['POST'])
 def ai_agent():
-    role = request.json.get('role')
-    sys_prompt = f"Ты {'опытный маркетолог' if role == 'marketer' else 'строгий юрист РФ'}."
-    return jsonify({"reply": call_ai(request.json.get('msg'), sys_prompt, "gemini-2.5-pro", False)})
+    role = "опытный маркетолог" if request.json.get('role') == 'marketer' else "юрист"
+    return jsonify({"reply": call_ai(request.json.get('msg'), f"Ты {role}.", "gemini-2.5-pro", False)})
 
 
 # ==========================================
@@ -312,115 +316,62 @@ def admin():
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
-    """Загрузка фотографий товаров на сервер"""
-    if 'file' not in request.files: 
-        return jsonify({'error': 'No file part'})
+    if 'file' not in request.files: return jsonify({'error': 'No file part'})
     file = request.files['file']
-    if file.filename == '': 
-        return jsonify({'error': 'Empty filename'})
-        
     filename = secure_filename(str(uuid.uuid4())[:8] + "_" + file.filename)
     file.save(os.path.join(UPLOAD_FOLDER, filename))
     return jsonify({'url': f'/{UPLOAD_FOLDER}/{filename}'})
 
 @app.route('/api/admin/<entity>', methods=['GET', 'POST', 'DELETE'])
 def admin_crud(entity):
-    """Универсальный API для управления всеми таблицами из админки"""
-    
-    # GET ЗАПРОСЫ
     if request.method == 'GET':
         if entity == 'warehouse': 
             prods = get_db_query("SELECT p.*, c.name as cat_name FROM products p JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC")
             for p in prods: p['images'] = json.loads(p['images'])
-            cats = get_db_query("SELECT * FROM categories ORDER BY sort_order")
-            return jsonify({"products": prods, "categories": cats})
-            
-        elif entity == 'orders': 
-            return jsonify(get_db_query("SELECT o.*, u.phone, u.full_name, u.social_link FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.id DESC"))
-            
-        elif entity == 'users': 
-            return jsonify(get_db_query("SELECT * FROM users ORDER BY created_at DESC"))
-            
-        elif entity == 'banners': 
-            return jsonify(get_db_query("SELECT * FROM banners ORDER BY id DESC"))
-            
-        elif entity == 'settings': 
-            return jsonify({s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")})
-            
-        elif entity == 'homepage_blocks': 
-            return jsonify(get_db_query("SELECT * FROM homepage_blocks ORDER BY sort_order"))
-            
-        elif entity == 'analytics': 
-            return jsonify(get_db_query("SELECT COUNT(*), SUM(final_total) FROM orders WHERE status != 'Отменен'", fetch_one=True))
+            return jsonify({"products": prods, "categories": get_db_query("SELECT * FROM categories ORDER BY sort_order")})
+        elif entity == 'orders': return jsonify(get_db_query("SELECT o.*, u.phone, u.full_name, u.social_link FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.id DESC"))
+        elif entity == 'users': return jsonify(get_db_query("SELECT * FROM users ORDER BY created_at DESC"))
+        elif entity == 'banners': return jsonify(get_db_query("SELECT * FROM banners ORDER BY id DESC"))
+        elif entity == 'settings': return jsonify({s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")})
+        elif entity == 'homepage_blocks': return jsonify(get_db_query("SELECT * FROM homepage_blocks ORDER BY sort_order"))
 
     data = request.json
     
-    # DELETE ЗАПРОСЫ
     if request.method == 'DELETE':
-        with sqlite3.connect('shop.db') as conn:
+        with sqlite3.connect('shop.db') as conn: 
             conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
         
-    # POST ЗАПРОСЫ (Создание/Обновление)
     if request.method == 'POST':
         with sqlite3.connect('shop.db') as conn:
             if entity == 'product':
                 img_json = json.dumps(data['images'])
                 if data.get('id'): 
-                    conn.execute("""UPDATE products SET name=?, desc=?, price=?, stock=?, category_id=?, 
-                                    images=?, unit=?, step=?, old_price=? WHERE id=?""", 
-                                 (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], 
-                                  img_json, data['unit'], data['step'], data.get('old_price', 0), data['id']))
+                    conn.execute("UPDATE products SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=? WHERE id=?", 
+                                 (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), data['id']))
                 else: 
-                    conn.execute("""INSERT INTO products (name, desc, price, stock, category_id, images, unit, step, old_price) 
-                                    VALUES (?,?,?,?,?,?,?,?,?)""", 
-                                 (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], 
-                                  img_json, data['unit'], data['step'], data.get('old_price', 0)))
-                                  
+                    conn.execute("INSERT INTO products (name, desc, price, stock, category_id, images, unit, step, old_price) VALUES (?,?,?,?,?,?,?,?,?)", 
+                                 (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0)))
             elif entity == 'category':
-                if data.get('id'): 
-                    conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=? WHERE id=?", 
-                                 (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data['id']))
-                else: 
-                    conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)", 
-                                 (data['name'], data['icon'], data['sort_order'], data['is_hidden']))
-                                 
+                if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=? WHERE id=?", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data['id']))
+                else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)", (data['name'], data['icon'], data['sort_order'], data['is_hidden']))
             elif entity == 'banners':
-                if data.get('id'): 
-                    conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=? WHERE id=?", 
-                                 (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data['id']))
-                else: 
-                    conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat) VALUES (?,?,?,?,?)", 
-                                 (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat']))
-            
+                if data.get('id'): conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=? WHERE id=?", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data['id']))
+                else: conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat) VALUES (?,?,?,?,?)", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat']))
             elif entity == 'homepage_blocks':
-                if data.get('id'): 
-                    conn.execute("UPDATE homepage_blocks SET title=?, block_type=?, category_id=?, sort_order=?, active=? WHERE id=?", 
-                                 (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active'], data['id']))
-                else: 
-                    conn.execute("INSERT INTO homepage_blocks (title, block_type, category_id, sort_order, active) VALUES (?,?,?,?,?)", 
-                                 (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active']))
-                                 
+                if data.get('id'): conn.execute("UPDATE homepage_blocks SET title=?, block_type=?, category_id=?, sort_order=?, active=? WHERE id=?", (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active'], data['id']))
+                else: conn.execute("INSERT INTO homepage_blocks (title, block_type, category_id, sort_order, active) VALUES (?,?,?,?,?)", (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active']))
             elif entity == 'settings':
-                for key, val in data.items(): 
-                    conn.execute("INSERT INTO settings (key_name, value) VALUES (?,?) ON CONFLICT(key_name) DO UPDATE SET value=?", 
-                                 (key, val, val))
-                                 
+                for key, val in data.items(): conn.execute("INSERT INTO settings (key_name, value) VALUES (?,?) ON CONFLICT(key_name) DO UPDATE SET value=?", (key, val, val))
             elif entity == 'orders':
                 conn.execute("UPDATE orders SET status=? WHERE id=?", (data['status'], data['id']))
-                if data.get('social_link'): 
-                    send_vk_message(data['social_link'], f"🚜 Статус заказа #{data['id']} изменен на: {data['status']}!")
-                    
+                if data.get('social_link'): send_vk_message(data['social_link'], f"🚜 Статус заказа #{data['id']} изменен на: {data['status']}!")
             elif entity == 'users':
-                conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, age_verified=? WHERE id=?", 
-                             (data['full_name'], data['phone'], data['social_link'], data['age_verified'], data['id']))
-                             
+                conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, age_verified=? WHERE id=?", (data['full_name'], data['phone'], data['social_link'], data['age_verified'], data['id']))
         return jsonify({"status": "ok"})
-
 
 @app.route('/api/admin/vk_action', methods=['POST'])
 def admin_vk_action():
-    """Управление ручными и автоматическими рассылками из Админки"""
     data = request.json
     msg_type = data.get('msg_type')
     vk_link = data.get('vk_link')
@@ -428,22 +379,11 @@ def admin_vk_action():
     
     if msg_type == 'broadcast':
         users = get_db_query("SELECT social_link FROM users WHERE social_link != '' AND social_link IS NOT NULL")
-        success_count = 0
-        for u in users: 
-            if send_vk_message(u['social_link'], f"📣 Новости от Николаича:\n\n{custom_val}"):
-                success_count += 1
+        success_count = sum(1 for u in users if send_vk_message(u['social_link'], f"📣 Новости от Николаича:\n\n{custom_val}"))
         return jsonify({"status": "ok", "sent": success_count, "total": len(users)})
     
-    text = ""
-    if msg_type == 'req': text = "💳 Оплата заказа:\nПереведи по номеру +7 (999) 000-00-00 (Сбербанк, Иван И.).\nКак переведешь - отправь скриншот сюда, братуха!"
-    elif msg_type == 'taxi': text = f"🚕 Посмотрел такси до тебя. Выходит {custom_val} ₽. Оплачиваем или сам заберешь?"
-    elif msg_type == 'paid': text = "✅ Денежку увидел! Заказ пакуется, скоро отправим!"
-    elif msg_type == 'direct': text = custom_val
-    else: text = custom_val
-        
-    is_sent = send_vk_message(vk_link, f"👨‍🌾 Николаич:\n{text}")
-    return jsonify({"status": "ok" if is_sent else "error"})
-
+    text = {"req": "💳 Оплата заказа:\nПереведи по номеру +7 (999) 000-00-00 (Сбербанк, Иван И.). Скриншот скинь сюда!", "taxi": f"🚕 Такси до тебя выходит {custom_val} ₽. Оплачиваем или сам заберешь?", "paid": "✅ Денежку увидел! Заказ пакуется!", "direct": custom_val}.get(msg_type, custom_val)
+    return jsonify({"status": "ok" if send_vk_message(vk_link, f"👨‍🌾 Николаич:\n{text}") else "error"})
 
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', port=8085)

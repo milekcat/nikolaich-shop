@@ -7,11 +7,12 @@ import uuid
 import datetime
 import random
 import os
+import re
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v25_perfect'
+app.secret_key = 'nikolaich_erp_v26_ai_fix'
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -48,12 +49,35 @@ def call_ai(prompt, sys_prompt, model="gemini-2.5-pro", is_json=True, messages_h
         payload["messages"] = msgs
     else:
         payload["messages"] = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}]
+    
+    # Жесткое указание формата для прокси
+    if is_json: 
+        payload["response_format"] = {"type": "json_object"}
+        payload["messages"][0]["content"] += " ОТВЕЧАЙ СТРОГО В ФОРМАТЕ JSON, БЕЗ ЛИШНИХ СЛОВ И МАРКДАУНА (БЕЗ ```json)."
         
-    if is_json: payload["response_format"] = {"type": "json_object"}
     try:
-        r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=40)
-        return json.loads(r.json()['choices'][0]['message']['content']) if is_json else r.json()['choices'][0]['message']['content']
+        r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=50)
+        r.raise_for_status() # Проверка на ошибки HTTP (например 500)
+        response_text = r.json()['choices'][0]['message']['content']
+        
+        if is_json:
+            # Пытаемся вытащить JSON, даже если модель добавила мусор
+            match = re.search(r'\{.*\}', response_text.replace('\n', ''), re.DOTALL)
+            if match:
+                return json.loads(match.group(0))
+            else:
+                return json.loads(response_text) # Если регулярка не сработала, пробуем парсить как есть
+        else:
+            return response_text
+            
+    except requests.exceptions.RequestException as e:
+        print(f"API Error: {e}")
+        return {"error": "Сбой соединения с ИИ API."} if is_json else "Сбой соединения с ИИ API."
+    except json.JSONDecodeError as e:
+        print(f"JSON Decode Error: {e}\nResponse was: {response_text}")
+        return {"error": "ИИ вернул неверный формат данных."} if is_json else "ИИ вернул неверный формат данных."
     except Exception as e: 
+        print(f"General AI Error: {e}")
         return {"error": str(e)} if is_json else f"Ошибка ИИ: {e}"
 
 def init_db():
@@ -67,7 +91,6 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
-        # Динамически добавляем колонку address, если её нет (обновление БД на ходу)
         try: c.execute('ALTER TABLE orders ADD COLUMN address TEXT DEFAULT ""')
         except: pass
 
@@ -213,7 +236,7 @@ def ai_chef():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     prods = get_db_query("SELECT p.id, p.name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND c.is_hidden=0")
     catalog = ", ".join([f"ID {p['id']}: {p['name']}" for p in prods])
-    sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери корзину продуктов ТОЛЬКО из: {catalog}. Без 18+. JSON: {{'message': 'Текст', 'cart_ids': [ID]}}"
+    sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери корзину продуктов ТОЛЬКО из: {catalog}. Без 18+. Формат JSON ключи: 'message' (строка) и 'cart_ids' (список чисел)."
     return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-2.5-pro", True))
 
 @app.route('/api/ai/gen_banner', methods=['POST'])
@@ -224,10 +247,12 @@ def ai_gen_banner():
     context = f" Идея: {topic}."
     if cat_name: context += f" Категория: {cat_name}."
     sys_prompt = "Ты креативный директор маркетплейса."
-    prompt = f"Магазин: {settings.get('shop_name', 'Ферма')}.{context} Выдай JSON: title, subtitle, bg_color (hex пастельный), img_prompt (короткий промпт на английском для 3D картинки продукта без текста)."
+    prompt = f"Магазин: {settings.get('shop_name', 'Ферма')}.{context} Выдай строго JSON: ключи title (строка), subtitle (строка), bg_color (строка hex пастельный), img_prompt (строка, промпт на англ для 3D картинки)."
     res = call_ai(prompt, sys_prompt, "gemini-2.5-pro", True)
-    if "error" not in res: 
-        res["img_url"] = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(res.get('img_prompt', 'food'))}?width=800&height=400&nologo=true"
+    
+    if "error" not in res:
+        prompt_val = res.get('img_prompt', 'food')
+        res["img_url"] = f"[https://image.pollinations.ai/prompt/](https://image.pollinations.ai/prompt/){urllib.parse.quote(prompt_val)}?width=800&height=400&nologo=true"
     return jsonify(res)
 
 @app.route('/api/ai/agent_chat', methods=['POST'])

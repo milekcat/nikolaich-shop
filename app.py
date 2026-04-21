@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v22_ultimate'
+app.secret_key = 'nikolaich_erp_v24_perfect'
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -44,11 +44,9 @@ def send_vk_message(user_vk_link, text):
 def call_ai(prompt, sys_prompt, model="gemini-2.5-pro", is_json=True, messages_history=None):
     payload = {"model": model, "temperature": 0.3}
     if messages_history:
-        # Для чата передаем историю
         msgs = [{"role": "system", "content": sys_prompt}] + messages_history
         payload["messages"] = msgs
     else:
-        # Для обычных запросов
         payload["messages"] = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}]
         
     if is_json: payload["response_format"] = {"type": "json_object"}
@@ -69,14 +67,15 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
-        # Настройки по умолчанию
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
                 ('shop_name', 'У Николаича'), 
                 ('footer_text', 'Фермерские продукты с доставкой.'),
                 ('package_cost', '29'),
                 ('courier_cost', '150'),
-                ('free_delivery_threshold', '3000')
+                ('free_delivery_threshold', '3000'),
+                ('min_order_sum', '500'),
+                ('high_demand', '0')
             ])
             c.executemany('INSERT INTO homepage_blocks (title, block_type, category_id, sort_order, active) VALUES (?,?,?,?,?)', [('🔥 Товары по акции', 'sale', 0, 1, 1)])
     conn.commit()
@@ -150,10 +149,9 @@ def calc_cart():
     package_cost = float(settings.get('package_cost', 29)) if base_total > 0 else 0
     courier_cost = float(settings.get('courier_cost', 150))
     free_threshold = float(settings.get('free_delivery_threshold', 3000))
+    min_order = float(settings.get('min_order_sum', 500))
     
-    # Наценку 5% убираем, так как теперь есть фиксированная стоимость курьера из БД
     items_total = base_total
-    
     delivery_cost = 0
     if delivery_type == 'courier':
         delivery_cost = 0 if items_total >= free_threshold else courier_cost
@@ -162,7 +160,9 @@ def calc_cart():
         "items_total": items_total, 
         "package_cost": package_cost, 
         "delivery_cost": delivery_cost, 
-        "final_total": items_total + package_cost + delivery_cost
+        "final_total": items_total + package_cost + delivery_cost,
+        "free_threshold": free_threshold,
+        "min_order": min_order
     })
 
 @app.route('/api/checkout', methods=['POST'])
@@ -229,7 +229,6 @@ def ai_gen_banner():
 
 @app.route('/api/ai/agent_chat', methods=['POST'])
 def ai_agent_chat():
-    """Новый эндпоинт для полноценного чата с ИИ"""
     role = "опытный маркетолог, помогающий фермерскому магазину" if request.json.get('role') == 'marketer' else "строгий юрист РФ по торговле"
     messages = request.json.get('messages', [])
     reply = call_ai(None, f"Ты {role}.", "gemini-2.5-pro", False, messages_history=messages)

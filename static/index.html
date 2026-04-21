@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
-    <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
+    <script src="https://unpkg.com/@vkid/sdk@latest/dist-sdk/umd/index.js"></script>
     
     <style>
         :root { --bg: #fdfbf7; --accent: #00b853; --text: #1d1d1f; }
@@ -64,18 +64,22 @@
         .lock-btn.success { opacity: 1; border-radius: 50px; background: #d1e7dd; color: #0f5132; padding: 10px 20px; font-weight: 700; gap:8px; font-size: 14px;}
         .lock-btn.warning { opacity: 1; border-radius: 50px; background: #fff3cd; color: #856404; padding: 10px 20px; font-weight: 700; gap:8px; font-size: 14px;}
         
-        /* Разделитель авторизации */
         .auth-divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #a1a1a6; font-size: 12px; }
         .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
         .auth-divider:not(:empty)::before { margin-right: .5em; }
         .auth-divider:not(:empty)::after { margin-left: .5em; }
+
+        /* Cookie Banner */
+        .cookie-banner { position: fixed; bottom: -150px; left: 15px; right: 15px; background: #1d1d1f; color: #fff; padding: 16px 20px; border-radius: 16px; z-index: 9999; transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 12px; }
+        .cookie-banner.show { bottom: 20px; }
+        @media (min-width: 768px) { .cookie-banner { flex-direction: row; align-items: center; left: 50%; transform: translateX(-50%); width: 600px; right: auto; } }
     </style>
 </head>
 <body>
 
 {% if settings.high_demand == '1' %}
 <div class="bg-warning text-dark text-center p-2 fw-bold small shadow-sm position-relative" style="z-index: 1001;">
-    <i class="bi bi-lightning-charge-fill"></i> Высокий спрос! Заказы принимаются от {{ settings.min_order_sum|default('500') }} ₽
+    <i class="bi bi-lightning-charge-fill"></i> Высокий спрос! Сборка заказов от {{ settings.min_order_sum|default('500') }} ₽
 </div>
 {% endif %}
 
@@ -171,17 +175,21 @@
     </div>
 </div>
 
+<div id="cookieBanner" class="cookie-banner">
+    <div class="small lh-sm">
+        Мы используем файлы cookie для работы сайта и аналитики. Продолжая использовать сайт, вы соглашаетесь с Политикой конфиденциальности.
+    </div>
+    <button class="btn btn-success btn-sm fw-bold px-4 text-nowrap" onclick="acceptCookies()">Согласен</button>
+</div>
+
 <div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()"><span id="cartCount">0 товаров</span><span id="cartSum">0 ₽</span></div>
 
 <div class="modal fade" id="loginModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content p-4 pb-5">
             <h4 class="fw-bold mb-3 text-center">Вход в систему</h4>
-            
             <div id="vkIdContainer" class="d-flex justify-content-center mb-2"></div>
-            
             <div class="auth-divider">или</div>
-            
             <p class="small text-muted mb-2 text-center">Запасной вход по телефону</p>
             <input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 (999) 000-00-00">
             <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button>
@@ -199,20 +207,14 @@
             
             <div class="bg-white p-3 rounded-4 shadow-sm mb-4">
                 <h6 class="fw-bold mb-3">Ваши данные</h6>
-                
                 <label class="small text-muted fw-bold ms-1 mb-1">Имя</label>
-                <input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-2 fw-bold" placeholder="Ваше Имя">
-                
+                <input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-2 fw-bold" placeholder="Ваше Имя" value="{{ user.full_name if user else '' }}">
                 <label class="small text-muted fw-bold ms-1 mb-1">Телефон</label>
-                <input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-2 fw-bold" placeholder="+7...">
-                
-                <label class="small text-muted fw-bold ms-1 mb-1">Стандартный адрес доставки</label>
+                <input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-2 fw-bold" placeholder="+7..." value="{{ user.phone if user else '' }}">
+                <label class="small text-muted fw-bold ms-1 mb-1">Сохраненный адрес доставки</label>
                 <input type="text" id="cabAddress" class="form-control bg-light border-0 rounded-3 mb-3 fw-bold" placeholder="Улица, дом, квартира">
-                
                 <button class="btn btn-primary w-100 fw-bold rounded-pill mb-3" onclick="updateProfile()">Сохранить профиль</button>
-                
                 <div id="cabBalanceContainer"></div>
-                
                 <button class="btn btn-outline-danger btn-sm mt-2 fw-bold rounded-pill w-100" onclick="logout()">Выйти из аккаунта</button>
             </div>
 
@@ -266,17 +268,22 @@
             </div>
 
             <div class="checkout-box">
-                <h6 class="fw-bold mb-2"><i class="bi bi-truck text-primary"></i> Доставка</h6>
+                <h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Комплектация заказа</h6>
                 <select class="form-select bg-white border-0 fw-bold mb-2" id="deliveryType" onchange="calcCart()">
                     <option value="pickup">Самовывоз (Бесплатно)</option>
-                    <option value="courier">Курьер магазина (По тарифу)</option>
-                    <option value="taxi">Отправка на Такси (Оплата по тарифу)</option>
+                    <option value="courier">Фирменный пакет и доставка (По тарифу)</option>
+                    <option value="taxi">Транзитная упаковка (Отправка Яндексом)</option>
                 </select>
                 <div id="delHint" class="small text-muted mb-2">Заберете сами на ферме.</div>
                 
                 <div id="addressBox" style="display:none;">
-                    <label class="small text-muted fw-bold ms-1 mb-1">Адрес доставки</label>
-                    <input type="text" id="checkoutAddress" class="form-control p-2 bg-white border rounded-3 fw-bold" placeholder="Улица, дом, квартира">
+                    <label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label>
+                    <div class="input-group mb-3">
+                        <input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира">
+                        <button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()" title="Определить по геопозиции">
+                            <i class="bi bi-geo-alt-fill text-danger fs-5"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -288,13 +295,12 @@
                 </select>
             </div>
 
-            <div class="d-flex justify-content-between mb-1 text-muted"><span>Пакет/Сборка</span><span id="tPack" class="fw-bold text-dark">0 ₽</span></div>
-            <div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-1 text-muted"><span>Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
             <div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
             <div class="d-flex justify-content-between mb-4 text-muted"><span>Скидка / Баланс</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div>
             
             <label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label>
-            <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
+            <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
             <label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для чеков)</label>
             <input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}">
             
@@ -330,10 +336,20 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Инициализация Cookie Banner
+    if(!localStorage.getItem('nikolaich_cookies_accepted')) {
+        setTimeout(() => document.getElementById('cookieBanner').classList.add('show'), 2000);
+    }
+    function acceptCookies() {
+        localStorage.setItem('nikolaich_cookies_accepted', 'true');
+        document.getElementById('cookieBanner').classList.remove('show');
+    }
+
     // Рендер виджета авторизации VK ID внутри модального окна
     document.getElementById('loginModal').addEventListener('shown.bs.modal', function () {
         if ('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) {
             const VKID = window.VKIDSDK;
+            VKID.Config.init({ app: 54556739, redirectUrl: 'https://nikolaich.shop', responseMode: VKID.ConfigResponseMode.Callback });
             const oAuth = new VKID.OAuthList();
             oAuth.render({ container: document.getElementById('vkIdContainer'), oauthList: ['vkid', 'ok_ru', 'mail_ru'] })
             .on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, function (payload) {
@@ -354,7 +370,6 @@
     async function loginPhone() { const phone = document.getElementById('loginPhone').value; await fetch('/api/auth/shadow', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone})}); location.reload(); }
     async function logout() { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); }
     
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Сохранение профиля
     async function updateProfile() {
         const full_name = document.getElementById('cabName').value;
         const phone = document.getElementById('cabPhone').value;
@@ -363,14 +378,10 @@
         alert('Профиль успешно сохранен!');
     }
 
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Открытие личного кабинета
     async function openCabinet() {
         const res = await fetch('/api/user/cabinet'); const data = await res.json();
         if(data.error) return alert("Нужно авторизоваться");
         
-        // Заполняем поля профиля
-        document.getElementById('cabPhone').value = data.user.phone || '';
-        document.getElementById('cabName').value = data.user.full_name || '';
         try { document.getElementById('cabAddress').value = JSON.parse(data.user.addresses)[0] || ''; } catch(e) {}
         
         if (data.user.is_sysadmin === 1) {
@@ -384,7 +395,7 @@
         else {
             document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => {
                 const itemsList = Object.values(o.items).map(i => `${i.name} (${i.qty}${i.unit})`).join(', ');
-                return `<div class="order-card"><div class="d-flex justify-content-between mb-2"><div class="fw-bold">Заказ #${o.id}</div><span class="badge bg-${statusColors[o.status] || 'dark'}">${o.status}</span></div><div class="small text-muted mb-2 lh-1">${o.date.split(' ')[0]}</div><div class="small mb-3 lh-sm" style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${itemsList}</div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted">${o.delivery_type === 'pickup' ? 'Самовывоз' : 'Доставка'}</div><div class="fw-bold fs-5 text-success">${o.final_total} ₽</div></div></div>`;
+                return `<div class="order-card"><div class="d-flex justify-content-between mb-2"><div class="fw-bold">Заказ #${o.id}</div><span class="badge bg-${statusColors[o.status] || 'dark'}">${o.status}</span></div><div class="small text-muted mb-2 lh-1">${o.date.split(' ')[0]}</div><div class="small mb-3 lh-sm" style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${itemsList}</div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted">${o.delivery_type === 'pickup' ? 'Самовывоз' : 'Логистика'}</div><div class="fw-bold fs-5 text-success">${o.final_total} ₽</div></div></div>`;
             }).join('');
         }
         new bootstrap.Modal(document.getElementById('cabinetModal')).show();
@@ -441,6 +452,35 @@
         if(count === 0) { const modal = bootstrap.Modal.getInstance(document.getElementById('cartModal')); if(modal) modal.hide(); }
     }
 
+    // ГЕОЛОКАЦИЯ АДРЕСА
+    function getLocation() {
+        const btn = document.querySelector('button[onclick="getLocation()"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm text-danger"></span>';
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+                    const data = await res.json();
+                    if(data && data.address) {
+                        const road = data.address.road || '';
+                        const house = data.address.house_number || '';
+                        const city = data.address.city || data.address.town || data.address.village || '';
+                        document.getElementById('checkoutAddress').value = `${city}, ${road} ${house}`.replace(/^, /, '').trim();
+                    }
+                } catch(e) { alert("Не удалось определить адрес по координатам."); }
+                btn.innerHTML = '<i class="bi bi-geo-alt-fill text-danger fs-5"></i>';
+            }, (error) => {
+                alert("Разрешите доступ к геопозиции в браузере, чтобы мы могли определить адрес.");
+                btn.innerHTML = '<i class="bi bi-geo-alt-fill text-danger fs-5"></i>';
+            });
+        } else {
+            alert("Геолокация не поддерживается вашим браузером.");
+            btn.innerHTML = '<i class="bi bi-geo-alt-fill text-danger fs-5"></i>';
+        }
+    }
+
     async function prepareCart() { 
         const html = []; 
         for(let id in cart) { 
@@ -483,11 +523,10 @@
         pStatus.className = (lastCalc.promo_status && (lastCalc.promo_status.includes('Неверный') || lastCalc.promo_status.includes('только для') || lastCalc.promo_status.includes('Минимальная'))) ? "mt-2 small fw-bold text-danger" : "mt-2 small fw-bold text-success";
 
         let delHint = "Заберете сами на ферме.";
-        if(d_type == 'courier') delHint = `Курьер магазина. Бесплатно от ${lastCalc.free_threshold || 3000}₽`;
-        if(d_type == 'taxi') delHint = "Отправим Яндексом. Стоимость Николаич напишет в чате VK.";
+        if(d_type == 'courier') delHint = `Фирменный пакет и курьер. Бесплатно от ${lastCalc.free_threshold || 3000}₽`;
+        if(d_type == 'taxi') delHint = "Транзитная коробка для Яндекса. Стоимость логистики напишем в VK.";
         document.getElementById('delHint').innerText = delHint;
         
-        document.getElementById('tPack').innerText = lastCalc.package_cost > 0 ? lastCalc.package_cost + ' ₽' : 'Бесплатно';
         document.getElementById('tDel').innerText = d_type == 'taxi' ? 'По тарифу такси' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); 
         document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; 
         
@@ -514,7 +553,7 @@
         const address = document.getElementById('checkoutAddress') ? document.getElementById('checkoutAddress').value : '';
 
         if(p_type === 'transfer' && !soc) return alert("Укажите Вашу ссылку на VK для получения реквизитов!"); 
-        if(d_type !== 'pickup' && !address) return alert("Пожалуйста, укажите адрес доставки!");
+        if(d_type !== 'pickup' && !address) return alert("Пожалуйста, укажите адрес получения!");
 
         const payload = {
             phone: document.getElementById('checkoutPhone').value, 

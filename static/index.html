@@ -11,23 +11,13 @@
         body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { display: none; }
         
-        /* ШАПКА: ФЕРМЕРСКИЕ ПРОДУКТЫ */
-        .sticky-top-area { 
-            position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; 
-            background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress&cs=tinysrgb&w=1920&v=3'); 
-            background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
-        }
+        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress&cs=tinysrgb&w=1920&v=5'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 10px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
         .header-top h3 { color: #fff !important; text-shadow: 1px 1px 5px rgba(0,0,0,1); font-weight: 900; margin: 0; }
         .header-top .bi-person-circle { color: #fff !important; filter: drop-shadow(1px 1px 3px rgba(0,0,0,0.9)); cursor: pointer; }
         
-        /* КАТЕГОРИИ: ГУСТАЯ ТРАВА */
-        .cat-scroll-wrapper { 
-            background-color: #2d5a27; background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress&cs=tinysrgb&w=1920&v=3'); 
-            background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); 
-            border-top: 3px solid #144011; border-bottom: 3px solid #144011; margin-top: 15px; 
-        }
+        .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress&cs=tinysrgb&w=1920&v=5'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; margin-top: 15px; }
         .cat-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 0 20px; scroll-behavior: smooth; }
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
@@ -37,13 +27,8 @@
         .banner-card img { position: absolute; right: -20px; bottom: -10px; height: 120%; object-fit: contain; }
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
 
-        /* КАРТОЧКИ: КРАФТОВОЕ ДЕРЕВО */
         .prod-grid { padding: 0 20px; }
-        .p-card { 
-            background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800&v=3') !important; 
-            background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; 
-        }
+        .p-card { background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800&v=5') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 15, 5, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         .p-img-box { width: 100%; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 12px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
@@ -241,8 +226,14 @@
                     <option value="courier">Курьер магазина (По тарифу)</option>
                     <option value="taxi">Отправка на Такси (Оплата по тарифу)</option>
                 </select>
-                <div id="delHint" class="small text-muted">Заберете сами на ферме.</div>
+                <div id="delHint" class="small text-muted mb-2">Заберете сами на ферме.</div>
+                
+                <div id="addressBox" style="display:none;">
+                    <label class="small text-muted fw-bold ms-1 mb-1">Адрес доставки</label>
+                    <input type="text" id="checkoutAddress" class="form-control p-2 bg-white border rounded-3 fw-bold" placeholder="Улица, дом, квартира">
+                </div>
             </div>
+            
             <div class="checkout-box">
                 <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Оплата</h6>
                 <select class="form-select bg-white border-0 fw-bold" id="paymentType">
@@ -365,6 +356,7 @@
 
     function recalcTotals() { 
         itemsTotal = 0; let count = 0; 
+        // ИСПРАВЛЕННАЯ ФОРМУЛА: цена умножается на РЕАЛЬНОЕ КОЛИЧЕСТВО (вес)
         for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } 
         document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; 
         document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; 
@@ -375,7 +367,9 @@
     async function prepareCart() { 
         const html = []; 
         for(let id in cart) { 
-            const item = cart[id]; const itemSum = item.price * item.qty; 
+            const item = cart[id]; 
+            // ИСПРАВЛЕННАЯ ФОРМУЛА: цена умножается на РЕАЛЬНОЕ КОЛИЧЕСТВО (вес)
+            const itemSum = item.price * item.qty; 
             let imgHtml = item.img ? `<img src="${item.img}" style="width:40px; height:40px; object-fit:cover; border-radius:8px; margin-right:12px;">` : ''; 
             html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${imgHtml}<div class="fw-bold lh-1" style="font-size:13px;">${item.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width: 40px; text-align: center;">${item.qty} ${item.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width: 25%;">${itemSum.toFixed(0)} ₽</div></div>`); 
         } 
@@ -389,6 +383,9 @@
     async function calcCart() { 
         if (Object.keys(cart).length === 0) return; 
         const d_type = document.getElementById('deliveryType').value; 
+        
+        document.getElementById('addressBox').style.display = (d_type === 'pickup') ? 'none' : 'block';
+
         const res = await fetch('/api/cart/calc', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items_total: itemsTotal, delivery_type: d_type})}); 
         lastCalc = await res.json(); 
         
@@ -414,9 +411,25 @@
 
     async function sendOrder() { 
         if(Object.keys(cart).length === 0) return; 
-        const soc = document.getElementById('checkoutSocial').value; const p_type = document.getElementById('paymentType').value; 
+        const soc = document.getElementById('checkoutSocial').value; 
+        const p_type = document.getElementById('paymentType').value; 
+        const d_type = document.getElementById('deliveryType').value;
+        const address = document.getElementById('checkoutAddress') ? document.getElementById('checkoutAddress').value : '';
+
         if(p_type === 'transfer' && !soc) return alert("Укажите Вашу ссылку на VK для получения реквизитов!"); 
-        const res = await fetch('/api/checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone: document.getElementById('checkoutPhone').value, social_link: soc, delivery_type: document.getElementById('deliveryType').value, payment_type: p_type, cart: cart, calc: lastCalc})}); 
+        if(d_type !== 'pickup' && !address) return alert("Пожалуйста, укажите адрес доставки!");
+
+        const payload = {
+            phone: document.getElementById('checkoutPhone').value, 
+            social_link: soc, 
+            delivery_type: d_type, 
+            payment_type: p_type, 
+            address: address,
+            cart: cart, 
+            calc: lastCalc
+        };
+
+        const res = await fetch('/api/checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}); 
         const data = await res.json();
         if(data.status === 'ok') {
             bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();

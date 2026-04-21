@@ -12,7 +12,7 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v28_sysadmin'
+app.secret_key = 'nikolaich_erp_v29_ai_bulletproof'
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -54,22 +54,35 @@ def call_ai(prompt, sys_prompt, model="gemini-1.5-flash", is_json=True, messages
     else:
         payload["messages"] = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}]
         
+    # БРОНЕБОЙНЫЙ РЕЖИМ JSON: Убрали response_format, который крашит прокси!
+    if is_json:
+        payload["messages"][0]["content"] += " ОТВЕЧАЙ СТРОГО В ФОРМАТЕ JSON. НАЧИНАЙ С { И ЗАКАНЧИВАЙ }."
+
     try:
         r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
-        r.raise_for_status()
+        
+        # ЕСЛИ ПРОКСИ НЕ ПОНЯЛ МОДЕЛЬ GEMINI, ПЕРЕКЛЮЧАЕМСЯ НА GPT (Fallback)
+        if r.status_code != 200:
+            print(f"Warning: Primary AI failed ({r.status_code}). Switching to GPT-3.5-turbo...")
+            payload["model"] = "gpt-3.5-turbo"
+            r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
+            r.raise_for_status()
+
         response_text = r.json()['choices'][0]['message']['content']
         
         if is_json:
-            clean_text = re.sub(r'^```[a-zA-Z]*\n', '', response_text)
-            clean_text = re.sub(r'\n```$', '', clean_text).strip()
-            try:
-                return json.loads(clean_text)
-            except json.JSONDecodeError:
-                match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                if match: return json.loads(match.group(0))
-                return {"error": "ИИ вернул неверный формат."}
+            # Вытягиваем JSON регуляркой из любого текста
+            match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(0))
+                except Exception as e:
+                    return {"error": f"Ошибка парсинга JSON: {e}"}
+            return {"error": "ИИ вернул текст без JSON формата."}
         return response_text
+
     except Exception as e: 
+        print(f"AI Fatal Error: {e}")
         return {"error": str(e)} if is_json else f"Ошибка ИИ: {e}"
 
 def init_db():
@@ -85,7 +98,6 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY, user_id INTEGER, is_incoming INTEGER, text TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS promocodes (id INTEGER PRIMARY KEY, code TEXT UNIQUE, discount_percent REAL DEFAULT 0, discount_rub REAL DEFAULT 0, min_sum REAL DEFAULT 0, is_active INTEGER DEFAULT 1, is_sysadmin_only INTEGER DEFAULT 0)''')
 
-        # Обновления структуры БД
         try: c.execute('ALTER TABLE orders ADD COLUMN address TEXT DEFAULT ""')
         except: pass
         try: c.execute('ALTER TABLE users ADD COLUMN vk_id TEXT DEFAULT ""')
@@ -95,7 +107,6 @@ def init_db():
         try: c.execute('ALTER TABLE users ADD COLUMN is_sysadmin INTEGER DEFAULT 0')
         except: pass
 
-        # Базовые настройки
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
                 ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты с доставкой.'),
@@ -124,7 +135,6 @@ def get_or_create_user(phone, name="Клиент", social_link=""):
         user = get_db_query("SELECT * FROM users WHERE phone=?", (phone,), fetch_one=True)
     return user
 
-# ================= ВЕБХУК VK =================
 @app.route('/api/vk_webhook', methods=['POST'])
 def vk_webhook():
     data = request.json
@@ -142,8 +152,6 @@ def vk_webhook():
                 conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], text))
     return 'ok'
 
-
-# ================= ВИТРИНА =================
 @app.route('/')
 def index():
     phone = session.get('phone')
@@ -176,6 +184,27 @@ def user_cabinet():
     for o in orders: o['items'] = json.loads(o['items'])
     return jsonify({"user": user, "orders": orders})
 
+@app.route('/api/user/update', methods=['POST'])
+def user_update():
+    phone = session.get('phone')
+    if not phone: return jsonify({"error": "unauthorized"})
+    data = request.json
+    address = data.get('address', '')
+    addr_json = json.dumps([address]) if address else "[]"
+    with sqlite3.connect('shop.db') as conn:
+        conn.execute("UPDATE users SET full_name=?, social_link=?, addresses=? WHERE phone=?", 
+                     (data.get('full_name', ''), data.get('social_link', ''), addr_json, phone))
+    return jsonify({"status": "ok"})
+
+@app.route('/api/18plus/request', methods=['POST'])
+def request_18():
+    data = request.json
+    phone = data.get('phone')
+    if get_or_create_user(phone):
+        with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE users SET full_name=?, social_link=?, age_verified=1 WHERE phone=?", (data.get('full_name',''), data.get('social_link',''), phone))
+    session['phone'] = phone
+    return jsonify({"status": "ok"})
+
 @app.route('/api/cart/calc', methods=['POST'])
 def calc_cart():
     data = request.json
@@ -198,7 +227,6 @@ def calc_cart():
     sysadmin_pay = 0
     promo_status = ""
 
-    # ЛОГИКА ПРОМОКОДОВ И СИСАДМИНА
     if promo_code:
         promo = get_db_query("SELECT * FROM promocodes WHERE code=? AND is_active=1", (promo_code,), fetch_one=True)
         if not promo:
@@ -242,11 +270,9 @@ def checkout():
         cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, address) VALUES (?,?,?,?,?,?,?,?,?,?)", (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(data.get('cart')), d_type, p_type, address))
         order_id = cur.lastrowid
         
-        # Списание со счета сисадмина, если оплатил промокодом
         if sysadmin_pay > 0:
             conn.execute("UPDATE users SET balance = balance - ? WHERE id=?", (sysadmin_pay, user['id']))
             
-        # ЗАРПЛАТА СИСАДМИНУ: 1% от реальной суммы заказа
         sysadmin_reward = calc['final_total'] * 0.01
         if sysadmin_reward > 0:
             conn.execute("UPDATE users SET balance = balance + ? WHERE is_sysadmin=1", (sysadmin_reward,))
@@ -294,7 +320,7 @@ def ai_chef():
 def ai_gen_banner():
     topic = request.json.get('topic', '')
     cat_name = request.json.get('category_name', '')
-    sys_prompt = "Ты маркетолог. Выдай строго JSON: ключи title, subtitle, bg_color, img_prompt."
+    sys_prompt = "Ты маркетолог. Верни СТРОГО JSON: ключи title, subtitle, bg_color (hex), img_prompt (на англ)."
     prompt = f"Идея: {topic}. Категория: {cat_name}."
     res = call_ai(prompt, sys_prompt, "gemini-1.5-flash", True)
     if "error" not in res:

@@ -14,18 +14,16 @@
         body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { display: none; }
         
-        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress&cs=tinysrgb&w=1920'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 10px; }
+        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 15px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
         .header-top h3 { color: #fff !important; text-shadow: 1px 1px 5px rgba(0,0,0,1); font-weight: 900; margin: 0; }
-        .header-top .bi-person-circle { color: #fff !important; filter: drop-shadow(1px 1px 3px rgba(0,0,0,0.9)); cursor: pointer; }
         
-        /* Поиск */
-        .search-container { padding: 10px 20px; }
-        .search-bar { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 10px 20px; display: flex; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-weight: 600; color: #000; }
-        
-        .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress&cs=tinysrgb&w=1920'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; }
+        .search-container { padding: 15px 20px 0 20px; }
+        .search-bar { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 12px 20px; display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-weight: 600; color: #000; font-size: 16px; }
+
+        .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; }
         .cat-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 0 20px; scroll-behavior: smooth; }
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
@@ -36,7 +34,7 @@
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
 
         .prod-grid { padding: 0 20px; }
-        .p-card { background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
+        .p-card { background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 15, 5, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         .p-img-box { width: 100%; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 12px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
@@ -50,38 +48,42 @@
         
         .floating-cart { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--accent); color: #fff; border-radius: 20px; padding: 18px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 2000; cursor: pointer; }
         .ai-chef-box { background: linear-gradient(135deg, #fff9f0 0%, #fff 100%); border: 2px dashed #ffc107; border-radius: 16px; padding: 15px; margin-bottom: 20px; }
-        .footer-legal { text-align: center; padding: 40px 20px; color: #a1a1a6; font-size: 12px; line-height: 1.6; }
-        .modal-content { border-radius: 28px 28px 0 0; border: none; }
         .checkout-box { background: #f9f9f9; border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; }
         .upsell-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
         .upsell-card { min-width: 140px; background: #fff; border-radius: 16px; padding: 10px; border: 1px solid #eee; text-align: center; }
         .upsell-card img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; margin-bottom: 8px; }
-        
-        /* Красивые чеки в профиле */
-        .order-receipt { background: #fff; border: 1px dashed #ccc; border-radius: 12px; padding: 20px; margin-bottom: 15px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .order-receipt::before, .order-receipt::after { content:''; position:absolute; top: 60px; width: 20px; height: 20px; background: #f4f5f7; border-radius: 50%; z-index: 1;}
-        .order-receipt::before { left: -10px; border-right: 1px dashed #ccc; }
-        .order-receipt::after { right: -10px; border-left: 1px dashed #ccc; }
-        .receipt-line { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #555; }
-        .receipt-divider { border-bottom: 1px dashed #ddd; margin: 15px 0; }
 
-        .status-badge { font-size: 11px; padding: 5px 10px; border-radius: 20px; font-weight: bold; }
+        /* ПРЕМИУМ ПРОФИЛЬ */
+        .cab-nav { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; }
+        .cab-nav-item { padding: 10px 20px; border-radius: 20px; font-weight: 700; color: #8e8e93; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .cab-nav-item.active { background: #1d1d1f; color: #fff; }
+        .cab-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 20px; }
         
+        .order-receipt { background: #fff; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; margin-bottom: 20px; position: relative; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
+        .order-receipt::before, .order-receipt::after { content:''; position:absolute; top: 60px; width: 24px; height: 24px; background: #f4f5f7; border-radius: 50%; z-index: 1;}
+        .order-receipt::before { left: -12px; border-right: 1px dashed #ccc; }
+        .order-receipt::after { right: -12px; border-left: 1px dashed #ccc; }
+        .receipt-line { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px; color: #444; }
+        .receipt-divider { border-bottom: 2px dotted #eee; margin: 15px 0; }
+        .status-badge { font-size: 11px; padding: 6px 12px; border-radius: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .cookie-banner { position: fixed; bottom: -150px; left: 15px; right: 15px; background: #1d1d1f; color: #fff; padding: 16px 20px; border-radius: 16px; z-index: 9999; transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 12px; }
+        .cookie-banner.show { bottom: 20px; }
+        
+        .footer-legal { text-align: center; padding: 40px 20px; color: #a1a1a6; font-size: 12px; line-height: 1.6; }
         .lock-btn { display: inline-block; padding: 10px; cursor: pointer; opacity: 0.2; transition: opacity 0.3s; margin-top: 15px; font-size: 24px;}
         .lock-btn.success { opacity: 1; border-radius: 50px; background: #d1e7dd; color: #0f5132; padding: 10px 20px; font-weight: 700; gap:8px; font-size: 14px;}
         .lock-btn.warning { opacity: 1; border-radius: 50px; background: #fff3cd; color: #856404; padding: 10px 20px; font-weight: 700; gap:8px; font-size: 14px;}
-        
         .auth-divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #a1a1a6; font-size: 12px; }
         .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
         .auth-divider:not(:empty)::before { margin-right: .5em; }
         .auth-divider:not(:empty)::after { margin-left: .5em; }
-
-        /* Cookie Banner */
-        .cookie-banner { position: fixed; bottom: -150px; left: 15px; right: 15px; background: #1d1d1f; color: #fff; padding: 16px 20px; border-radius: 16px; z-index: 9999; transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 12px; }
-        .cookie-banner.show { bottom: 20px; }
     </style>
 </head>
 <body>
+
+<div id="legalOfertaText" style="display:none;">{{ settings.oferta_text }}</div>
+<div id="legalPrivacyText" style="display:none;">{{ settings.privacy_text }}</div>
 
 {% if settings.high_demand == '1' %}
 <div class="bg-warning text-dark text-center p-2 fw-bold small shadow-sm position-relative" style="z-index: 1001;">
@@ -92,7 +94,7 @@
 <div class="sticky-top-area">
     <div class="header-overlay">
         <div class="header-top">
-            <h3 class="fw-bold m-0 tracking-tight"><i class="bi bi-shop me-1 text-success"></i> {{ settings.shop_name }}</h3>
+            <h3 class="fw-bold m-0 tracking-tight text-white"><i class="bi bi-shop me-1 text-success"></i> {{ settings.shop_name }}</h3>
             {% if user %}
                 <div class="badge bg-light text-success fw-bold p-2 px-3 fs-6 rounded-pill border shadow-sm" style="cursor:pointer;" onclick="openCabinet()"><i class="bi bi-person-fill"></i> Профиль</div>
             {% else %}
@@ -101,8 +103,8 @@
         </div>
         <div class="search-container">
             <div class="search-bar">
-                <i class="bi bi-search text-muted"></i>
-                <input type="text" id="searchInput" placeholder="Поиск продуктов..." oninput="searchProducts()">
+                <i class="bi bi-search text-muted fs-5"></i>
+                <input type="text" id="searchInput" placeholder="Поиск вкусных продуктов..." oninput="searchProducts()">
             </div>
         </div>
     </div>
@@ -176,7 +178,7 @@
 
 <div class="footer-legal text-center pb-5 pt-4 text-muted small">
     <div class="fw-bold mb-1">{{ settings.shop_name }}</div><div>{{ settings.footer_text }}</div>
-    <div class="mt-2">
+    <div class="mt-2 mb-3">
         {% if user and user.age_verified == 2 %}
             <div class="lock-btn success" onclick="filterCat(99, null)"><i class="bi bi-unlock-fill"></i> VIP Клуб Открыт</div>
         {% elif user and user.age_verified == 1 %}
@@ -185,10 +187,12 @@
             <div class="lock-btn" data-bs-toggle="modal" data-bs-target="#vipModal" title="Секретный раздел"><i class="bi bi-lock-fill"></i></div>
         {% endif %}
     </div>
+    <a href="#" onclick="openLegal('oferta')" class="text-muted text-decoration-none">Публичная оферта</a> | 
+    <a href="#" onclick="openLegal('privacy')" class="text-muted text-decoration-none">Политика конфиденциальности</a>
 </div>
 
 <div id="cookieBanner" class="cookie-banner">
-    <div class="small lh-sm">Мы используем файлы cookie для работы сайта и аналитики. Продолжая использовать сайт, вы соглашаетесь с правилами.</div>
+    <div class="small lh-sm">Мы используем файлы cookie для работы сайта и аналитики. Продолжая использовать сайт, вы соглашаетесь с политикой конфиденциальности.</div>
     <button class="btn btn-success btn-sm fw-bold px-4" onclick="acceptCookies()">ОК</button>
 </div>
 
@@ -196,52 +200,77 @@
 
 <div class="modal fade" id="loginModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 pb-5">
-            <h4 class="fw-bold mb-3 text-center">Вход в систему</h4>
-            <div id="vkIdContainer" class="d-flex justify-content-center mb-2"></div>
-            <div class="auth-divider">или</div>
-            <p class="small text-muted mb-2 text-center">Вход по номеру и паролю</p>
+        <div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg">
+            <h4 class="fw-bold mb-4 text-center">Вход в систему</h4>
+            <div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div>
+            <div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div>
             <input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00">
-            <input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Ваш пароль (если устанавливали)">
+            <input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)">
             <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="legalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content p-4 rounded-4 border-0 shadow-lg">
+            <div class="d-flex justify-content-between mb-3">
+                <h4 class="fw-bold m-0" id="legalTitle">Документ</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div id="legalBody" class="small text-muted" style="white-space: pre-wrap;"></div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="cabinetModal" tabindex="-1">
-    <div class="modal-dialog modal-fullscreen-md-down">
-        <div class="modal-content p-4 pb-5 h-100" style="background: #f4f5f7;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="fw-bold m-0"><i class="bi bi-person-circle text-primary"></i> Профиль</h3>
+    <div class="modal-dialog modal-fullscreen-md-down modal-lg">
+        <div class="modal-content p-0 h-100 bg-light">
+            <div class="p-4 bg-white border-bottom d-flex justify-content-between align-items-center sticky-top">
+                <h3 class="fw-bold m-0"><i class="bi bi-person-circle text-primary me-2"></i>Профиль</h3>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             
-            <div class="bg-white p-3 rounded-4 shadow-sm mb-4">
-                <h6 class="fw-bold mb-3">Ваши данные</h6>
-                <label class="small text-muted fw-bold ms-1 mb-1">Имя</label>
-                <input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-2 fw-bold">
-                <label class="small text-muted fw-bold ms-1 mb-1">Телефон</label>
-                <input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-3 fw-bold">
-                
-                <h6 class="fw-bold mb-2">Адреса получения</h6>
-                <div id="cabAddressesList" class="d-flex flex-wrap gap-2 mb-2"></div>
-                <div class="input-group mb-3">
-                    <input type="text" id="cabNewAddress" class="form-control bg-light border-0 fw-bold" placeholder="Добавить новый адрес">
-                    <button class="btn btn-dark fw-bold" onclick="addAddress()">+</button>
+            <div class="p-4 overflow-auto">
+                <div class="cab-nav">
+                    <div class="cab-nav-item active" onclick="switchCabTab('cab_orders', this)">История чеков</div>
+                    <div class="cab-nav-item" onclick="switchCabTab('cab_profile', this)">Мои данные</div>
+                    <div class="cab-nav-item" onclick="switchCabTab('cab_security', this)">Безопасность</div>
                 </div>
 
-                <h6 class="fw-bold mb-2 text-danger"><i class="bi bi-shield-lock"></i> Безопасность</h6>
-                <input type="password" id="cabPass" class="form-control bg-light border-0 rounded-3 mb-1 fw-bold" placeholder="Установить новый пароль">
-                <div class="small text-muted mb-3" style="font-size: 10px;">*Если вы установите пароль, смена в дальнейшем будет доступна только через администратора.</div>
+                <div id="cab_orders" class="cab-tab-content">
+                    <div id="cabinetOrders"></div>
+                </div>
 
-                <button class="btn btn-primary w-100 fw-bold rounded-pill mb-3 py-2" onclick="updateProfile()">Сохранить профиль</button>
-                
-                <div id="cabBalanceContainer"></div>
-                <button class="btn btn-outline-danger btn-sm mt-2 fw-bold rounded-pill w-100" onclick="logout()">Выйти из аккаунта</button>
+                <div id="cab_profile" class="cab-tab-content" style="display:none;">
+                    <div class="cab-card">
+                        <h5 class="fw-bold mb-4">Личная информация</h5>
+                        <label class="small text-muted fw-bold mb-1">Ваше Имя</label>
+                        <input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold">
+                        <label class="small text-muted fw-bold mb-1">Номер телефона</label>
+                        <input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-4 p-3 fw-bold">
+                        
+                        <h5 class="fw-bold mb-3">Сохраненные адреса</h5>
+                        <div id="cabAddressesList" class="d-flex flex-column gap-2 mb-3"></div>
+                        <div class="input-group mb-4">
+                            <input type="text" id="cabNewAddress" class="form-control bg-light border-0 p-3 fw-bold" placeholder="Добавить новый адрес">
+                            <button class="btn btn-dark fw-bold px-4" onclick="addAddress()">+</button>
+                        </div>
+                        <button class="btn btn-success w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Сохранить изменения</button>
+                    </div>
+                    <div id="cabBalanceContainer"></div>
+                </div>
+
+                <div id="cab_security" class="cab-tab-content" style="display:none;">
+                    <div class="cab-card border-danger">
+                        <h5 class="fw-bold mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Защита профиля</h5>
+                        <p class="small text-muted mb-3">Вы можете установить пароль на вход по номеру телефона. Если вы его забудете, сбросить можно будет только написав администратору (Николаичу) в группу ВКонтакте.</p>
+                        <input type="password" id="cabPass" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold" placeholder="Придумайте надежный пароль">
+                        <button class="btn btn-danger w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Установить пароль</button>
+                    </div>
+                    <button class="btn btn-outline-dark w-100 fw-bold rounded-4 py-3 mt-4" onclick="logout()">Выйти из аккаунта на этом устройстве</button>
+                </div>
             </div>
-
-            <h5 class="fw-bold mb-3">История заказов</h5>
-            <div id="cabinetOrders" style="overflow-y: auto; max-height: 40vh; padding-right: 5px;"></div>
         </div>
     </div>
 </div>
@@ -294,7 +323,7 @@
                 <h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Комплектация заказа</h6>
                 <select class="form-select bg-white border-0 fw-bold mb-2" id="deliveryType" onchange="calcCart()">
                     <option value="pickup">Самовывоз (Бесплатно)</option>
-                    <option value="courier">Фирменный пакет и доставка (По тарифу)</option>
+                    <option value="courier">Фирменный пакет и логистика (По тарифу)</option>
                     <option value="taxi">Транзитная упаковка (Отправка Яндексом)</option>
                 </select>
                 <div id="delHint" class="small text-muted mb-2">Заберете сами на ферме.</div>
@@ -316,7 +345,7 @@
                 <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Оплата</h6>
                 <select class="form-select bg-white border-0 fw-bold" id="paymentType">
                     <option value="cash">Наличными при получении</option>
-                    <option value="transfer">Перевод (Реквизиты в чате VK)</option>
+                    <option value="transfer">Перевод (Чек и реквизиты в чате VK/SMS)</option>
                 </select>
             </div>
 
@@ -326,10 +355,21 @@
             
             <label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер (Обязательно)</label>
             <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
-            <label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для чеков)</label>
+            <label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения официальных чеков)</label>
             <input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}">
             
-            <button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Оформить за <span id="tFinal">0</span> ₽</button>
+            <div class="checkout-box bg-white">
+                <div class="form-check mb-2">
+                    <input class="form-check-input border-secondary" type="checkbox" id="checkOferta" onchange="calcCart()">
+                    <label class="form-check-label small text-muted" for="checkOferta">Я согласен с условиями <a href="#" onclick="openLegal('oferta')">Публичной оферты</a></label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input border-secondary" type="checkbox" id="checkPrivacy" onchange="calcCart()">
+                    <label class="form-check-label small text-muted" for="checkPrivacy">Я даю согласие на <a href="#" onclick="openLegal('privacy')">обработку персональных данных</a></label>
+                </div>
+            </div>
+            
+            <button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button>
         </div>
     </div>
 </div>
@@ -352,8 +392,8 @@
         <div class="modal-content p-4 text-center">
             <i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i>
             <h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3>
-            <p class="text-muted mb-4">🚜 Чтобы Николаич мог прислать вам чек и реквизиты, <b>нажмите на кнопку ниже и отправьте нашему боту любой смайлик!</b></p>
-            <a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="location.reload()"><i class="bi bi-send-fill me-2"></i> Написать Николаичу в VK</a>
+            <p class="text-muted mb-4">🚜 Чтобы Николаич (или наш бот) мог прислать вам официальный чек и реквизиты, <b>нажмите на кнопку ниже и отправьте боту любой смайлик!</b></p>
+            <a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="location.reload()"><i class="bi bi-send-fill me-2"></i> Написать боту в VK</a>
             <button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.reload()">Закрыть</button>
         </div>
     </div>
@@ -389,21 +429,13 @@
         let filterBlock = document.getElementById('filteredProductsBlock');
         
         if (!q) {
-            mainBlocks.style.display = 'block';
-            filterBlock.style.display = 'none';
-            return;
+            mainBlocks.style.display = 'block'; filterBlock.style.display = 'none'; return;
         }
-        
-        mainBlocks.style.display = 'none';
-        filterBlock.style.display = 'block';
+        mainBlocks.style.display = 'none'; filterBlock.style.display = 'block';
         document.getElementById('filterTitle').innerText = 'Результаты поиска';
-        
-        document.querySelectorAll('.filter-item').forEach(el => {
-            el.style.display = el.dataset.name.includes(q) ? 'block' : 'none';
-        });
+        document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.includes(q) ? 'block' : 'none'; });
     }
 
-    // КАТЕГОРИИ
     function filterCat(id, btn) { 
         if(btn) { document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active')); btn.classList.add('active'); } 
         const mainBlocks = document.getElementById('mainContentBlocks'); const filterBlock = document.getElementById('filteredProductsBlock'); 
@@ -411,7 +443,6 @@
         else { mainBlocks.style.display = 'none'; filterBlock.style.display = 'block'; document.getElementById('filterTitle').innerText = btn ? btn.innerText : 'Товары'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = (el.dataset.cat == id) ? 'block' : 'none'; }); } 
     }
 
-    // ВХОД И ЛИЧНЫЙ КАБИНЕТ
     async function loginPhone() { 
         const res = await fetch('/api/auth/shadow', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone: document.getElementById('loginPhone').value, password: document.getElementById('loginPass').value})}); 
         const data = await res.json();
@@ -419,8 +450,16 @@
     }
     async function logout() { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); }
 
+    // ЛИЧНЫЙ КАБИНЕТ - ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+    function switchCabTab(tabId, btn) {
+        document.querySelectorAll('.cab-nav-item').forEach(el => el.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.cab-tab-content').forEach(el => el.style.display = 'none');
+        document.getElementById(tabId).style.display = 'block';
+    }
+
     function renderAddresses() {
-        document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<span class="badge bg-secondary p-2 d-flex align-items-center gap-2">${a} <i class="bi bi-x-circle text-white" style="cursor:pointer;" onclick="delAddress('${a}')"></i></span>`).join('');
+        document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span><button class="btn btn-sm btn-outline-danger" onclick="delAddress('${a}')"><i class="bi bi-trash"></i></button></div>`).join('');
     }
 
     async function addAddress() { 
@@ -428,13 +467,13 @@
         if(a) { 
             await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({new_address: a})});
             document.getElementById('cabNewAddress').value = '';
-            openCabinet();
+            refreshCabinetData();
         } 
     }
     
     async function delAddress(a) { 
         await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({remove_address: a})});
-        openCabinet();
+        refreshCabinetData();
     }
 
     async function updateProfile() {
@@ -442,11 +481,11 @@
         const phone = document.getElementById('cabPhone').value;
         const password = document.getElementById('cabPass').value;
         await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({full_name, phone, password})});
-        alert('Профиль обновлен!');
+        alert('Изменения сохранены!');
         document.getElementById('cabPass').value = '';
     }
 
-    async function openCabinet() {
+    async function refreshCabinetData() {
         const res = await fetch('/api/user/cabinet'); const data = await res.json();
         if(data.error) return new bootstrap.Modal(document.getElementById('loginModal')).show();
         
@@ -455,22 +494,23 @@
         userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : [];
         renderAddresses();
         
-        if (data.user.is_sysadmin === 1) { document.getElementById('cabBalanceContainer').innerHTML = `<div class="mt-2 mb-3 p-2 bg-dark text-white rounded-3 small fw-bold text-center"><i class="bi bi-wallet2 text-warning"></i> Баланс Сисадмина: <span class="text-warning">${data.user.balance} ₽</span></div>`; } 
+        if (data.user.is_sysadmin === 1) { document.getElementById('cabBalanceContainer').innerHTML = `<div class="mt-4 p-3 bg-dark text-white rounded-4 fw-bold text-center"><i class="bi bi-wallet2 text-warning fs-4 d-block mb-1"></i> Баланс Сисадмина:<br><span class="text-warning fs-3">${data.user.balance} ₽</span></div>`; } 
         else { document.getElementById('cabBalanceContainer').innerHTML = ''; }
         
-        // КРАСИВЫЕ ЧЕКИ
         const statusColors = {'Новый': 'secondary', 'Собран': 'warning text-dark', 'В пути': 'primary', 'Выполнен': 'success', 'Отменен': 'danger'};
-        if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted small text-center">У вас еще нет заказов.</div>'; } 
+        if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Вы еще ничего не заказывали.</div>'; } 
         else {
             document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => {
                 const itemsList = Object.values(o.items).map(i => `<div class="receipt-line"><span>${i.name}</span><span class="fw-bold">${i.qty}${i.unit}</span></div>`).join('');
                 return `<div class="order-receipt"><div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold m-0">Чек #${o.id}</h5><span class="badge bg-${statusColors[o.status] || 'dark'}">${o.status}</span></div><div class="small text-muted mb-3">${o.date}</div><div class="receipt-divider"></div>${itemsList}<div class="receipt-divider"></div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted mt-2">Комплектация: ${o.delivery_type === 'pickup' ? 'Самовывоз' : 'Логистика'}</div><div class="fw-bold fs-4 text-success">${o.final_total} ₽</div></div></div>`;
             }).join('');
         }
-        new bootstrap.Modal(document.getElementById('cabinetModal')).show();
     }
 
-    // ТОВАРЫ, КОРЗИНА И ИИ
+    function openCabinet() {
+        refreshCabinetData().then(() => new bootstrap.Modal(document.getElementById('cabinetModal')).show());
+    }
+
     function openProductView(id, name, img, desc, price, step, unit) { 
         document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт от Николаича.'; 
         if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } 
@@ -513,7 +553,6 @@
         if(count === 0) { const modal = bootstrap.Modal.getInstance(document.getElementById('cartModal')); if(modal) modal.hide(); }
     }
 
-    // ГЕОЛОКАЦИЯ
     function getLocation() {
         const btn = document.querySelector('button[onclick="getLocation()"]');
         btn.innerHTML = '<span class="spinner-border spinner-border-sm text-danger"></span>';
@@ -523,9 +562,7 @@
                 try {
                     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
                     const data = await res.json();
-                    if(data && data.address) {
-                        document.getElementById('checkoutAddress').value = `${data.address.city || data.address.town || data.address.village || ''}, ${data.address.road || ''} ${data.address.house_number || ''}`.replace(/^, /, '').trim();
-                    }
+                    if(data && data.address) { document.getElementById('checkoutAddress').value = `${data.address.city || data.address.town || data.address.village || ''}, ${data.address.road || ''} ${data.address.house_number || ''}`.replace(/^, /, '').trim(); }
                 } catch(e) { alert("Не удалось определить адрес."); }
                 btn.innerHTML = '<i class="bi bi-geo-alt-fill text-danger fs-5"></i>';
             }, (error) => { alert("Разрешите доступ к геопозиции."); btn.innerHTML = '<i class="bi bi-geo-alt-fill text-danger fs-5"></i>'; });
@@ -535,6 +572,13 @@
     function toggleNewAddress() {
         const val = document.getElementById('checkoutAddressSelect').value;
         document.getElementById('newAddrWrap').style.display = val === 'new' ? 'flex' : 'none';
+    }
+
+    // ОТКРЫТИЕ ЮР. ДОКУМЕНТОВ
+    function openLegal(type) {
+        document.getElementById('legalTitle').innerText = type === 'oferta' ? 'Публичная оферта' : 'Политика конфиденциальности';
+        document.getElementById('legalBody').innerText = type === 'oferta' ? document.getElementById('legalOfertaText').innerText : document.getElementById('legalPrivacyText').innerText;
+        new bootstrap.Modal(document.getElementById('legalModal')).show();
     }
 
     async function prepareCart() { 
@@ -587,22 +631,27 @@
         pStatus.className = (lastCalc.promo_status && (lastCalc.promo_status.includes('Неверный') || lastCalc.promo_status.includes('только для') || lastCalc.promo_status.includes('Минимальная'))) ? "mt-2 small fw-bold text-danger" : "mt-2 small fw-bold text-success";
 
         let delHint = "Заберете сами на ферме.";
-        if(d_type == 'courier') delHint = `Фирменный пакет и курьер. Бесплатно от ${lastCalc.free_threshold || 3000}₽`;
+        if(d_type == 'courier') delHint = `Фирменный пакет и логистика. Бесплатно от ${lastCalc.free_threshold || 3000}₽`;
         if(d_type == 'taxi') delHint = "Транзитная коробка для Яндекса. Стоимость логистики напишем в VK.";
         document.getElementById('delHint').innerText = delHint;
         
-        document.getElementById('tDel').innerText = d_type == 'taxi' ? 'По тарифу такси' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); 
+        document.getElementById('tDel').innerText = d_type == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); 
         document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; 
         
         const totalDiscount = (lastCalc.discount || 0) + (lastCalc.sysadmin_pay || 0);
         document.getElementById('tDiscount').innerText = totalDiscount > 0 ? '- ' + totalDiscount.toFixed(0) + ' ₽' : '0 ₽';
 
+        // Юридическая проверка галочек
+        const isLegalValid = document.getElementById('checkOferta').checked && document.getElementById('checkPrivacy').checked;
         const btn = document.getElementById('checkoutBtn');
         const minOrder = lastCalc.min_order || 0;
         
         if (lastCalc.items_total < minOrder) {
             btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary');
             btn.innerHTML = `Добавьте ещё на ${minOrder - lastCalc.items_total} ₽`;
+        } else if (!isLegalValid) {
+            btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary');
+            btn.innerHTML = `Примите условия соглашений`;
         } else {
             btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success');
             btn.innerHTML = `Оформить за <span id="tFinal">${lastCalc.final_total.toFixed(0)}</span> ₽`;
@@ -624,8 +673,6 @@
             addr = selectVal === 'new' ? document.getElementById('checkoutAddress').value : selectVal;
             if(!addr) return alert("Пожалуйста, укажите адрес получения!");
         }
-        
-        if(p_type === 'transfer' && !soc) return alert("Укажите Вашу ссылку на VK для получения реквизитов!"); 
 
         const payload = { phone: phone, social_link: soc, delivery_type: d_type, payment_type: p_type, address: addr, cart: cart, calc: lastCalc };
 
@@ -635,7 +682,7 @@
             bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
             document.getElementById('successOrderId').innerText = `#${data.order_id}`;
             new bootstrap.Modal(document.getElementById('successModal')).show();
-        } else { alert('Ошибка оформления. ' + (data.error || 'Попробуйте авторизоваться.')); }
+        } else { alert('Ошибка оформления: ' + (data.error || 'Проверьте данные.')); }
     }
     
     async function sendVipRequest() { const phone = document.getElementById('vipPhone').value; const full_name = document.getElementById('vipFio').value; const social_link = document.getElementById('vipSocial').value; if(!phone || !full_name) return alert('Заполните ФИО и телефон.'); await fetch('/api/18plus/request', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone, full_name, social_link})}); alert("Заявка отправлена!"); location.reload(); }

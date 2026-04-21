@@ -12,7 +12,7 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v31_bulletproof'
+app.secret_key = 'nikolaich_erp_v32_correct_models'
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -43,7 +43,8 @@ def send_vk_message(db_user_id, user_vk_link, text):
     except Exception as e: print(f"VK Error: {e}")
     return False
 
-def call_ai(prompt, sys_prompt, model="gemini-1.5-flash", is_json=True, messages_history=None):
+# ИСПРАВЛЕНО: Теперь используем gemini-2.5-flash и gemini-2.5-pro
+def call_ai(prompt, sys_prompt, model="gemini-2.5-flash", is_json=True, messages_history=None):
     payload = {"model": model, "temperature": 0.3}
     if messages_history:
         payload["messages"] = [{"role": "system", "content": sys_prompt}] + messages_history
@@ -56,11 +57,12 @@ def call_ai(prompt, sys_prompt, model="gemini-1.5-flash", is_json=True, messages
     try:
         r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
         
-        # ВЫВОДИМ ТОЧНУЮ ОШИБКУ ОТ ПРОКСИ, ЕСЛИ ОНА ЕСТЬ
+        # Если первая модель недоступна, переключаемся на вторую из твоего тарифа (gemini-2.5-pro)
         if r.status_code != 200:
-            error_details = r.text
-            print(f"API Error ({r.status_code}): {error_details}")
-            return {"error": f"API Error {r.status_code}: {error_details[:100]}"} if is_json else f"Ошибка API: {error_details[:100]}"
+            print(f"API Error ({r.status_code}) with {model}. Switching to gemini-2.5-pro...")
+            payload["model"] = "gemini-2.5-pro"
+            r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
+            r.raise_for_status()
 
         response_text = r.json()['choices'][0]['message']['content']
         if is_json:
@@ -94,6 +96,7 @@ def init_db():
                 ('min_order_sum', '500'), ('high_demand', '0'), 
                 ('payment_details', '+7 (999) 000-00-00 (Сбербанк, Николаич)'), ('vk_confirm_code', '00000000')
             ])
+            c.execute("INSERT OR IGNORE INTO promocodes (code, is_sysadmin_only) VALUES ('СисадминВоздвижение', 1)")
     conn.commit()
 
 init_db()
@@ -398,7 +401,20 @@ def admin_chat_send():
     success = send_vk_message(user['id'], user['social_link'], f"👨‍🌾 Николаич:\n{text}")
     return jsonify({"status": "ok" if success else "error"})
 
-# --- ИИ МАРШРУТЫ ОСТАВЛЕНЫ БЕЗ ИЗМЕНЕНИЙ, ИСПОЛЬЗУЮТ НОВУЮ ФУНКЦИЮ CALL_AI С ВЫВОДОМ ОШИБОК ---
+@app.route('/api/admin/vk_action', methods=['POST'])
+def admin_vk_action():
+    data = request.json
+    msg_type = data.get('msg_type')
+    custom_val = data.get('custom_val', '')
+    
+    if msg_type == 'broadcast':
+        users = get_db_query("SELECT id, social_link FROM users WHERE social_link != '' AND social_link IS NOT NULL")
+        success_count = sum(1 for u in users if send_vk_message(u['id'], u['social_link'], f"📣 Новости от Николаича:\n\n{custom_val}"))
+        return jsonify({"status": "ok", "sent": success_count, "total": len(users)})
+    
+    return jsonify({"status": "error", "msg": "Unknown action"})
+
+# --- ИИ МАРШРУТЫ ---
 @app.route('/api/ai/upsell', methods=['POST'])
 def ai_upsell():
     cart_items = request.json.get('cart_items', [])
@@ -415,7 +431,7 @@ def ai_chef():
     prods = get_db_query("SELECT p.id, p.name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND c.is_hidden=0")
     catalog = ", ".join([f"ID {p['id']}: {p['name']}" for p in prods])
     sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери продукты из: {catalog}. Без 18+. JSON: 'message', 'cart_ids'."
-    return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-1.5-flash", True))
+    return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-2.5-flash", True))
 
 @app.route('/api/ai/gen_banner', methods=['POST'])
 def ai_gen_banner():
@@ -423,7 +439,7 @@ def ai_gen_banner():
     cat_name = request.json.get('category_name', '')
     sys_prompt = "Ты маркетолог. Верни СТРОГО JSON: ключи title, subtitle, bg_color (hex), img_prompt (на англ)."
     prompt = f"Идея: {topic}. Категория: {cat_name}."
-    res = call_ai(prompt, sys_prompt, "gemini-1.5-flash", True)
+    res = call_ai(prompt, sys_prompt, "gemini-2.5-flash", True)
     if "error" not in res:
         res["img_url"] = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(res.get('img_prompt', 'food'))}?width=800&height=400&nologo=true"
     return jsonify(res)
@@ -431,7 +447,7 @@ def ai_gen_banner():
 @app.route('/api/ai/agent_chat', methods=['POST'])
 def ai_agent_chat():
     role = "опытный маркетолог" if request.json.get('role') == 'marketer' else "строгий юрист"
-    reply = call_ai(None, f"Ты {role}.", "gemini-1.5-flash", False, messages_history=request.json.get('messages', []))
+    reply = call_ai(None, f"Ты {role}.", "gemini-2.5-pro", False, messages_history=request.json.get('messages', []))
     return jsonify({"reply": reply})
 
 if __name__ == '__main__': app.run(host='0.0.0.0', port=8085)

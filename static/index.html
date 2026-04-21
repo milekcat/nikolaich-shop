@@ -13,7 +13,7 @@
         
         /* 1. ШАПКА: ФЕРМЕРСКИЕ ПРОДУКТЫ */
         .sticky-top-area { 
-            position: sticky; top: 0; z-index: 1000; 
+            position: sticky; top: 0; z-index: 1000; background-color: #2c3e50;
             background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress&cs=tinysrgb&w=1920');
             background-size: cover; background-position: center 60%;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
@@ -25,6 +25,7 @@
         
         /* 2. КАТЕГОРИИ: ГУСТАЯ ТРАВА */
         .cat-scroll-wrapper {
+            background-color: #2d5a27;
             background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress&cs=tinysrgb&w=1920');
             background-size: cover; background-position: center; padding: 15px 0;
             box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; margin-top: 15px;
@@ -45,8 +46,7 @@
         /* 3. КАРТОЧКИ ТОВАРОВ: КРАФТОВОЕ ДЕРЕВО */
         .prod-grid { padding: 0 20px; }
         .p-card { 
-            background-color: #5c3a21;
-            /* Крафтовое теплое дерево */
+            background-color: #4a2e1b;
             background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress&cs=tinysrgb&w=800') !important;
             background-size: cover !important; background-position: center !important;
             border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; 
@@ -75,6 +75,9 @@
         .footer-legal { text-align: center; padding: 40px 20px; color: #a1a1a6; font-size: 12px; line-height: 1.6; }
         .modal-content { border-radius: 28px 28px 0 0; border: none; }
         .checkout-box { background: #f9f9f9; border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; }
+        .upsell-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
+        .upsell-card { min-width: 140px; background: #fff; border-radius: 16px; padding: 10px; border: 1px solid #eee; text-align: center; }
+        .upsell-card img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -175,9 +178,7 @@
             <h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4>
             <p class="text-muted small mb-4" id="pdDesc"></p>
             
-            <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-success w-100 fw-bold py-3 rounded-4 shadow-sm fs-5" id="pdAddBtn">В корзину</button>
-            </div>
+            <button class="btn btn-success w-100 fw-bold py-3 rounded-4 shadow-sm fs-5" id="pdAddBtn">В корзину</button>
         </div>
     </div>
 </div>
@@ -192,11 +193,14 @@
             
             <div id="cartItemsList" class="mb-4"></div>
             
-            <div class="ai-chef-box shadow-sm">
+            <h6 class="fw-bold mb-2">Не забудьте добавить:</h6>
+            <div class="upsell-scroll mb-4" id="upsellBox"></div>
+            
+            <div class="ai-chef-box shadow-sm mb-4">
                 <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-stars text-warning fs-5"></i> ИИ Шеф-повар</h6>
-                <p class="small text-muted mb-2">Напишите блюдо, и я добавлю в корзину всё необходимое для него.</p>
+                <p class="small text-muted mb-2">Напишите блюдо, и я подберу недостающие продукты в корзину!</p>
                 <div class="d-flex gap-2">
-                    <input type="text" id="aiPrompt" class="form-control border-warning bg-white shadow-sm" placeholder="Например: Хочу сварить борщ">
+                    <input type="text" id="aiPrompt" class="form-control border-warning bg-white shadow-sm" placeholder="Например: Ингредиенты для плова">
                     <button class="btn btn-warning fw-bold text-dark shadow-sm text-nowrap" id="aiBtn" onclick="askChef()">Дополнить</button>
                 </div>
                 <div id="aiReply" class="mt-3 small fw-bold text-success" style="display:none;"></div>
@@ -209,6 +213,7 @@
                     <option value="courier">Курьер магазина (+5% к ценам)</option>
                     <option value="taxi">Отправка на Такси (Оплата по тарифу)</option>
                 </select>
+                <div id="delHint" class="small text-muted">Заберете сами на ферме.</div>
             </div>
 
             <div class="checkout-box">
@@ -236,12 +241,28 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+
 <script>
-    vkBridge.send('VKWebAppInit');
+    // Инициализация VK Mini App
+    try {
+        vkBridge.send('VKWebAppInit').then(() => console.log('VK Bridge успешно инициализирован!'));
+    } catch(e) { console.log('VK Bridge error:', e); }
 
     let cart = {}; let itemsTotal = 0; let lastCalc = null;
 
-    // ОТКРЫТИЕ КАРТОЧКИ ТОВАРА
+    document.addEventListener("DOMContentLoaded", function() { 
+        const track = document.getElementById('bannerCarousel'); 
+        if(track) { setInterval(() => { if (track.scrollLeft + track.clientWidth >= track.scrollWidth) track.scrollTo({ left: 0, behavior: 'smooth' }); else track.scrollBy({ left: track.clientWidth * 0.85, behavior: 'smooth' }); }, 5000); } 
+    });
+
+    function filterCat(id, btn) { 
+        if(btn) { document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active')); btn.classList.add('active'); } 
+        const mainBlocks = document.getElementById('mainContentBlocks'); const filterBlock = document.getElementById('filteredProductsBlock'); 
+        if (id === 'all') { for (let i = 0; i < mainBlocks.children.length; i++) { if (mainBlocks.children[i].id !== 'filteredProductsBlock') mainBlocks.children[i].style.display = 'block'; } filterBlock.style.display = 'none'; } 
+        else { for (let i = 0; i < mainBlocks.children.length; i++) { if (mainBlocks.children[i].id !== 'filteredProductsBlock') mainBlocks.children[i].style.display = 'none'; } filterBlock.style.display = 'block'; document.getElementById('filterTitle').innerText = btn ? btn.innerText : 'Товары'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = (el.dataset.cat == id) ? 'block' : 'none'; }); } 
+    }
+
+    // ОТКРЫТИЕ КАРТОЧКИ ТОВАРА (БЕЗ РЕЦЕПТОВ, ТОЛЬКО КОРЗИНА)
     function openProductView(id, name, img, desc, price, step, unit) { 
         document.getElementById('pdName').innerText = name; 
         document.getElementById('pdPrice').innerText = price; 
@@ -251,10 +272,9 @@
         if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } 
         else { document.getElementById('pdImg').style.display = 'none'; } 
         
-        // Настраиваем кнопку корзины
         const addBtn = document.getElementById('pdAddBtn');
         addBtn.onclick = () => {
-            add(addBtn, id, price, name, step, unit, img);
+            add(null, id, price, name, step, unit, img);
             bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide();
         };
         addBtn.innerHTML = `В корзину (+ ${step} ${unit})`;
@@ -273,11 +293,10 @@
             const data = await res.json(); 
             
             if(data.cart_ids && data.cart_ids.length > 0) { 
-                // Автоматически "прокликиваем" невидимые кнопки добавления на странице
                 data.cart_ids.forEach(id => { const b = document.querySelector(`.btn-add[onclick*=", ${id},"]`); if(b) b.click(); });
                 document.getElementById('aiReply').innerHTML = `✅ ${data.message}`; 
                 document.getElementById('aiReply').style.display = 'block';
-                prepareCart(); // Перерисовываем корзину
+                prepareCart(); 
             } else {
                 document.getElementById('aiReply').innerHTML = `🤷‍♂️ ${data.message}`; 
                 document.getElementById('aiReply').style.display = 'block';
@@ -286,7 +305,7 @@
         btn.innerText = 'Дополнить'; btn.disabled = false; 
     }
 
-    // ЛОГИКА КОРЗИНЫ
+    // ЛОГИКА КОРЗИНЫ (С ПЛЮСОМ И МИНУСОМ)
     function add(btn, id, price, name, step, unit, img) { 
         if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img}; } 
         cart[id].qty = Math.round(cart[id].qty * 1000) / 1000;
@@ -321,7 +340,7 @@
             html.push(`
                 <div class="d-flex justify-content-between border-bottom py-3 align-items-center">
                     <div class="d-flex align-items-center" style="width:45%;">${imgHtml}<div class="fw-bold lh-1" style="font-size:13px;">${item.name}</div></div>
-                    <div class="d-flex align-items-center bg-light border rounded-pill px-1">
+                    <div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm">
                         <button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button>
                         <div class="fw-bold mx-1" style="font-size:13px; min-width: 40px; text-align: center;">${item.qty} ${item.unit}</div>
                         <button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button>
@@ -332,11 +351,19 @@
         } 
         document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>'; 
         await calcCart(); 
+        
+        // Блок допродаж
+        const res = await fetch('/api/ai/upsell', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cart_items: Object.values(cart).map(i => i.name)})}); 
+        const prods = await res.json(); 
+        if(prods.length > 0) { document.getElementById('upsellBox').innerHTML = prods.map(p => `
+            <div class="upsell-card"><img src="${p.images[0] || ''}"><div class="fw-bold lh-1" style="font-size:11px; height:24px; overflow:hidden;">${p.name}</div><div class="text-success fw-bold small mb-2">${p.price} ₽</div><button class="btn btn-sm btn-dark w-100 rounded-pill" onclick="add(null, ${p.id}, ${p.price}, '${p.name}', ${p.step}, '${p.unit}', '${p.images[0] || ''}'); prepareCart();">+ ${p.step}</button></div>
+        `).join(''); } else { document.getElementById('upsellBox').innerHTML = '<div class="small text-muted">Всё собрано!</div>'; } 
     }
 
     async function calcCart() { 
         if (Object.keys(cart).length === 0) return; 
         const d_type = document.getElementById('deliveryType').value; 
+        document.getElementById('delHint').innerText = {"pickup": "Заберете сами на ферме.", "courier": "Включена наценка 5% за услуги курьера.", "taxi": "Отправим Яндексом. Стоимость Николаич напишет в чате VK."}[d_type]; 
         const res = await fetch('/api/cart/calc', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items_total: itemsTotal, delivery_type: d_type})}); 
         lastCalc = await res.json(); 
         document.getElementById('tItems').innerHTML = lastCalc.items_total.toFixed(0) + ' ₽' + (d_type === 'courier' ? ' <span class="badge bg-warning text-dark ms-1">+5% наценка</span>' : ''); 
@@ -352,13 +379,6 @@
         alert('Заказ успешно оформлен! Чек отправлен в VK.'); location.reload(); 
     }
 
-    function filterCat(id, btn) { 
-        if(btn) { document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active')); btn.classList.add('active'); } 
-        const mainBlocks = document.getElementById('mainContentBlocks'); const filterBlock = document.getElementById('filteredProductsBlock'); 
-        if (id === 'all') { for (let i = 0; i < mainBlocks.children.length; i++) { if (mainBlocks.children[i].id !== 'filteredProductsBlock') mainBlocks.children[i].style.display = 'block'; } filterBlock.style.display = 'none'; } 
-        else { for (let i = 0; i < mainBlocks.children.length; i++) { if (mainBlocks.children[i].id !== 'filteredProductsBlock') mainBlocks.children[i].style.display = 'none'; } filterBlock.style.display = 'block'; document.getElementById('filterTitle').innerText = btn ? btn.innerText : 'Товары'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = (el.dataset.cat == id) ? 'block' : 'none'; }); } 
-    }
-    
     async function login() { const phone = document.getElementById('loginPhone').value; await fetch('/api/auth/shadow', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone})}); location.reload(); }
 </script>
 </body>

@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v17_ultimate'
+app.secret_key = 'nikolaich_erp_v18_master'
 
 # Папка для загрузки фотографий товаров
 UPLOAD_FOLDER = 'static/uploads'
@@ -27,7 +27,7 @@ VK_API_VERSION = "5.131"
 
 
 # ==========================================
-# 1. ЯДРО СИСТЕМЫ (VK и AI)
+# 1. СЕРВИСНЫЕ ФУНКЦИИ (VK и AI)
 # ==========================================
 
 def send_vk_message(user_vk_link, text):
@@ -128,7 +128,7 @@ def init_db():
 init_db()
 
 def get_db_query(query, args=(), fetch_one=False):
-    """Вспомогательная функция для чистых SQL запросов"""
+    """Вспомогательная функция для SQL запросов"""
     with sqlite3.connect('shop.db') as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.execute(query, args)
@@ -171,7 +171,6 @@ def index():
                             WHERE p.active=1 AND (c.is_hidden=0 OR c.is_hidden=?)""", 
                          (1 if is_18_approved else 0,))
     
-    # Парсим JSON-строки с фотографиями в списки Python
     for p in prods: 
         p['images'] = json.loads(p['images']) if p['images'] else []
         

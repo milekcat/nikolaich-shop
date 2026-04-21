@@ -39,7 +39,7 @@
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Настройки Сайта</a>
         <a class="nav-link" onclick="showTab('ai', this)"><i class="bi bi-magic me-2 fs-5 text-primary"></i> Нейро-сотрудники</a>
     </nav>
-    <div class="mt-auto small text-muted text-center fw-bold">ERP System v24.0 PRO</div>
+    <div class="mt-auto small text-muted text-center fw-bold">ERP System v25.0 PRO</div>
 </div>
 
 <div class="main-content">
@@ -257,7 +257,7 @@
         try {
             const response = await fetch(`/api/admin/${endpoint}`, options);
             return await response.json();
-        } catch (e) { alert('Ошибка связи с сервером'); return null; }
+        } catch (e) { alert('Ошибка связи с сервером API.'); return null; }
     }
 
     function openModal(title, htmlBody, btnText, saveCallback) {
@@ -280,9 +280,13 @@
                 if(o.delivery_type === 'taxi') chatBtns += `<button class="btn btn-sm btn-warning w-100 mb-1 rounded-pill" onclick="taxiPrompt('${o.social_link}')">🚕 Цена такси</button><br>`;
                 chatBtns += `<button class="btn btn-sm btn-success w-100 rounded-pill" onclick="sendVkAction('${o.social_link}', 'paid')">✅ Оплачено</button>`;
             } else { chatBtns = '<span class="badge bg-secondary">Нет VK</span>'; }
+            
+            // Вывод адреса в таблицу заказов
+            const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger">Адрес: ${o.address}</span>` : '';
+            
             return `<tr>
                 <td><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div></td>
-                <td class="small">Доставка: <b>${o.delivery_type}</b><br>Оплата: <b>${o.payment_type}</b></td>
+                <td class="small">Тип: <b>${o.delivery_type}</b><br>Оплата: <b>${o.payment_type}</b>${addressHtml}</td>
                 <td class="fw-bold text-success fs-6">${o.final_total} ₽</td>
                 <td><select class="form-select form-select-sm border bg-light fw-bold" onchange="apiCall('orders', 'POST', {id: ${o.id}, status: this.value, social_link: '${o.social_link}'})">
                     <option value="Новый" ${o.status=='Новый'?'selected':''}>Новый</option><option value="Собран" ${o.status=='Собран'?'selected':''}>Собран</option><option value="В пути" ${o.status=='В пути'?'selected':''}>В пути</option><option value="Выполнен" ${o.status=='Выполнен'?'selected':''}>Выполнен</option><option value="Отменен" ${o.status=='Отменен'?'selected':''}>Отменен</option>
@@ -324,17 +328,23 @@
     }
 
     function openUserModal(u) {
+        let savedAddress = "";
+        try { savedAddress = JSON.parse(u.addresses)[0] || ""; } catch(e) { savedAddress = u.addresses || ""; }
+        
         openModal('Карточка клиента', `
             <input type="hidden" id="uId" value="${u.id}">
             <label class="small fw-bold text-muted mb-1">ФИО</label><input type="text" id="uFio" class="form-control bg-light border mb-3 p-2" value="${u.full_name}">
             <label class="small fw-bold text-muted mb-1">Телефон</label><input type="tel" id="uPhone" class="form-control bg-light border mb-3 p-2" value="${u.phone}">
             <label class="small fw-bold text-muted mb-1">Ссылка VK</label><input type="text" id="uSocial" class="form-control bg-light border mb-3 p-2" value="${u.social_link}">
+            <label class="small fw-bold text-muted mb-1">Адрес доставки</label><input type="text" id="uAddress" class="form-control bg-light border mb-3 p-2" value="${savedAddress}">
+            
             <label class="small fw-bold text-muted mb-1">Доступ к 18+ (VIP)</label>
             <select id="uAge" class="form-select bg-light border mb-2 p-2">
                 <option value="0" ${u.age_verified==0?'selected':''}>Нет доступа</option><option value="1" ${u.age_verified==1?'selected':''}>Заявка на проверке</option><option value="2" ${u.age_verified==2?'selected':''}>Полный доступ</option>
             </select>
         `, 'Сохранить', async () => {
-            await apiCall('users', 'POST', { id: document.getElementById('uId').value, full_name: document.getElementById('uFio').value, phone: document.getElementById('uPhone').value, social_link: document.getElementById('uSocial').value, age_verified: document.getElementById('uAge').value });
+            const addr = document.getElementById('uAddress').value;
+            await apiCall('users', 'POST', { id: document.getElementById('uId').value, full_name: document.getElementById('uFio').value, phone: document.getElementById('uPhone').value, social_link: document.getElementById('uSocial').value, addresses: JSON.stringify([addr]), age_verified: document.getElementById('uAge').value });
             loadUsers();
         });
     }
@@ -487,8 +497,10 @@
     function openBannerModal(b = null) {
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.link_cat==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
         const aiCatOptions = categoriesList.map(c => `<option value="${c.id}" data-name="${c.name}">${c.icon} ${c.name}</option>`).join('');
+        
         openModal(b ? 'Настройка баннера' : 'Новый баннер', `
             <input type="hidden" id="bId" value="${b ? b.id : ''}">
+            
             <div class="bg-primary bg-opacity-10 p-4 rounded-4 mb-4 border border-primary border-opacity-25">
                 <h6 class="fw-bold text-primary mb-3"><i class="bi bi-magic text-warning me-2"></i>Умный генератор баннеров</h6>
                 <label class="small fw-bold text-muted mb-1">1. Идея баннера (опишите своими словами)</label>
@@ -502,13 +514,19 @@
                     <i class="bi bi-stars me-1"></i> Сгенерировать дизайн и текст
                 </button>
             </div>
-            <label class="small fw-bold text-muted mb-1">Крупный текст</label><input type="text" id="bTitle" class="form-control bg-light border mb-2 p-2 fw-bold" value="${b ? b.title : ''}">
-            <label class="small fw-bold text-muted mb-1">Мелкий текст</label><input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
-            <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label><input type="text" id="bUrl" class="form-control bg-light border mb-3 p-2" value="${b ? b.img_url : ''}">
-            <div class="row g-2 mb-3">
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Цвет плашки</label><input type="color" id="bColor" class="form-control bg-light border w-100 p-1" value="${b ? b.bg_color : '#ffffff'}"></div>
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Куда ведет клик</label><select id="bLink" class="form-select bg-light border p-2 fw-bold">${catOptions}</select></div>
-            </div>
+
+            <details class="mb-3">
+                <summary class="small text-muted fw-bold mb-2" style="cursor:pointer;">Ручная настройка (если ИИ ошибся)</summary>
+                <div class="p-3 border rounded bg-white mt-2">
+                    <label class="small fw-bold text-muted mb-1">Крупный текст</label><input type="text" id="bTitle" class="form-control bg-light border mb-2 p-2 fw-bold" value="${b ? b.title : ''}">
+                    <label class="small fw-bold text-muted mb-1">Мелкий текст</label><input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
+                    <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label><input type="text" id="bUrl" class="form-control bg-light border mb-3 p-2" value="${b ? b.img_url : ''}">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><label class="small fw-bold text-muted mb-1">Цвет плашки</label><input type="color" id="bColor" class="form-control bg-light border w-100 p-1" value="${b ? b.bg_color : '#ffffff'}"></div>
+                        <div class="col-6"><label class="small fw-bold text-muted mb-1">Куда ведет клик</label><select id="bLink" class="form-select bg-light border p-2 fw-bold">${catOptions}</select></div>
+                    </div>
+                </div>
+            </details>
         `, 'Опубликовать', async () => {
             await apiCall('banners', 'POST', { id: document.getElementById('bId').value, title: document.getElementById('bTitle').value, subtitle: document.getElementById('bSub').value, img_url: document.getElementById('bUrl').value, bg_color: document.getElementById('bColor').value, link_cat: document.getElementById('bLink').value });
             loadSettings();
@@ -520,18 +538,25 @@
         const catSelect = document.getElementById('aiBanGenCat');
         const catId = catSelect.value;
         const catName = catId ? catSelect.options[catSelect.selectedIndex].getAttribute('data-name') : '';
+        
         if(!topic && !catName) return alert("Опишите идею или выберите категорию для ИИ!");
+        
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Рисую...'; btn.disabled = true;
         try {
             const res = await apiCall('ai/gen_banner', 'POST', {topic: topic, category_name: catName});
-            if(res && !res.error) {
+            if(res && !res.error && res.title) {
                 document.getElementById('bTitle').value = res.title;
                 document.getElementById('bSub').value = res.subtitle;
                 document.getElementById('bUrl').value = res.img_url;
                 document.getElementById('bColor').value = res.bg_color;
                 if(catId) document.getElementById('bLink').value = catId;
-            } else { alert('Ошибка при генерации ИИ. Попробуйте еще раз.'); }
-        } catch(e) {}
+                alert('Готово! ИИ заполнил поля ручной настройки.');
+            } else { 
+                alert('ИИ перегружен или вернул ошибку. Попробуйте еще раз или заполните вручную.'); 
+            }
+        } catch(e) {
+            alert('Ошибка связи с сервером API.');
+        }
         btn.innerHTML = '<i class="bi bi-stars me-1"></i> Сгенерировать дизайн и текст'; btn.disabled = false;
     }
 

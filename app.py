@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v44_design_system'
+app.secret_key = 'nikolaich_erp_v45_alfa_auth'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
 
 UPLOAD_FOLDER = 'static/uploads'
@@ -92,15 +92,16 @@ def init_db():
                 ('min_order_sum', '500'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), 
                 ('vk_confirm_code', '00000000'), ('admin_pin', '0000'),
                 ('oferta_text', 'Текст публичной оферты.'), ('privacy_text', 'Политика конфиденциальности.'),
-                ('alfa_token', ''),
+                ('alfa_login', ''), ('alfa_password', ''),
                 ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'),
                 ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress')
             ])
             c.execute("INSERT OR IGNORE INTO promocodes (code, is_sysadmin_only) VALUES ('СисадминВоздвижение', 1)")
         else:
-            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('alfa_token', '')")
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('alfa_login', '')")
             except: pass
-            # Новые поля для дизайна
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('alfa_password', '')")
+            except: pass
             try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_main', '#fdfbf7')")
             except: pass
             try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress')")
@@ -334,15 +335,17 @@ def checkout():
         send_vk_message(user['id'], user['social_link'], msg)
         
     if p_type == 'online':
-        alfa_token = settings.get('alfa_token', '').strip()
-        if alfa_token:
+        alfa_login = settings.get('alfa_login', '').strip()
+        alfa_password = settings.get('alfa_password', '').strip()
+        if alfa_login and alfa_password:
             amount_kopecks = int(calc['final_total'] * 100)
             payload = {
-                "token": alfa_token,
-                "orderNumber": str(order_id),
+                "userName": alfa_login,
+                "password": alfa_password,
+                "orderNumber": str(order_id) + "_" + str(random.randint(100, 999)), # Защита от дублей в банке
                 "amount": amount_kopecks,
                 "returnUrl": "https://nikolaich.shop/",
-                "description": f"Заказ #{order_id}",
+                "description": f"Оплата заказа #{order_id} (У Николаича)",
             }
             try:
                 r = requests.post("https://pay.alfabank.ru/payment/rest/register.do", data=payload)
@@ -354,7 +357,7 @@ def checkout():
             except Exception as e:
                 return jsonify({"status": "error", "error": "Не удалось связаться с сервером банка."}), 500
         else:
-            return jsonify({"status": "error", "error": "Токен Альфа-Банка не настроен в админке."}), 400
+            return jsonify({"status": "error", "error": "Логин и Пароль Альфа-Банка не настроены в админке."}), 400
         
     return jsonify({"status": "ok", "order_id": order_id})
 

@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v41_paykeeper_fix'
+app.secret_key = 'nikolaich_erp_v42_paykeeper_post'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
 
 UPLOAD_FOLDER = 'static/uploads'
@@ -327,10 +327,14 @@ def checkout():
     if p_type == 'online':
         pk_server = settings.get('pk_server', '').strip().rstrip('/')
         if pk_server:
-            # ИСПРАВЛЕНИЕ PAYKEEPER: Сумма теперь целое число, clientid - очищенный номер телефона
-            safe_client_id = urllib.parse.quote(phone.replace('+', '').replace(' ', ''))
-            pay_url = f"{pk_server}/create/?sum={int(calc['final_total'])}&orderid={order_id}&clientid={safe_client_id}"
-            return jsonify({"status": "ok", "order_id": order_id, "pay_url": pay_url})
+            # ИСПРАВЛЕНИЕ PAYKEEPER: Возвращаем данные для генерации POST-формы, чтобы банк не блокировал параметры
+            pay_data = {
+                "url": f"{pk_server}/create/",
+                "sum": f"{calc['final_total']:.2f}",
+                "orderid": str(order_id),
+                "clientid": user['full_name'] or phone
+            }
+            return jsonify({"status": "ok", "order_id": order_id, "pay_data": pay_data})
         else:
             return jsonify({"status": "error", "error": "Эквайринг не настроен в админке. Зайдите в раздел 'Юр. настройки' и заполните URL сервера."}), 400
         

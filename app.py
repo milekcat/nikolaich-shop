@@ -13,14 +13,12 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v45_alfa_auth'
+app.secret_key = 'nikolaich_erp_v47_pwa_analytics'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-AI_URL = "https://api.artemox.com/v1/chat/completions"
-AI_API_KEY = "sk-YGn3Z94dTreSNguvMqqa2A"
 VK_TOKEN = "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
 VK_API_VERSION = "5.131"
 
@@ -47,68 +45,46 @@ def send_vk_message(db_user_id, user_vk_link, text):
         return "ok"
     except Exception as e: return f"Сбой отправки: {str(e)}"
 
-def call_ai(prompt, sys_prompt, model="gemini-2.5-flash", is_json=True, messages_history=None):
-    payload = {"model": model, "temperature": 0.3}
-    if is_json: sys_prompt += " ВЫДАЙ СТРОГО ТОЛЬКО JSON. НАЧНИ С { И ЗАКОНЧИ }. НИКАКИХ ДРУГИХ СЛОВ."
-    if messages_history: payload["messages"] = [{"role": "system", "content": sys_prompt}] + messages_history
-    else: payload["messages"] = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}]
-    try:
-        r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
-        if r.status_code != 200:
-            payload["model"] = "gemini-2.5-pro"
-            r = requests.post(AI_URL, json=payload, headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"}, timeout=30)
-            if r.status_code != 200: return {"error": f"Сервер ИИ недоступен."} if is_json else "Ошибка ИИ."
-        response_text = r.json()['choices'][0]['message']['content']
-        if is_json:
-            match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if match:
-                try: return json.loads(match.group(0))
-                except: return {"error": "Сбой формата ИИ."}
-            return {"error": "ИИ не вернул JSON."}
-        return response_text
-    except Exception as e: return {"error": f"Сбой сети: {str(e)}"} if is_json else f"Сбой сети: {e}"
-
 def init_db():
     with sqlite3.connect('shop.db') as conn:
         c = conn.cursor()
         c.execute('CREATE TABLE IF NOT EXISTS settings (key_name TEXT PRIMARY KEY, value TEXT)')
         c.execute('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT, icon TEXT, sort_order INTEGER, is_hidden INTEGER DEFAULT 0)')
-        c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1, stickers TEXT DEFAULT "[]", rating REAL DEFAULT 5.0)''')
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, active INTEGER DEFAULT 1)')
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0, password TEXT DEFAULT "")''')
-        c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, address TEXT DEFAULT "")''')
+        c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, address TEXT DEFAULT "", delivery_time TEXT DEFAULT "Как можно скорее", comment TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY, user_id INTEGER, is_incoming INTEGER, text TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS promocodes (id INTEGER PRIMARY KEY, code TEXT UNIQUE, discount_percent REAL DEFAULT 0, discount_rub REAL DEFAULT 0, min_sum REAL DEFAULT 0, is_active INTEGER DEFAULT 1, is_sysadmin_only INTEGER DEFAULT 0)''')
-        for col in ['address TEXT DEFAULT ""', 'vk_id TEXT DEFAULT ""', 'balance REAL DEFAULT 0', 'is_sysadmin INTEGER DEFAULT 0', 'password TEXT DEFAULT ""']:
-            try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
-            except: pass
-        try: c.execute('ALTER TABLE orders ADD COLUMN address TEXT DEFAULT ""')
+        # НОВЫЕ ТАБЛИЦЫ ДЛЯ 47 ВЕРСИИ
+        c.execute('''CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, product_id INTEGER, user_id INTEGER, rating INTEGER, text TEXT, date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, is_approved INTEGER DEFAULT 1)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER)''')
+
+        # Обновление старых таблиц новыми колонками (если их нет)
+        try: c.execute('ALTER TABLE products ADD COLUMN stickers TEXT DEFAULT "[]"')
         except: pass
+        try: c.execute('ALTER TABLE products ADD COLUMN rating REAL DEFAULT 5.0')
+        except: pass
+        try: c.execute('ALTER TABLE orders ADD COLUMN delivery_time TEXT DEFAULT "Как можно скорее"')
+        except: pass
+        try: c.execute('ALTER TABLE orders ADD COLUMN comment TEXT DEFAULT ""')
+        except: pass
+
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
                 ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'),
                 ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'),
-                ('min_order_sum', '500'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), 
+                ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), 
                 ('vk_confirm_code', '00000000'), ('admin_pin', '0000'),
                 ('oferta_text', 'Текст публичной оферты.'), ('privacy_text', 'Политика конфиденциальности.'),
-                ('alfa_login', ''), ('alfa_password', ''),
+                ('pk_server', ''), ('pk_secret', ''),
                 ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'),
                 ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress')
             ])
             c.execute("INSERT OR IGNORE INTO promocodes (code, is_sysadmin_only) VALUES ('СисадминВоздвижение', 1)")
         else:
-            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('alfa_login', '')")
-            except: pass
-            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('alfa_password', '')")
-            except: pass
-            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_main', '#fdfbf7')")
-            except: pass
-            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress')")
-            except: pass
-            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress')")
-            except: pass
-            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress')")
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('min_pickup_sum', '0')")
             except: pass
     conn.commit()
 
@@ -126,22 +102,26 @@ def get_user_by_identifier(identifier, is_vk=False):
     field = "vk_id" if is_vk else "phone"
     return get_db_query(f"SELECT * FROM users WHERE {field}=?", (identifier,), fetch_one=True)
 
-# ================= ALFA-BANK WEBHOOK =================
-@app.route('/api/alfa_webhook', methods=['GET', 'POST'])
-def alfa_webhook():
-    data = request.args if request.method == 'GET' else request.form
-    order_id = data.get('orderNumber')
-    status = data.get('status')
+# ================= ПЛАТЕЖНЫЕ И СОЦИАЛЬНЫЕ ВЕБХУКИ =================
+@app.route('/api/paykeeper_webhook', methods=['POST'])
+def paykeeper_webhook():
+    data = request.form
+    pk_id = data.get('id', '')
+    orderid = data.get('orderid', '')
+    key = data.get('key', '')
+    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+    secret = settings.get('pk_secret', '')
+    valid_hash = hashlib.md5(f"{pk_id}{secret}".encode('utf-8')).hexdigest()
     
-    if order_id and str(status) in ['1', '2']:
-        with sqlite3.connect('shop.db') as conn:
-            conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (order_id,))
-        order = get_db_query("SELECT * FROM orders WHERE id=?", (order_id,), fetch_one=True)
+    if valid_hash == key:
+        with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (orderid,))
+        order = get_db_query("SELECT * FROM orders WHERE id=?", (orderid,), fetch_one=True)
         if order:
             user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
             if user and user['social_link']:
-                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{order_id} на сумму {order['final_total']} ₽ успешно получена через Альфа-Банк! Начинаем комплектацию.")
-    return "OK"
+                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{orderid} получена! Начинаем комплектацию.")
+        return f"OK {valid_hash}"
+    return "Error: Hash mismatch"
 
 @app.route('/api/vk_webhook', methods=['POST'])
 def vk_webhook():
@@ -188,11 +168,9 @@ def auth_shadow():
     password = request.json.get('password', '')
     user = get_user_by_identifier(phone)
     if user:
-        if user['password'] and user['password'] != password:
-            return jsonify({"error": "Неверный пароль."}), 403
+        if user['password'] and user['password'] != password: return jsonify({"error": "Неверный пароль."}), 403
     else:
-        with sqlite3.connect('shop.db') as conn: 
-            conn.execute("INSERT INTO users (phone, password, ref_code) VALUES (?, ?, ?)", (phone, password, f"REF-{uuid.uuid4().hex[:6].upper()}"))
+        with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO users (phone, password, ref_code) VALUES (?, ?, ?)", (phone, password, f"REF-{uuid.uuid4().hex[:6].upper()}"))
     session.permanent = True
     session['user_identifier'] = phone
     session['auth_type'] = 'phone'
@@ -201,6 +179,7 @@ def auth_shadow():
 @app.route('/api/auth/logout', methods=['POST'])
 def auth_logout(): session.clear(); return jsonify({"status": "ok"})
 
+# ================= ВИТРИНА И API КЛИЕНТА =================
 @app.route('/')
 def index():
     auth_val = session.get('user_identifier')
@@ -210,7 +189,18 @@ def index():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     cats = get_db_query("SELECT * FROM categories WHERE is_hidden=0 OR is_hidden=? ORDER BY sort_order", (1 if is_18_approved else 0,))
     prods = get_db_query("SELECT p.* FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND (c.is_hidden=0 OR c.is_hidden=?)", (1 if is_18_approved else 0,))
-    for p in prods: p['images'] = json.loads(p['images']) if p['images'] else []
+    
+    # Загрузка избранного для текущего юзера
+    favs = []
+    if user:
+        favs_raw = get_db_query("SELECT product_id FROM favorites WHERE user_id=?", (user['id'],))
+        favs = [f['product_id'] for f in favs_raw]
+
+    for p in prods: 
+        p['images'] = json.loads(p['images']) if p['images'] else []
+        p['stickers'] = json.loads(p['stickers']) if p.get('stickers') else []
+        p['is_fav'] = p['id'] in favs
+        
     banners = get_db_query("SELECT * FROM banners WHERE active=1")
     blocks = get_db_query("SELECT * FROM homepage_blocks WHERE active=1 ORDER BY sort_order")
     return render_template('index.html', settings=settings, categories=cats, products=prods, banners=banners, blocks=blocks, user=user)
@@ -242,14 +232,33 @@ def user_update():
         conn.execute(query, tuple(params))
     return jsonify({"status": "ok"})
 
-@app.route('/api/18plus/request', methods=['POST'])
-def request_18():
-    data = request.json
+@app.route('/api/user/fav', methods=['POST'])
+def toggle_fav():
     auth_val = session.get('user_identifier')
+    if not auth_val: return jsonify({"error": "unauthorized"})
     user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if user:
-        with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE users SET full_name=?, social_link=?, age_verified=1 WHERE id=?", (data.get('full_name',''), data.get('social_link',''), user['id']))
-    return jsonify({"status": "ok"})
+    prod_id = request.json.get('product_id')
+    with sqlite3.connect('shop.db') as conn:
+        exists = conn.execute("SELECT id FROM favorites WHERE user_id=? AND product_id=?", (user['id'], prod_id)).fetchone()
+        if exists:
+            conn.execute("DELETE FROM favorites WHERE id=?", (exists[0],))
+            return jsonify({"status": "removed"})
+        else:
+            conn.execute("INSERT INTO favorites (user_id, product_id) VALUES (?,?)", (user['id'], prod_id))
+            return jsonify({"status": "added"})
+
+@app.route('/api/order/cancel', methods=['POST'])
+def cancel_order():
+    auth_val = session.get('user_identifier')
+    if not auth_val: return jsonify({"error": "unauthorized"})
+    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
+    order_id = request.json.get('order_id')
+    with sqlite3.connect('shop.db') as conn:
+        order = conn.execute("SELECT status FROM orders WHERE id=? AND user_id=?", (order_id, user['id'])).fetchone()
+        if order and order[0] in ['Новый', 'Ожидает оплаты', 'Оплачен']:
+            conn.execute("UPDATE orders SET status='Отменен' WHERE id=?", (order_id,))
+            return jsonify({"status": "ok"})
+    return jsonify({"error": "Заказ не найден или его уже нельзя отменить."}), 400
 
 @app.route('/api/cart/calc', methods=['POST'])
 def calc_cart():
@@ -266,7 +275,8 @@ def calc_cart():
     package_cost = float(settings.get('package_cost', 29)) if base_total > 0 else 0
     courier_cost = float(settings.get('courier_cost', 150))
     free_threshold = float(settings.get('free_delivery_threshold', 3000))
-    min_order = float(settings.get('min_order_sum', 500))
+    min_order_delivery = float(settings.get('min_order_sum', 500))
+    min_order_pickup = float(settings.get('min_pickup_sum', 0))
     
     delivery_cost = 0
     if delivery_type == 'courier': delivery_cost = 0 if base_total >= free_threshold else courier_cost
@@ -286,9 +296,13 @@ def calc_cart():
             promo_status = f"Скидка применена!"
 
     final_total = max(0, base_total + package_cost + delivery_cost - discount_rub - sysadmin_pay)
+    
+    # Определяем мин. заказ в зависимости от типа
+    active_min_order = min_order_pickup if delivery_type == 'pickup' else min_order_delivery
+    
     return jsonify({
         "items_total": base_total, "package_cost": package_cost, "delivery_cost": delivery_cost, "discount": discount_rub, "sysadmin_pay": sysadmin_pay,
-        "final_total": final_total, "free_threshold": free_threshold, "min_order": min_order, "promo_status": promo_status
+        "final_total": final_total, "free_threshold": free_threshold, "min_order": active_min_order, "promo_status": promo_status
     })
 
 @app.route('/api/checkout', methods=['POST'])
@@ -313,54 +327,69 @@ def checkout():
     d_type = data.get('delivery_type', 'pickup')
     p_type = data.get('payment_type', 'cash')
     address = data.get('address', '')
+    d_time = data.get('delivery_time', 'Как можно скорее')
+    comment = data.get('comment', '')
     sysadmin_pay = calc.get('sysadmin_pay', 0)
     
     order_status = "Ожидает оплаты" if p_type == 'online' else "Новый"
 
     with sqlite3.connect('shop.db') as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, status, address) VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
-                    (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(data.get('cart')), d_type, p_type, order_status, address))
+        cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, status, address, delivery_time, comment) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+                    (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(data.get('cart')), d_type, p_type, order_status, address, d_time, comment))
         order_id = cur.lastrowid
         if sysadmin_pay > 0: conn.execute("UPDATE users SET balance = balance - ? WHERE id=?", (sysadmin_pay, user['id']))
             
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     
+    # Отправляем уведомление в ВК (только если не онлайн-оплата, иначе дождемся вебхука)
     if user['social_link'] and p_type != 'online':
-        d_str = {"pickup": "Самовывоз", "courier": "Логистический пакет", "taxi": "Яндекс.Доставка"}.get(d_type, d_type)
+        d_str = {"pickup": "Самовывоз", "courier": "Логистика магазина", "taxi": "Яндекс.Доставка"}.get(d_type, d_type)
         p_str = {"cash": "Наличными", "transfer": "Перевод"}.get(p_type, p_type)
         msg = f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.\nОплата: {p_str}."
-        if address: msg += f"\nАдрес: {address}"
+        if address: msg += f"\nАдрес: {address}\nВремя: {d_time}"
         if p_type == 'transfer': msg += f"\n\n💳 Ожидайте, скоро пришлем реквизиты."
         send_vk_message(user['id'], user['social_link'], msg)
         
     if p_type == 'online':
-        alfa_login = settings.get('alfa_login', '').strip()
-        alfa_password = settings.get('alfa_password', '').strip()
-        if alfa_login and alfa_password:
-            amount_kopecks = int(calc['final_total'] * 100)
-            payload = {
-                "userName": alfa_login,
-                "password": alfa_password,
-                "orderNumber": str(order_id) + "_" + str(random.randint(100, 999)), # Защита от дублей в банке
-                "amount": amount_kopecks,
-                "returnUrl": "https://nikolaich.shop/",
-                "description": f"Оплата заказа #{order_id} (У Николаича)",
-            }
-            try:
-                r = requests.post("https://pay.alfabank.ru/payment/rest/register.do", data=payload)
-                resp = r.json()
-                if "formUrl" in resp:
-                    return jsonify({"status": "ok", "order_id": order_id, "pay_url": resp["formUrl"]})
-                else:
-                    return jsonify({"status": "error", "error": f"Ошибка банка: {resp.get('errorMessage', 'Неизвестная ошибка')}"}), 400
-            except Exception as e:
-                return jsonify({"status": "error", "error": "Не удалось связаться с сервером банка."}), 500
-        else:
-            return jsonify({"status": "error", "error": "Логин и Пароль Альфа-Банка не настроены в админке."}), 400
+        pk_server = settings.get('pk_server', '').strip().rstrip('/')
+        if pk_server:
+            pay_data = {"url": f"{pk_server}/create/", "sum": f"{int(calc['final_total'])}", "orderid": str(order_id), "clientid": phone}
+            return jsonify({"status": "ok", "order_id": order_id, "pay_data": pay_data})
+        else: return jsonify({"status": "error", "error": "PayKeeper не настроен."}), 400
         
     return jsonify({"status": "ok", "order_id": order_id})
 
+@app.route('/api/chat/send_from_site', methods=['POST'])
+def chat_send_site():
+    auth_val = session.get('user_identifier')
+    if not auth_val: return jsonify({"error": "unauthorized"})
+    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
+    text = request.json.get('text', '').strip()
+    if text:
+        with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], text))
+    return jsonify({"status": "ok"})
+
+@app.route('/api/chat/get_from_site', methods=['GET'])
+def chat_get_site():
+    auth_val = session.get('user_identifier')
+    if not auth_val: return jsonify([])
+    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
+    msgs = get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],))
+    return jsonify(msgs)
+
+@app.route('/api/ai/upsell', methods=['POST'])
+def ai_upsell():
+    # ЛОКАЛЬНЫЙ UPSELL БЕЗ НЕЙРОСЕТЕЙ
+    cart_items = request.json.get('cart_items', [])
+    if not cart_items: return jsonify([])
+    prods = get_db_query("SELECT id, name, images, price, unit, step FROM products WHERE active=1 AND category_id != 99")
+    for p in prods: p['images'] = json.loads(p['images'])
+    recommendations = [p for p in prods if p['name'] not in cart_items]
+    random.shuffle(recommendations)
+    return jsonify(recommendations[:3])
+
+# ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): return render_template('admin.html')
 
@@ -377,7 +406,9 @@ def admin_crud(entity):
     if request.method == 'GET':
         if entity == 'warehouse': 
             prods = get_db_query("SELECT p.*, c.name as cat_name FROM products p JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC")
-            for p in prods: p['images'] = json.loads(p['images'])
+            for p in prods: 
+                p['images'] = json.loads(p['images'])
+                p['stickers'] = json.loads(p['stickers']) if p.get('stickers') else []
             return jsonify({"products": prods, "categories": get_db_query("SELECT * FROM categories ORDER BY sort_order")})
         elif entity == 'orders': return jsonify(get_db_query("SELECT o.*, u.phone, u.full_name, u.social_link FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.id DESC"))
         elif entity == 'users': return jsonify(get_db_query("SELECT * FROM users ORDER BY created_at DESC"))
@@ -385,6 +416,19 @@ def admin_crud(entity):
         elif entity == 'settings': return jsonify({s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")})
         elif entity == 'homepage_blocks': return jsonify(get_db_query("SELECT * FROM homepage_blocks ORDER BY sort_order"))
         elif entity == 'promocodes': return jsonify(get_db_query("SELECT * FROM promocodes ORDER BY id DESC"))
+        elif entity == 'analytics':
+            # График выручки по дням за последние 7 дней (только оплаченные)
+            sales = get_db_query("SELECT DATE(date) as d, SUM(final_total) as t FROM orders WHERE status != 'Отменен' AND status != 'Новый' GROUP BY DATE(date) ORDER BY d DESC LIMIT 7")
+            # Топ товаров (очень упрощенно, считаем по вхождениям в корзины)
+            orders = get_db_query("SELECT items FROM orders WHERE status != 'Отменен'")
+            item_counts = {}
+            for o in orders:
+                items = json.loads(o['items'])
+                for i_id, item in items.items():
+                    item_counts[item['name']] = item_counts.get(item['name'], 0) + item['qty']
+            top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+            return jsonify({"sales": sales, "top": top_items})
+        
     data = request.json
     if request.method == 'DELETE':
         if entity == 'orders':
@@ -392,12 +436,14 @@ def admin_crud(entity):
             if data.get('pin') != settings.get('admin_pin', '0000'): return jsonify({"error": "Неверный PIN-код для удаления!"}), 403
         with sqlite3.connect('shop.db') as conn: conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
+    
     if request.method == 'POST':
         with sqlite3.connect('shop.db') as conn:
             if entity == 'product':
                 img_json = json.dumps(data['images'])
-                if data.get('id'): conn.execute("UPDATE products SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=? WHERE id=?", (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), data['id']))
-                else: conn.execute("INSERT INTO products (name, desc, price, stock, category_id, images, unit, step, old_price) VALUES (?,?,?,?,?,?,?,?,?)", (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0)))
+                stickers_json = json.dumps(data.get('stickers', []))
+                if data.get('id'): conn.execute("UPDATE products SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=?, stickers=? WHERE id=?", (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, data['id']))
+                else: conn.execute("INSERT INTO products (name, desc, price, stock, category_id, images, unit, step, old_price, stickers) VALUES (?,?,?,?,?,?,?,?,?,?)", (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json))
             elif entity == 'category':
                 if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=? WHERE id=?", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data['id']))
                 else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)", (data['name'], data['icon'], data['sort_order'], data['is_hidden']))
@@ -437,16 +483,33 @@ def admin_chat_send():
     if data.get('msg_type') == 'status':
         with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE orders SET status=? WHERE id=?", (data.get('status'), data.get('order_id')))
         msg_text = f"🚜 Статус заказа #{data.get('order_id')} изменен на: {data.get('status')}!"
+        # Шлем и в ВК и в БД сайта
         send_vk_message(user['id'], user['social_link'], msg_text)
+        with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (user['id'], msg_text))
         return jsonify({"status": "ok"})
+        
     text = ""
     if data.get('msg_type') == 'req': text = f"💳 Оплата комплектации:\nПереведите по реквизитам:\n{settings.get('payment_details', 'Не указано')}\nПосле перевода отправьте скриншот сюда."
     elif data.get('msg_type') == 'taxi': text = f"🚕 Николаич проверил тариф Яндекс.Логистики: {data.get('custom_val', '')} ₽."
     elif data.get('msg_type') == 'paid': text = "✅ Денежку увидел! Ваш заказ передан в комплектацию."
     elif data.get('msg_type') == 'custom': text = data.get('text')
-    res = send_vk_message(user['id'], user['social_link'], f"👨‍🌾 Николаич:\n{text}")
-    if res == "ok": return jsonify({"status": "ok"})
-    return jsonify({"status": "error", "error": res})
+    
+    full_text = f"👨‍🌾 Николаич:\n{text}"
+    # Шлем в ВК (если есть) и всегда дублируем в базу сайта
+    send_vk_message(user['id'], user['social_link'], full_text)
+    with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (user['id'], full_text))
+    return jsonify({"status": "ok"})
+
+# РУЧКА ДЛЯ ОБЩЕГО ЦЕНТРА СООБЩЕНИЙ (Все юзеры, кто писал в чат)
+@app.route('/api/admin/all_chats', methods=['GET'])
+def admin_all_chats():
+    # Находим юзеров, у которых есть сообщения
+    users_with_msgs = get_db_query("SELECT DISTINCT user_id FROM chat_messages ORDER BY id DESC")
+    res = []
+    for u in users_with_msgs:
+        user = get_db_query("SELECT id, phone, full_name, social_link FROM users WHERE id=?", (u['user_id'],), fetch_one=True)
+        if user: res.append(user)
+    return jsonify(res)
 
 @app.route('/api/admin/vk_action', methods=['POST'])
 def admin_vk_action():
@@ -456,38 +519,5 @@ def admin_vk_action():
         success_count = sum(1 for u in users if send_vk_message(u['id'], u['social_link'], f"📣 Новости от Николаича:\n\n{data.get('custom_val', '')}") == "ok")
         return jsonify({"status": "ok", "sent": success_count, "total": len(users)})
     return jsonify({"status": "error", "msg": "Unknown action"})
-
-@app.route('/api/ai/upsell', methods=['POST'])
-def ai_upsell():
-    cart_items = request.json.get('cart_items', [])
-    if not cart_items: return jsonify([])
-    prods = get_db_query("SELECT id, name, images, price, unit, step FROM products WHERE active=1 AND category_id != 99")
-    for p in prods: p['images'] = json.loads(p['images'])
-    recommendations = [p for p in prods if p['name'] not in cart_items]
-    random.shuffle(recommendations)
-    return jsonify(recommendations[:3])
-
-@app.route('/api/ai/chef', methods=['POST'])
-def ai_chef():
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    prods = get_db_query("SELECT p.id, p.name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1 AND c.is_hidden=0")
-    catalog = ", ".join([f"ID {p['id']}: {p['name']}" for p in prods])
-    sys_prompt = f"{settings.get('shop_name', 'Магазин')}. Собери продукты из: {catalog}. Без 18+. Выдай JSON: ключи 'message' и 'cart_ids' (список)."
-    return jsonify(call_ai(request.json.get('query'), sys_prompt, "gemini-2.5-flash", True))
-
-@app.route('/api/ai/gen_banner', methods=['POST'])
-def ai_gen_banner():
-    topic = request.json.get('topic', '')
-    cat_name = request.json.get('category_name', '')
-    sys_prompt = "Ты маркетолог. Выдай JSON: ключи title, subtitle, bg_color (hex), img_prompt (на англ)."
-    res = call_ai(f"Идея: {topic}. Категория: {cat_name}.", sys_prompt, "gemini-2.5-flash", True)
-    if "error" not in res: res["img_url"] = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(res.get('img_prompt', 'food'))}?width=800&height=400&nologo=true"
-    return jsonify(res)
-
-@app.route('/api/ai/agent_chat', methods=['POST'])
-def ai_agent_chat():
-    role = "опытный маркетолог" if request.json.get('role') == 'marketer' else "строгий юрист"
-    reply = call_ai(None, f"Ты {role}.", "gemini-2.5-pro", False, messages_history=request.json.get('messages', []))
-    return jsonify({"reply": reply})
 
 if __name__ == '__main__': app.run(host='0.0.0.0', port=8085)

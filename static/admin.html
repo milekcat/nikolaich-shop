@@ -42,11 +42,10 @@
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Настройки Сайта</a>
         <a class="nav-link" onclick="showTab('ai', this)"><i class="bi bi-magic me-2 fs-5 text-primary"></i> Нейро-сотрудники</a>
     </nav>
-    <div class="mt-auto small text-muted text-center fw-bold">ERP System v38.0 PAYKEEPER</div>
+    <div class="mt-auto small text-muted text-center fw-bold">ERP System v44.0 ALFA & DESIGN</div>
 </div>
 
 <div class="main-content">
-    
     <div id="orders" class="tab">
         <h3 class="fw-bold mb-4">Управление заказами</h3>
         <div class="card-ui p-0 overflow-hidden">
@@ -65,14 +64,13 @@
             <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-broadcast"></i> Массовая VK Рассылка</h5>
             <div class="row g-4">
                 <div class="col-md-8">
-                    <label class="small fw-bold text-muted mb-1">Текст сообщения (отправится всем клиентам с VK)</label>
-                    <textarea id="broadcastText" class="form-control bg-white border mb-3 p-3 shadow-sm rounded-4" rows="4" placeholder="Привет! У нас свежее поступление..."></textarea>
+                    <label class="small fw-bold text-muted mb-1">Текст сообщения</label>
+                    <textarea id="broadcastText" class="form-control bg-white border mb-3 p-3 shadow-sm rounded-4" rows="4"></textarea>
                     <button class="btn btn-primary fw-bold px-4 py-2 rounded-pill shadow-sm" onclick="sendBroadcast()"><i class="bi bi-send-fill me-1"></i> Отправить всем</button>
                 </div>
                 <div class="col-md-4 border-start ps-4">
                     <label class="small fw-bold text-muted mb-1"><i class="bi bi-magic text-warning"></i> ИИ Маркетолог</label>
-                    <p class="small text-muted mb-2">Напишите тему, и нейросеть составит продающий текст.</p>
-                    <input type="text" id="aiBroadcastTopic" class="form-control bg-white border mb-3 p-2 shadow-sm rounded-3" placeholder="Например: Скидка 10% на свежее мясо">
+                    <input type="text" id="aiBroadcastTopic" class="form-control bg-white border mb-3 p-2 shadow-sm rounded-3" placeholder="Тема для генерации">
                     <button class="btn btn-dark w-100 fw-bold py-2 rounded-3 shadow-sm" onclick="generateBroadcastText(this)">Сгенерировать текст</button>
                 </div>
             </div>
@@ -123,7 +121,7 @@
             <div class="sub-nav-item active" onclick="toggleSub('bSiteBlocks', ['bSiteBanners', 'bSiteGlobal', 'bSitePromos'], this)">Блоки Главной</div>
             <div class="sub-nav-item" onclick="toggleSub('bSiteBanners', ['bSiteBlocks', 'bSiteGlobal', 'bSitePromos'], this)">Рекламные Баннеры</div>
             <div class="sub-nav-item" onclick="toggleSub('bSitePromos', ['bSiteBlocks', 'bSiteBanners', 'bSiteGlobal'], this)">Промокоды</div>
-            <div class="sub-nav-item" onclick="toggleSub('bSiteGlobal', ['bSiteBlocks', 'bSiteBanners', 'bSitePromos'], this)">Юр. Настройки и Оплата</div>
+            <div class="sub-nav-item" onclick="toggleSub('bSiteGlobal', ['bSiteBlocks', 'bSiteBanners', 'bSitePromos'], this)">Настройки & Дизайн</div>
         </div>
 
         <div id="bSiteBlocks" class="card-ui p-0 overflow-hidden">
@@ -160,10 +158,10 @@
         </div>
 
         <div id="bSiteGlobal" style="display:none;">
-            <div class="row">
+            <div class="row g-4">
                 <div class="col-md-6">
-                    <div class="card-ui">
-                        <h5 class="fw-bold mb-4">Названия и тексты</h5>
+                    <div class="card-ui h-100">
+                        <h5 class="fw-bold mb-4">Основные настройки</h5>
                         <label class="small fw-bold text-muted mb-1">Название магазина (Логотип)</label>
                         <input type="text" id="setShopName" class="form-control bg-light border mb-3 p-2">
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
@@ -172,31 +170,63 @@
                         <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для ручного перевода)</label>
                         <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк, Николаич)"></textarea>
                         
-                        <div class="p-3 border border-success rounded-4 bg-success bg-opacity-10 mb-4">
-                            <h5 class="fw-bold mb-3 text-success"><i class="bi bi-credit-card-fill me-2"></i>Эквайринг (PayKeeper)</h5>
-                            <p class="small text-muted mb-3">Вставьте данные из личного кабинета PayKeeper. После сохранения клиенты смогут оплачивать заказы картой прямо на сайте.</p>
-                            
-                            <label class="small fw-bold text-muted mb-1">URL сервера PayKeeper</label>
-                            <input type="text" id="setPkServer" class="form-control bg-white border mb-3 p-2" placeholder="https://ваш-магазин.server.paykeeper.ru">
-                            
-                            <label class="small fw-bold text-muted mb-1">Секретное слово (Secret Key)</label>
-                            <input type="password" id="setPkSecret" class="form-control bg-white border mb-2 p-2" placeholder="Скопируйте из ЛК PayKeeper">
+                        <div class="p-3 border border-danger rounded-4 bg-danger bg-opacity-10 mb-4">
+                            <h5 class="fw-bold mb-3 text-danger"><i class="bi bi-credit-card-fill me-2"></i>Эквайринг (Альфа-Банк)</h5>
+                            <label class="small fw-bold text-muted mb-1">API Токен (Открытый ключ)</label>
+                            <input type="password" id="setAlfaToken" class="form-control bg-white border border-danger mb-2 p-2" placeholder="Например: kc5uhu20fu24285j0qfnmbpr9q">
                         </div>
 
                         <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
                         <label class="small fw-bold text-muted mb-1">Текст Публичной Оферты</label>
-                        <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="6" placeholder="Введите полный текст публичной оферты..."></textarea>
+                        <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="6"></textarea>
                         
-                        <label class="small fw-bold text-muted mb-1">Политика обработки персональных данных (ФЗ-152)</label>
-                        <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="6" placeholder="Введите текст политики конфиденциальности..."></textarea>
+                        <label class="small fw-bold text-muted mb-1">Политика конфиденциальности (ФЗ-152)</label>
+                        <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="6"></textarea>
 
                         <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Безопасность</h5>
-                        <label class="small fw-bold text-muted mb-1">Секретный код VK (Для приема сообщений Webhook)</label>
+                        <label class="small fw-bold text-muted mb-1">Секретный код VK (Для приема Webhook)</label>
                         <input type="text" id="setVkCode" class="form-control bg-light border mb-3 p-2" placeholder="00000000">
-                        <label class="small fw-bold text-muted mb-1">PIN-код Администратора (Для удаления заказов)</label>
+                        <label class="small fw-bold text-muted mb-1">PIN-код Администратора (Для удаления)</label>
                         <input type="text" id="setAdminPin" class="form-control bg-light border mb-4 p-2 fw-bold text-danger" placeholder="0000">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card-ui mb-4" style="border: 2px solid #0dcaf0;">
+                        <h5 class="fw-bold mb-3 text-info"><i class="bi bi-palette me-2"></i>Дизайн и Фоны сайта</h5>
+                        <p class="small text-muted mb-4">Вы можете вставить прямую ссылку на картинку из интернета или нажать кнопку загрузки справа, чтобы выбрать файл с компьютера.</p>
                         
-                        <hr class="my-4">
+                        <label class="small fw-bold text-muted mb-1">Цвет основного фона (HEX) или ссылка</label>
+                        <div class="input-group mb-3 shadow-sm">
+                            <input type="text" id="setBgMain" class="form-control bg-white border" placeholder="#fdfbf7">
+                            <button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgMain').click()"><i class="bi bi-upload"></i></button>
+                            <input type="file" id="uploadBgMain" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgMain')">
+                        </div>
+
+                        <label class="small fw-bold text-muted mb-1">Картинка верхней Шапки (Верх сайта)</label>
+                        <div class="input-group mb-3 shadow-sm">
+                            <input type="text" id="setBgHeader" class="form-control bg-white border" placeholder="https://...">
+                            <button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgHeader').click()"><i class="bi bi-upload"></i></button>
+                            <input type="file" id="uploadBgHeader" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgHeader')">
+                        </div>
+
+                        <label class="small fw-bold text-muted mb-1">Картинка ленты Категорий</label>
+                        <div class="input-group mb-3 shadow-sm">
+                            <input type="text" id="setBgCat" class="form-control bg-white border" placeholder="https://...">
+                            <button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCat').click()"><i class="bi bi-upload"></i></button>
+                            <input type="file" id="uploadBgCat" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCat')">
+                        </div>
+
+                        <label class="small fw-bold text-muted mb-1">Картинка Карточек Товаров (Доска)</label>
+                        <div class="input-group mb-3 shadow-sm">
+                            <input type="text" id="setBgCard" class="form-control bg-white border" placeholder="https://...">
+                            <button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCard').click()"><i class="bi bi-upload"></i></button>
+                            <input type="file" id="uploadBgCard" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCard')">
+                        </div>
+                        <div id="designUploadStatus" class="small text-success fw-bold"></div>
+                    </div>
+
+                    <div class="card-ui">
                         <h5 class="fw-bold mb-4">Комплектация и Логистика</h5>
                         <div class="row mb-3">
                             <div class="col-6">
@@ -225,11 +255,11 @@
                                 <input type="number" id="setFreeDelivery" class="form-control bg-light border mb-3 p-2">
                             </div>
                         </div>
-
-                        <button class="btn btn-success w-100 fw-bold py-3 mt-2 rounded-4 shadow-sm" onclick="saveSettings()">Сохранить настройки</button>
                     </div>
                 </div>
             </div>
+            
+            <button class="btn btn-success w-100 fw-bold py-3 mt-3 rounded-4 shadow shadow-sm fs-5" onclick="saveSettings()">Сохранить все настройки и Дизайн</button>
         </div>
     </div>
 
@@ -358,7 +388,7 @@
         document.getElementById('tableOrders').innerHTML = data.map(o => {
             const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger fw-bold"><i class="bi bi-geo-alt"></i> ${o.address}</span>` : '';
             let typeStr = o.delivery_type === 'pickup' ? 'Самовывоз' : (o.delivery_type === 'courier' ? 'Логистика маг.' : 'Яндекс');
-            let payStr = o.payment_type === 'online' ? '<span class="text-primary fw-bold">Картой онлайн</span>' : (o.payment_type === 'transfer' ? 'Перевод' : 'Наличные');
+            let payStr = o.payment_type === 'online' ? '<span class="text-danger fw-bold">Альфа-Банк</span>' : (o.payment_type === 'transfer' ? 'Перевод' : 'Наличные');
             
             return `<tr>
                 <td><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div></td>
@@ -384,7 +414,7 @@
         
         let itemsHtml = Object.values(o.items).map(i => `<li>${i.name} — ${i.qty}${i.unit}</li>`).join('');
         let typeStr = o.delivery_type === 'pickup' ? 'Самовывоз' : (o.delivery_type === 'courier' ? 'Фирменный пакет' : 'Транзитная коробка');
-        let payStr = o.payment_type === 'online' ? '<span class="text-primary fw-bold">ОПЛАТА КАРТОЙ (PAYKEEPER)</span>' : (o.payment_type === 'transfer' ? 'Перевод по реквизитам' : 'Наличные при получении');
+        let payStr = o.payment_type === 'online' ? '<span class="text-danger fw-bold">ОПЛАТА КАРТОЙ (АЛЬФА-БАНК)</span>' : (o.payment_type === 'transfer' ? 'Перевод по реквизитам' : 'Наличные при получении');
 
         document.getElementById('ocInfo').innerHTML = `
             <b>Клиент:</b> ${u.full_name || u.phone} <a href="${u.social_link}" target="_blank">(VK)</a><br>
@@ -526,6 +556,29 @@
         }
         document.getElementById('uploadStatus').innerText = ""; renderPhotoPreviews();
     }
+
+    // НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ ФОНОВ ИЗ АДМИНКИ
+    async function uploadDesignBg(inputEl, targetInputId) {
+        if(!inputEl.files || inputEl.files.length === 0) return;
+        const statusEl = document.getElementById('designUploadStatus');
+        statusEl.innerText = "Загружаем фон...";
+        
+        const formData = new FormData();
+        formData.append('file', inputEl.files[0]);
+        inputEl.value = ''; // сброс инпута
+        
+        try {
+            const res = await fetch('/api/upload', {method: 'POST', body: formData});
+            const data = await res.json();
+            if(data.url) {
+                document.getElementById(targetInputId).value = data.url;
+                statusEl.innerText = "Успешно загружено!";
+                setTimeout(() => statusEl.innerText = "", 3000);
+            }
+        } catch(e) {
+            statusEl.innerHTML = "<span class='text-danger'>Ошибка загрузки</span>";
+        }
+    }
     
     function renderPhotoPreviews() {
         const box = document.getElementById('pPhotoPreviewBox');
@@ -592,8 +645,13 @@
             document.getElementById('setAdminPin').value = settings.admin_pin || '0000';
             document.getElementById('setOfertaText').value = settings.oferta_text || '';
             document.getElementById('setPrivacyText').value = settings.privacy_text || '';
-            document.getElementById('setPkServer').value = settings.pk_server || '';
-            document.getElementById('setPkSecret').value = settings.pk_secret || '';
+            document.getElementById('setAlfaToken').value = settings.alfa_token || '';
+            
+            // Загружаем фоны
+            document.getElementById('setBgMain').value = settings.bg_main || '#fdfbf7';
+            document.getElementById('setBgHeader').value = settings.bg_header || 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress';
+            document.getElementById('setBgCat').value = settings.bg_cat || 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress';
+            document.getElementById('setBgCard').value = settings.bg_card || 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress';
         }
         const wh = await apiCall('warehouse'); if(wh) categoriesList = wh.categories;
         const banners = await apiCall('banners');
@@ -612,9 +670,12 @@
             high_demand: document.getElementById('setHighDemand').value, payment_details: document.getElementById('setPayment').value,
             vk_confirm_code: document.getElementById('setVkCode').value, admin_pin: document.getElementById('setAdminPin').value,
             oferta_text: document.getElementById('setOfertaText').value, privacy_text: document.getElementById('setPrivacyText').value,
-            pk_server: document.getElementById('setPkServer').value, pk_secret: document.getElementById('setPkSecret').value
+            alfa_token: document.getElementById('setAlfaToken').value,
+            // Сохраняем новые фоны
+            bg_main: document.getElementById('setBgMain').value, bg_header: document.getElementById('setBgHeader').value,
+            bg_cat: document.getElementById('setBgCat').value, bg_card: document.getElementById('setBgCard').value
         }); 
-        alert('Настройки сохранены!'); 
+        alert('Все настройки и дизайн успешно сохранены!'); 
     }
 
     function openBlockModal(b = null) {
@@ -748,7 +809,6 @@
         } catch(e) { document.getElementById('aiTyping').remove(); aiChatHistory.push({role: "assistant", content: "Сбой сети."}); renderAiChat(); }
     }
 
-    // УДАЛЕНИЕ С ЗАЩИТОЙ PIN-КОДОМ
     async function deleteEntity(entity, id, callback) {
         let payload = {id: id};
         if (entity === 'orders') {

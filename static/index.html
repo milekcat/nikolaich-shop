@@ -6,35 +6,27 @@
     <title>{{ settings.shop_name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    
     <script src="https://unpkg.com/@vkid/sdk@latest/dist-sdk/umd/index.js"></script>
-    
     <script src="https://vk.com/js/api/openapi.js?169" type="text/javascript"></script>
-    
     <style>
         :root { --bg: #fdfbf7; --accent: #00b853; --text: #1d1d1f; }
         body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { display: none; }
-        
         .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 15px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
         .header-top h3 { color: #fff !important; text-shadow: 1px 1px 5px rgba(0,0,0,1); font-weight: 900; margin: 0; }
-        
         .search-container { padding: 15px 20px 0 20px; }
         .search-bar { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 12px 20px; display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-weight: 600; color: #000; font-size: 16px; }
-
         .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; }
         .cat-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 0 20px; scroll-behavior: smooth; }
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
-
         .banner-track { display: flex; overflow-x: auto; gap: 15px; padding: 25px 20px 10px 20px; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
         .banner-card { min-width: 85%; scroll-snap-align: center; border-radius: 24px; padding: 24px; display: flex; justify-content: space-between; position: relative; overflow: hidden; height: 160px; color: #000; box-shadow: 0 6px 15px rgba(0,0,0,0.08); cursor: pointer; }
         .banner-card img { position: absolute; right: -20px; bottom: -10px; height: 120%; object-fit: contain; }
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
-
         .prod-grid { padding: 0 20px; }
         .p-card { background-color: #4a2e1b !important; background-image: url('https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3e200c; position: relative; overflow: hidden; }
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 15, 5, 0.55); z-index: 1; pointer-events: none; }
@@ -47,19 +39,16 @@
         .p-name { font-size: 14px; color: #fff; font-weight: 800; line-height: 1.2; margin-top: 6px; cursor: pointer; height: 36px; overflow: hidden; text-shadow: 1px 1px 4px rgba(0,0,0,1); }
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #3e200c; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .btn-add.added { background: var(--accent); color: #fff; }
-        
         .floating-cart { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--accent); color: #fff; border-radius: 20px; padding: 18px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 2000; cursor: pointer; }
         .ai-chef-box { background: linear-gradient(135deg, #fff9f0 0%, #fff 100%); border: 2px dashed #ffc107; border-radius: 16px; padding: 15px; margin-bottom: 20px; }
         .checkout-box { background: #f9f9f9; border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; }
         .upsell-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
         .upsell-card { min-width: 140px; background: #fff; border-radius: 16px; padding: 10px; border: 1px solid #eee; text-align: center; }
         .upsell-card img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; margin-bottom: 8px; }
-
         .cab-nav { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; }
         .cab-nav-item { padding: 10px 20px; border-radius: 20px; font-weight: 700; color: #8e8e93; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .cab-nav-item.active { background: #1d1d1f; color: #fff; }
         .cab-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 20px; }
-        
         .order-receipt { background: #fff; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; margin-bottom: 20px; position: relative; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
         .order-receipt::before, .order-receipt::after { content:''; position:absolute; top: 60px; width: 24px; height: 24px; background: #f4f5f7; border-radius: 50%; z-index: 1;}
         .order-receipt::before { left: -12px; border-right: 1px dashed #ccc; }
@@ -67,10 +56,8 @@
         .receipt-line { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px; color: #444; }
         .receipt-divider { border-bottom: 2px dotted #eee; margin: 15px 0; }
         .status-badge { font-size: 11px; padding: 6px 12px; border-radius: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-        
         .cookie-banner { position: fixed; bottom: -150px; left: 15px; right: 15px; background: #1d1d1f; color: #fff; padding: 16px 20px; border-radius: 16px; z-index: 9999; transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 12px; }
         .cookie-banner.show { bottom: 20px; }
-        
         .footer-legal { text-align: center; padding: 40px 20px; color: #a1a1a6; font-size: 12px; line-height: 1.6; }
         .lock-btn { display: inline-block; padding: 10px; cursor: pointer; opacity: 0.2; transition: opacity 0.3s; margin-top: 15px; font-size: 24px;}
         .lock-btn.success { opacity: 1; border-radius: 50px; background: #d1e7dd; color: #0f5132; padding: 10px 20px; font-weight: 700; gap:8px; font-size: 14px;}
@@ -78,7 +65,6 @@
     </style>
 </head>
 <body>
-
 <div id="legalOfertaText" style="display:none;">{{ settings.oferta_text }}</div>
 <div id="legalPrivacyText" style="display:none;">{{ settings.privacy_text }}</div>
 
@@ -237,18 +223,13 @@
                 <h3 class="fw-bold m-0"><i class="bi bi-person-circle text-primary me-2"></i>Профиль</h3>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            
             <div class="p-4 overflow-auto">
                 <div class="cab-nav">
                     <div class="cab-nav-item active" onclick="switchCabTab('cab_orders', this)">История чеков</div>
                     <div class="cab-nav-item" onclick="switchCabTab('cab_profile', this)">Мои данные</div>
                     <div class="cab-nav-item" onclick="switchCabTab('cab_security', this)">Безопасность</div>
                 </div>
-
-                <div id="cab_orders" class="cab-tab-content">
-                    <div id="cabinetOrders"></div>
-                </div>
-
+                <div id="cab_orders" class="cab-tab-content"><div id="cabinetOrders"></div></div>
                 <div id="cab_profile" class="cab-tab-content" style="display:none;">
                     <div class="cab-card">
                         <h5 class="fw-bold mb-4">Личная информация</h5>
@@ -256,7 +237,6 @@
                         <input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold">
                         <label class="small text-muted fw-bold mb-1">Номер телефона</label>
                         <input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-4 p-3 fw-bold">
-                        
                         <h5 class="fw-bold mb-3">Сохраненные адреса</h5>
                         <div id="cabAddressesList" class="d-flex flex-column gap-2 mb-3"></div>
                         <div class="input-group mb-4">
@@ -267,15 +247,14 @@
                     </div>
                     <div id="cabBalanceContainer"></div>
                 </div>
-
                 <div id="cab_security" class="cab-tab-content" style="display:none;">
                     <div class="cab-card border-danger">
                         <h5 class="fw-bold mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Защита профиля</h5>
-                        <p class="small text-muted mb-3">Вы можете установить пароль на вход по номеру телефона. Если вы его забудете, сбросить можно будет только написав администратору (Николаичу) в группу ВКонтакте.</p>
+                        <p class="small text-muted mb-3">Вы можете установить пароль на вход по номеру телефона.</p>
                         <input type="password" id="cabPass" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold" placeholder="Придумайте надежный пароль">
                         <button class="btn btn-danger w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Установить пароль</button>
                     </div>
-                    <button class="btn btn-outline-dark w-100 fw-bold rounded-4 py-3 mt-4" onclick="logout()">Выйти из аккаунта на этом устройстве</button>
+                    <button class="btn btn-outline-dark w-100 fw-bold rounded-4 py-3 mt-4" onclick="logout()">Выйти из аккаунта</button>
                 </div>
             </div>
         </div>
@@ -303,19 +282,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div id="cartItemsList" class="mb-4"></div>
-            
-            <h6 class="fw-bold mb-2">Не забудьте добавить:</h6>
             <div class="upsell-scroll mb-4" id="upsellBox"></div>
-            
-            <div class="ai-chef-box shadow-sm mb-4">
-                <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-stars text-warning fs-5"></i> ИИ Шеф-повар</h6>
-                <p class="small text-muted mb-2">Напишите блюдо, и я подберу недостающие продукты в корзину!</p>
-                <div class="d-flex gap-2">
-                    <input type="text" id="aiPrompt" class="form-control border-warning bg-white shadow-sm" placeholder="Например: Ингредиенты для плова">
-                    <button class="btn btn-warning fw-bold text-dark shadow-sm text-nowrap" id="aiBtn" onclick="askChef()">Дополнить</button>
-                </div>
-                <div id="aiReply" class="mt-3 small fw-bold text-success" style="display:none;"></div>
-            </div>
 
             <div class="checkout-box">
                 <h6 class="fw-bold mb-2"><i class="bi bi-tag text-danger"></i> Промокод / Сертификат</h6>
@@ -338,20 +305,17 @@
                 <div id="addressBox" style="display:none;">
                     <label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label>
                     <select id="checkoutAddressSelect" class="form-select bg-white border-0 fw-bold mb-2" onchange="toggleNewAddress()"></select>
-                    
                     <div id="newAddrWrap" style="display:none;" class="input-group mb-2">
                         <input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира">
-                        <button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()" title="Определить по геопозиции">
-                            <i class="bi bi-geo-alt-fill text-danger fs-5"></i>
-                        </button>
+                        <button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button>
                     </div>
                 </div>
             </div>
             
             <div class="checkout-box">
                 <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Оплата</h6>
-                <select class="form-select bg-white border-0 fw-bold" id="paymentType">
-                    <option value="online" class="text-primary fw-bold">Оплатить картой онлайн (PayKeeper)</option>
+                <select class="form-select bg-white border-0 fw-bold" id="paymentType" onchange="calcCart()">
+                    <option value="online" class="text-primary fw-bold">Оплатить картой онлайн</option>
                     <option value="cash">Наличными при получении</option>
                     <option value="transfer">Перевод (Чек и реквизиты в чате VK)</option>
                 </select>
@@ -363,8 +327,14 @@
             
             <label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер (Обязательно)</label>
             <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
-            <label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения официальных чеков)</label>
-            <input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}">
+            
+            <div id="vkLinkBlock">
+                <label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label>
+                <input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}">
+            </div>
+            <div id="vkLinkedBadge" style="display:none;" class="mb-4 text-center">
+                <div class="badge bg-primary p-2 px-3 rounded-pill fw-bold fs-6"><i class="bi bi-check-circle-fill me-1"></i> Ваш VK привязан</div>
+            </div>
             
             <div class="checkout-box bg-white">
                 <div class="form-check mb-2">
@@ -409,11 +379,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // COOKIE БАННЕР
     if(!localStorage.getItem('nikolaich_cookies_accepted')) { setTimeout(() => document.getElementById('cookieBanner').classList.add('show'), 2000); }
     function acceptCookies() { localStorage.setItem('nikolaich_cookies_accepted', 'true'); document.getElementById('cookieBanner').classList.remove('show'); }
 
-    // АВТОРИЗАЦИЯ VK
     document.getElementById('loginModal').addEventListener('shown.bs.modal', function () {
         if ('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) {
             const VKID = window.VKIDSDK;
@@ -430,15 +398,10 @@
 
     let cart = {}; let itemsTotal = 0; let lastCalc = null; let userAddresses = [];
 
-    // ПОИСК ПО ТОВАРАМ
     function searchProducts() {
         const q = document.getElementById('searchInput').value.toLowerCase();
-        let mainBlocks = document.getElementById('mainContentBlocks');
-        let filterBlock = document.getElementById('filteredProductsBlock');
-        
-        if (!q) {
-            mainBlocks.style.display = 'block'; filterBlock.style.display = 'none'; return;
-        }
+        let mainBlocks = document.getElementById('mainContentBlocks'); let filterBlock = document.getElementById('filteredProductsBlock');
+        if (!q) { mainBlocks.style.display = 'block'; filterBlock.style.display = 'none'; return; }
         mainBlocks.style.display = 'none'; filterBlock.style.display = 'block';
         document.getElementById('filterTitle').innerText = 'Результаты поиска';
         document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.includes(q) ? 'block' : 'none'; });
@@ -459,37 +422,23 @@
     async function logout() { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); }
 
     function switchCabTab(tabId, btn) {
-        document.querySelectorAll('.cab-nav-item').forEach(el => el.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.cab-tab-content').forEach(el => el.style.display = 'none');
-        document.getElementById(tabId).style.display = 'block';
+        document.querySelectorAll('.cab-nav-item').forEach(el => el.classList.remove('active')); btn.classList.add('active');
+        document.querySelectorAll('.cab-tab-content').forEach(el => el.style.display = 'none'); document.getElementById(tabId).style.display = 'block';
     }
 
-    function renderAddresses() {
-        document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span><button class="btn btn-sm btn-outline-danger" onclick="delAddress('${a}')"><i class="bi bi-trash"></i></button></div>`).join('');
-    }
+    function renderAddresses() { document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span><button class="btn btn-sm btn-outline-danger" onclick="delAddress('${a}')"><i class="bi bi-trash"></i></button></div>`).join(''); }
 
     async function addAddress() { 
         const a = document.getElementById('cabNewAddress').value; 
-        if(a) { 
-            await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({new_address: a})});
-            document.getElementById('cabNewAddress').value = '';
-            refreshCabinetData();
-        } 
+        if(a) { await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({new_address: a})}); document.getElementById('cabNewAddress').value = ''; refreshCabinetData(); } 
     }
     
-    async function delAddress(a) { 
-        await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({remove_address: a})});
-        refreshCabinetData();
-    }
+    async function delAddress(a) { await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({remove_address: a})}); refreshCabinetData(); }
 
     async function updateProfile() {
-        const full_name = document.getElementById('cabName').value;
-        const phone = document.getElementById('cabPhone').value;
-        const password = document.getElementById('cabPass').value;
+        const full_name = document.getElementById('cabName').value; const phone = document.getElementById('cabPhone').value; const password = document.getElementById('cabPass').value;
         await fetch('/api/user/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({full_name, phone, password})});
-        alert('Изменения сохранены!');
-        document.getElementById('cabPass').value = '';
+        alert('Изменения сохранены!'); document.getElementById('cabPass').value = '';
     }
 
     async function refreshCabinetData() {
@@ -498,8 +447,7 @@
         
         document.getElementById('cabName').value = data.user.full_name || '';
         document.getElementById('cabPhone').value = data.user.phone || '';
-        userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : [];
-        renderAddresses();
+        userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : []; renderAddresses();
         
         if (data.user.is_sysadmin === 1) { document.getElementById('cabBalanceContainer').innerHTML = `<div class="mt-4 p-3 bg-dark text-white rounded-4 fw-bold text-center"><i class="bi bi-wallet2 text-warning fs-4 d-block mb-1"></i> Баланс Сисадмина:<br><span class="text-warning fs-3">${data.user.balance} ₽</span></div>`; } 
         else { document.getElementById('cabBalanceContainer').innerHTML = ''; }
@@ -514,9 +462,7 @@
         }
     }
 
-    function openCabinet() {
-        refreshCabinetData().then(() => new bootstrap.Modal(document.getElementById('cabinetModal')).show());
-    }
+    function openCabinet() { refreshCabinetData().then(() => new bootstrap.Modal(document.getElementById('cabinetModal')).show()); }
 
     function openProductView(id, name, img, desc, price, step, unit) { 
         document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт от Николаича.'; 
@@ -525,20 +471,6 @@
         addBtn.onclick = () => { add(null, id, price, name, step, unit, img); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); };
         addBtn.innerHTML = `В корзину (+ ${step} ${unit})`;
         new bootstrap.Modal(document.getElementById('productDetailModal')).show(); 
-    }
-
-    async function askChef() { 
-        const btn = document.getElementById('aiBtn'); const promptText = document.getElementById('aiPrompt').value; if(!promptText) return; 
-        btn.innerText = 'Собираю...'; btn.disabled = true; 
-        try { 
-            const res = await fetch('/api/ai/chef', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query: promptText})}); 
-            const data = await res.json(); 
-            if(data.cart_ids && data.cart_ids.length > 0) { 
-                data.cart_ids.forEach(id => { const b = document.querySelector(`.btn-add[onclick*=", ${id},"]`); if(b) b.click(); });
-                document.getElementById('aiReply').innerHTML = `✅ ${data.message}`; document.getElementById('aiReply').style.display = 'block'; prepareCart(); 
-            } else { document.getElementById('aiReply').innerHTML = `🤷‍♂️ ${data.message || data.error}`; document.getElementById('aiReply').style.display = 'block'; }
-        } catch (e) { alert('Ошибка ИИ'); } 
-        btn.innerText = 'Дополнить'; btn.disabled = false; 
     }
 
     function add(btn, id, price, name, step, unit, img) { 
@@ -581,7 +513,6 @@
         document.getElementById('newAddrWrap').style.display = val === 'new' ? 'flex' : 'none';
     }
 
-    // ОТКРЫТИЕ ЮР. ДОКУМЕНТОВ
     function openLegal(type) {
         document.getElementById('legalTitle').innerText = type === 'oferta' ? 'Публичная оферта' : 'Политика конфиденциальности';
         document.getElementById('legalBody').innerText = type === 'oferta' ? document.getElementById('legalOfertaText').innerText : document.getElementById('legalPrivacyText').innerText;
@@ -601,14 +532,23 @@
             const res = await fetch('/api/user/cabinet'); const data = await res.json();
             if(!data.error) {
                 if(data.user.phone && !document.getElementById('checkoutPhone').value) document.getElementById('checkoutPhone').value = data.user.phone;
-                if(data.user.social_link && !document.getElementById('checkoutSocial').value) document.getElementById('checkoutSocial').value = data.user.social_link;
+                
+                // УМНАЯ ЛОГИКА ССЫЛКИ VK
+                const socInput = document.getElementById('checkoutSocial');
+                if(data.user.social_link) socInput.value = data.user.social_link;
+                
+                if(socInput.value.includes('vk.com')) {
+                    document.getElementById('vkLinkBlock').style.display = 'none';
+                    document.getElementById('vkLinkedBadge').style.display = 'block';
+                } else {
+                    document.getElementById('vkLinkBlock').style.display = 'block';
+                    document.getElementById('vkLinkedBadge').style.display = 'none';
+                }
+
                 const addrs = data.user.addresses ? JSON.parse(data.user.addresses) : [];
                 let optionsHtml = addrs.map(a => `<option value="${a}">${a}</option>`).join('');
                 optionsHtml += `<option value="new">📍 Указать новый адрес...</option>`;
                 document.getElementById('checkoutAddressSelect').innerHTML = optionsHtml;
-                toggleNewAddress();
-            } else {
-                document.getElementById('checkoutAddressSelect').innerHTML = `<option value="new">📍 Указать адрес...</option>`;
                 toggleNewAddress();
             }
         } catch(e) {}
@@ -622,6 +562,7 @@
     async function calcCart() { 
         if (Object.keys(cart).length === 0) return; 
         const d_type = document.getElementById('deliveryType').value; 
+        const p_type = document.getElementById('paymentType').value;
         const promoCode = document.getElementById('promoCode').value;
         const userPhone = document.getElementById('checkoutPhone').value;
         
@@ -648,7 +589,6 @@
         const totalDiscount = (lastCalc.discount || 0) + (lastCalc.sysadmin_pay || 0);
         document.getElementById('tDiscount').innerText = totalDiscount > 0 ? '- ' + totalDiscount.toFixed(0) + ' ₽' : '0 ₽';
 
-        // Юридическая проверка галочек
         const isLegalValid = document.getElementById('checkOferta').checked && document.getElementById('checkPrivacy').checked;
         const btn = document.getElementById('checkoutBtn');
         const minOrder = lastCalc.min_order || 0;
@@ -661,11 +601,15 @@
             btn.innerHTML = `Примите условия соглашений`;
         } else {
             btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success');
-            btn.innerHTML = `Оформить за <span id="tFinal">${lastCalc.final_total.toFixed(0)}</span> ₽`;
+            // Если онлайн оплата, меняем текст кнопки
+            if (p_type === 'online') {
+                btn.innerHTML = `<i class="bi bi-credit-card-fill me-2"></i>К оплате <span id="tFinal">${lastCalc.final_total.toFixed(0)}</span> ₽`;
+            } else {
+                btn.innerHTML = `Оформить за <span id="tFinal">${lastCalc.final_total.toFixed(0)}</span> ₽`;
+            }
         }
     }
 
-    // НОВАЯ ЛОГИКА ОФОРМЛЕНИЯ И ПЕРЕАДРЕСАЦИИ В БАНК
     async function sendOrder() { 
         if(Object.keys(cart).length === 0) return; 
         const phone = document.getElementById('checkoutPhone').value;
@@ -682,14 +626,18 @@
             if(!addr) return alert("Пожалуйста, укажите адрес получения!");
         }
 
+        const btn = document.getElementById('checkoutBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Обработка...';
+
         const payload = { phone: phone, social_link: soc, delivery_type: d_type, payment_type: p_type, address: addr, cart: cart, calc: lastCalc };
 
         const res = await fetch('/api/checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}); 
         const data = await res.json();
         
         if(data.status === 'ok') {
-            // ЕСЛИ ВЫБРАН ЭКВАЙРИНГ -> ПЕРЕНАПРАВЛЯЕМ В БАНК!
             if(data.pay_url) {
+                console.log("Редирект на оплату:", data.pay_url);
                 window.location.href = data.pay_url;
             } else {
                 bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
@@ -698,10 +646,9 @@
             }
         } else { 
             alert('Ошибка оформления: ' + (data.error || 'Проверьте данные.')); 
+            calcCart(); // Вернуть кнопку в нормальное состояние
         }
     }
-    
-    async function sendVipRequest() { const phone = document.getElementById('vipPhone').value; const full_name = document.getElementById('vipFio').value; const social_link = document.getElementById('vipSocial').value; if(!phone || !full_name) return alert('Заполните ФИО и телефон.'); await fetch('/api/18plus/request', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone, full_name, social_link})}); alert("Заявка отправлена!"); location.reload(); }
 </script>
 </body>
 </html>

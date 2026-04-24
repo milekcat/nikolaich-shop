@@ -42,7 +42,7 @@
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Настройки Сайта</a>
         <a class="nav-link" onclick="showTab('ai', this)"><i class="bi bi-magic me-2 fs-5 text-primary"></i> Нейро-сотрудники</a>
     </nav>
-    <div class="mt-auto small text-muted text-center fw-bold">ERP System v37.0 LEGAL</div>
+    <div class="mt-auto small text-muted text-center fw-bold">ERP System v38.0 PAYKEEPER</div>
 </div>
 
 <div class="main-content">
@@ -123,12 +123,12 @@
             <div class="sub-nav-item active" onclick="toggleSub('bSiteBlocks', ['bSiteBanners', 'bSiteGlobal', 'bSitePromos'], this)">Блоки Главной</div>
             <div class="sub-nav-item" onclick="toggleSub('bSiteBanners', ['bSiteBlocks', 'bSiteGlobal', 'bSitePromos'], this)">Рекламные Баннеры</div>
             <div class="sub-nav-item" onclick="toggleSub('bSitePromos', ['bSiteBlocks', 'bSiteBanners', 'bSiteGlobal'], this)">Промокоды</div>
-            <div class="sub-nav-item" onclick="toggleSub('bSiteGlobal', ['bSiteBlocks', 'bSiteBanners', 'bSitePromos'], this)">Юр. Настройки и Логистика</div>
+            <div class="sub-nav-item" onclick="toggleSub('bSiteGlobal', ['bSiteBlocks', 'bSiteBanners', 'bSitePromos'], this)">Юр. Настройки и Оплата</div>
         </div>
 
         <div id="bSiteBlocks" class="card-ui p-0 overflow-hidden">
             <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold m-0">Блоки на главной странице (под баннерами)</h6>
+                <h6 class="fw-bold m-0">Блоки на главной странице</h6>
                 <button class="btn btn-dark btn-sm fw-bold rounded-pill px-3" onclick="openBlockModal()"><i class="bi bi-plus-lg"></i> Добавить блок</button>
             </div>
             <table class="table table-hover m-0 align-middle">
@@ -169,9 +169,20 @@
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
                         <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
                         
-                        <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для авто-ответов бота)</label>
+                        <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для ручного перевода)</label>
                         <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк, Николаич)"></textarea>
                         
+                        <div class="p-3 border border-success rounded-4 bg-success bg-opacity-10 mb-4">
+                            <h5 class="fw-bold mb-3 text-success"><i class="bi bi-credit-card-fill me-2"></i>Эквайринг (PayKeeper)</h5>
+                            <p class="small text-muted mb-3">Вставьте данные из личного кабинета PayKeeper. После сохранения клиенты смогут оплачивать заказы картой прямо на сайте.</p>
+                            
+                            <label class="small fw-bold text-muted mb-1">URL сервера PayKeeper</label>
+                            <input type="text" id="setPkServer" class="form-control bg-white border mb-3 p-2" placeholder="https://ваш-магазин.server.paykeeper.ru">
+                            
+                            <label class="small fw-bold text-muted mb-1">Секретное слово (Secret Key)</label>
+                            <input type="password" id="setPkSecret" class="form-control bg-white border mb-2 p-2" placeholder="Скопируйте из ЛК PayKeeper">
+                        </div>
+
                         <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
                         <label class="small fw-bold text-muted mb-1">Текст Публичной Оферты</label>
                         <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="6" placeholder="Введите полный текст публичной оферты..."></textarea>
@@ -277,9 +288,9 @@
                     
                     <div class="mt-auto">
                         <h6 class="fw-bold mb-2 text-muted small">Быстрые сообщения в VK</h6>
-                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="sendOrderMsg('req')"><i class="bi bi-credit-card text-primary me-2"></i> Отправить реквизиты для оплаты</button>
+                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="sendOrderMsg('req')"><i class="bi bi-credit-card text-primary me-2"></i> Отправить реквизиты для ручной оплаты</button>
                         <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="promptTaxi()"><i class="bi bi-taxi-front text-warning me-2"></i> Отправить тариф Яндекс.Логистики</button>
-                        <button class="btn btn-success shadow-sm w-100 fw-bold text-start" onclick="sendOrderMsg('paid')"><i class="bi bi-check-circle me-2"></i> Подтвердить получение денег</button>
+                        <button class="btn btn-success shadow-sm w-100 fw-bold text-start" onclick="sendOrderMsg('paid')"><i class="bi bi-check-circle me-2"></i> Подтвердить получение денег (если платили переводом)</button>
                     </div>
                 </div>
                 
@@ -347,9 +358,11 @@
         document.getElementById('tableOrders').innerHTML = data.map(o => {
             const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger fw-bold"><i class="bi bi-geo-alt"></i> ${o.address}</span>` : '';
             let typeStr = o.delivery_type === 'pickup' ? 'Самовывоз' : (o.delivery_type === 'courier' ? 'Логистика маг.' : 'Яндекс');
+            let payStr = o.payment_type === 'online' ? '<span class="text-primary fw-bold">Картой онлайн</span>' : (o.payment_type === 'transfer' ? 'Перевод' : 'Наличные');
+            
             return `<tr>
                 <td><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div></td>
-                <td class="small">Компл.: <b>${typeStr}</b><br>Оплата: <b>${o.payment_type}</b>${addressHtml}</td>
+                <td class="small">Компл.: <b>${typeStr}</b><br>Оплата: <b>${payStr}</b>${addressHtml}</td>
                 <td class="fw-bold text-success fs-6">${o.final_total} ₽</td>
                 <td><span class="badge bg-dark">${o.status}</span></td>
                 <td>
@@ -371,17 +384,18 @@
         
         let itemsHtml = Object.values(o.items).map(i => `<li>${i.name} — ${i.qty}${i.unit}</li>`).join('');
         let typeStr = o.delivery_type === 'pickup' ? 'Самовывоз' : (o.delivery_type === 'courier' ? 'Фирменный пакет' : 'Транзитная коробка');
+        let payStr = o.payment_type === 'online' ? '<span class="text-primary fw-bold">ОПЛАТА КАРТОЙ (PAYKEEPER)</span>' : (o.payment_type === 'transfer' ? 'Перевод по реквизитам' : 'Наличные при получении');
 
         document.getElementById('ocInfo').innerHTML = `
             <b>Клиент:</b> ${u.full_name || u.phone} <a href="${u.social_link}" target="_blank">(VK)</a><br>
             <b>Сумма чека:</b> ${o.final_total} ₽<br>
-            <b>Оплата:</b> ${o.payment_type}<br>
+            <b>Оплата:</b> ${payStr}<br>
             <b>Комплектация:</b> ${typeStr}<br>
             <b>Адрес:</b> ${o.address || '-'}<br>
             <b class="mt-2 d-block">Состав:</b><ul>${itemsHtml}</ul>
         `;
 
-        const statuses = ['Новый', 'Собран', 'В пути', 'Выполнен', 'Отменен'];
+        const statuses = ['Новый', 'Ожидает оплаты', 'Оплачен', 'Собран', 'В пути', 'Выполнен', 'Отменен'];
         document.getElementById('ocStatus').innerHTML = statuses.map(s => `<option value="${s}" ${o.status===s ? 'selected' : ''}>${s}</option>`).join('');
 
         renderOrderChatMessages(msgs);
@@ -578,6 +592,8 @@
             document.getElementById('setAdminPin').value = settings.admin_pin || '0000';
             document.getElementById('setOfertaText').value = settings.oferta_text || '';
             document.getElementById('setPrivacyText').value = settings.privacy_text || '';
+            document.getElementById('setPkServer').value = settings.pk_server || '';
+            document.getElementById('setPkSecret').value = settings.pk_secret || '';
         }
         const wh = await apiCall('warehouse'); if(wh) categoriesList = wh.categories;
         const banners = await apiCall('banners');
@@ -595,7 +611,8 @@
             free_delivery_threshold: document.getElementById('setFreeDelivery').value, min_order_sum: document.getElementById('setMinOrder').value,
             high_demand: document.getElementById('setHighDemand').value, payment_details: document.getElementById('setPayment').value,
             vk_confirm_code: document.getElementById('setVkCode').value, admin_pin: document.getElementById('setAdminPin').value,
-            oferta_text: document.getElementById('setOfertaText').value, privacy_text: document.getElementById('setPrivacyText').value
+            oferta_text: document.getElementById('setOfertaText').value, privacy_text: document.getElementById('setPrivacyText').value,
+            pk_server: document.getElementById('setPkServer').value, pk_secret: document.getElementById('setPkSecret').value
         }); 
         alert('Настройки сохранены!'); 
     }

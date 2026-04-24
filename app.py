@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v40_paykeeper_smart'
+app.secret_key = 'nikolaich_erp_v41_paykeeper_fix'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
 
 UPLOAD_FOLDER = 'static/uploads'
@@ -305,7 +305,6 @@ def checkout():
     address = data.get('address', '')
     sysadmin_pay = calc.get('sysadmin_pay', 0)
     
-    # Сразу ставим статус "Ожидает оплаты", если выбран PayKeeper
     order_status = "Ожидает оплаты" if p_type == 'online' else "Новый"
 
     with sqlite3.connect('shop.db') as conn:
@@ -328,7 +327,9 @@ def checkout():
     if p_type == 'online':
         pk_server = settings.get('pk_server', '').strip().rstrip('/')
         if pk_server:
-            pay_url = f"{pk_server}/create/?sum={calc['final_total']:.2f}&orderid={order_id}&clientid={urllib.parse.quote(user['full_name'] or phone)}"
+            # ИСПРАВЛЕНИЕ PAYKEEPER: Сумма теперь целое число, clientid - очищенный номер телефона
+            safe_client_id = urllib.parse.quote(phone.replace('+', '').replace(' ', ''))
+            pay_url = f"{pk_server}/create/?sum={int(calc['final_total'])}&orderid={order_id}&clientid={safe_client_id}"
             return jsonify({"status": "ok", "order_id": order_id, "pay_url": pay_url})
         else:
             return jsonify({"status": "error", "error": "Эквайринг не настроен в админке. Зайдите в раздел 'Юр. настройки' и заполните URL сервера."}), 400

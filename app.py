@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v42_paykeeper_post'
+app.secret_key = 'nikolaich_erp_v44_design_system'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
 
 UPLOAD_FOLDER = 'static/uploads'
@@ -92,9 +92,23 @@ def init_db():
                 ('min_order_sum', '500'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), 
                 ('vk_confirm_code', '00000000'), ('admin_pin', '0000'),
                 ('oferta_text', 'Текст публичной оферты.'), ('privacy_text', 'Политика конфиденциальности.'),
-                ('pk_server', ''), ('pk_secret', '')
+                ('alfa_token', ''),
+                ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'),
+                ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress')
             ])
             c.execute("INSERT OR IGNORE INTO promocodes (code, is_sysadmin_only) VALUES ('СисадминВоздвижение', 1)")
+        else:
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('alfa_token', '')")
+            except: pass
+            # Новые поля для дизайна
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_main', '#fdfbf7')")
+            except: pass
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress')")
+            except: pass
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress')")
+            except: pass
+            try: c.execute("INSERT OR IGNORE INTO settings (key_name, value) VALUES ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress')")
+            except: pass
     conn.commit()
 
 init_db()
@@ -111,27 +125,22 @@ def get_user_by_identifier(identifier, is_vk=False):
     field = "vk_id" if is_vk else "phone"
     return get_db_query(f"SELECT * FROM users WHERE {field}=?", (identifier,), fetch_one=True)
 
-# ================= PAYKEEPER WEBHOOK =================
-@app.route('/api/paykeeper_webhook', methods=['POST'])
-def paykeeper_webhook():
-    data = request.form
-    pk_id = data.get('id', '')
-    orderid = data.get('orderid', '')
-    key = data.get('key', '')
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    secret = settings.get('pk_secret', '')
-    valid_hash = hashlib.md5(f"{pk_id}{secret}".encode('utf-8')).hexdigest()
+# ================= ALFA-BANK WEBHOOK =================
+@app.route('/api/alfa_webhook', methods=['GET', 'POST'])
+def alfa_webhook():
+    data = request.args if request.method == 'GET' else request.form
+    order_id = data.get('orderNumber')
+    status = data.get('status')
     
-    if valid_hash == key:
+    if order_id and str(status) in ['1', '2']:
         with sqlite3.connect('shop.db') as conn:
-            conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (orderid,))
-        order = get_db_query("SELECT * FROM orders WHERE id=?", (orderid,), fetch_one=True)
+            conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (order_id,))
+        order = get_db_query("SELECT * FROM orders WHERE id=?", (order_id,), fetch_one=True)
         if order:
             user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
             if user and user['social_link']:
-                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{orderid} на сумму {order['final_total']} ₽ успешно получена! Начинаем комплектацию.")
-        return f"OK {valid_hash}"
-    return "Error: Hash mismatch"
+                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{order_id} на сумму {order['final_total']} ₽ успешно получена через Альфа-Банк! Начинаем комплектацию.")
+    return "OK"
 
 @app.route('/api/vk_webhook', methods=['POST'])
 def vk_webhook():
@@ -325,18 +334,27 @@ def checkout():
         send_vk_message(user['id'], user['social_link'], msg)
         
     if p_type == 'online':
-        pk_server = settings.get('pk_server', '').strip().rstrip('/')
-        if pk_server:
-            # ИСПРАВЛЕНИЕ PAYKEEPER: Возвращаем данные для генерации POST-формы, чтобы банк не блокировал параметры
-            pay_data = {
-                "url": f"{pk_server}/create/",
-                "sum": f"{calc['final_total']:.2f}",
-                "orderid": str(order_id),
-                "clientid": user['full_name'] or phone
+        alfa_token = settings.get('alfa_token', '').strip()
+        if alfa_token:
+            amount_kopecks = int(calc['final_total'] * 100)
+            payload = {
+                "token": alfa_token,
+                "orderNumber": str(order_id),
+                "amount": amount_kopecks,
+                "returnUrl": "https://nikolaich.shop/",
+                "description": f"Заказ #{order_id}",
             }
-            return jsonify({"status": "ok", "order_id": order_id, "pay_data": pay_data})
+            try:
+                r = requests.post("https://pay.alfabank.ru/payment/rest/register.do", data=payload)
+                resp = r.json()
+                if "formUrl" in resp:
+                    return jsonify({"status": "ok", "order_id": order_id, "pay_url": resp["formUrl"]})
+                else:
+                    return jsonify({"status": "error", "error": f"Ошибка банка: {resp.get('errorMessage', 'Неизвестная ошибка')}"}), 400
+            except Exception as e:
+                return jsonify({"status": "error", "error": "Не удалось связаться с сервером банка."}), 500
         else:
-            return jsonify({"status": "error", "error": "Эквайринг не настроен в админке. Зайдите в раздел 'Юр. настройки' и заполните URL сервера."}), 400
+            return jsonify({"status": "error", "error": "Токен Альфа-Банка не настроен в админке."}), 400
         
     return jsonify({"status": "ok", "order_id": order_id})
 

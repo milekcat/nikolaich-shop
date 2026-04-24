@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Николаич ERP | Центр Управления v47</title>
+    <title>Николаич ERP | Центр Управления v48</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,12 +21,9 @@
         .img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 8px; border: 1px solid #eee;}
         .table th { font-weight: 600; color: #8e8e93; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eee; }
         .table td { vertical-align: middle; border-bottom: 1px solid #f8f9fa; }
-        
         .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
         .chat-client { align-self: flex-start; background: #fff; color: black; border: 1px solid #eee; border-bottom-left-radius: 4px; }
         .chat-admin { align-self: flex-end; background: #00b853; color: white; border-bottom-right-radius: 4px; }
-        
-        .analytics-num { font-size: 32px; font-weight: 900; color: #1d1d1f; }
     </style>
 </head>
 <body>
@@ -38,11 +35,12 @@
     <nav class="nav flex-column gap-1 w-100">
         <a class="nav-link active" onclick="showTab('orders', this)"><i class="bi bi-cart3 me-2 fs-5"></i> Заказы</a>
         <a class="nav-link" onclick="showTab('crm', this)"><i class="bi bi-people me-2 fs-5"></i> CRM & Чаты</a>
+        <a class="nav-link" onclick="showTab('reviews', this)"><i class="bi bi-star-fill me-2 fs-5 text-warning"></i> Отзывы</a>
         <a class="nav-link" onclick="showTab('warehouse', this)"><i class="bi bi-box-seam me-2 fs-5"></i> Склад & Каталог</a>
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Настройки Сайта</a>
         <a class="nav-link text-info" onclick="showTab('analytics', this)"><i class="bi bi-graph-up-arrow me-2 fs-5"></i> Аналитика</a>
     </nav>
-    <div class="mt-auto small text-muted text-center fw-bold">ERP System v47.0 PWA</div>
+    <div class="mt-auto small text-muted text-center fw-bold">ERP System v48.0 MAX</div>
 </div>
 
 <div class="main-content">
@@ -76,6 +74,18 @@
                 <table class="table table-hover m-0 align-middle">
                     <thead class="table-light"><tr><th>Телефон / ФИО</th><th>Статус / Роль</th><th>VK Ссылка</th><th>Действия</th></tr></thead>
                     <tbody id="tableUsers"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="reviews" class="tab" style="display:none">
+        <h3 class="fw-bold mb-4">Модерация отзывов</h3>
+        <div class="card-ui p-0 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light"><tr><th>Товар</th><th>Клиент</th><th>Оценка / Текст</th><th>Статус</th><th>Действия</th></tr></thead>
+                    <tbody id="tableReviews"></tbody>
                 </table>
             </div>
         </div>
@@ -180,7 +190,6 @@
                         <input type="text" id="setShopName" class="form-control bg-light border mb-3 p-2">
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
                         <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
-                        
                         <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для ручного перевода)</label>
                         <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк, Николаич)"></textarea>
                         
@@ -195,7 +204,6 @@
                         <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
                         <label class="small fw-bold text-muted mb-1">Текст Публичной Оферты</label>
                         <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="6"></textarea>
-                        
                         <label class="small fw-bold text-muted mb-1">Политика конфиденциальности (ФЗ-152)</label>
                         <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="6"></textarea>
 
@@ -210,7 +218,6 @@
                 <div class="col-md-6">
                     <div class="card-ui mb-4" style="border: 2px solid #0dcaf0;">
                         <h5 class="fw-bold mb-3 text-info"><i class="bi bi-palette me-2"></i>Дизайн и Фоны сайта</h5>
-                        <p class="small text-muted mb-4">Вы можете вставить прямую ссылку на картинку из интернета или нажать кнопку загрузки справа.</p>
                         
                         <label class="small fw-bold text-muted mb-1">Цвет основного фона (HEX) или ссылка</label>
                         <div class="input-group mb-3 shadow-sm">
@@ -335,12 +342,10 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div id="ocInfo" class="mb-4 small" style="line-height: 1.6;"></div>
-                    
                     <div class="mb-4">
                         <label class="small fw-bold text-muted mb-1">Сменить статус заказа (с авто-уведомлением)</label>
                         <select id="ocStatus" class="form-select fw-bold border-2 p-2 shadow-sm" onchange="sendOrderMsg('status', this.value)"></select>
                     </div>
-                    
                     <div class="mt-auto">
                         <h6 class="fw-bold mb-2 text-muted small">Быстрые сообщения в чат клиента</h6>
                         <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="sendOrderMsg('req')"><i class="bi bi-credit-card text-primary me-2"></i> Отправить реквизиты для ручной оплаты</button>
@@ -348,7 +353,6 @@
                         <button class="btn btn-success shadow-sm w-100 fw-bold text-start" onclick="sendOrderMsg('paid')"><i class="bi bi-check-circle me-2"></i> Подтвердить получение денег (перевод)</button>
                     </div>
                 </div>
-                
                 <div class="col-md-7 d-flex flex-column bg-white position-relative">
                     <div class="p-3 border-bottom bg-white fw-bold shadow-sm z-1"><i class="bi bi-chat-dots text-primary me-2"></i>Связь с клиентом (VK / Сайт)</div>
                     <div id="ocMessages" class="flex-grow-1 p-4 overflow-auto" style="background: #fdfbf7; max-height: 500px; display:flex; flex-direction:column; gap:12px;"></div>
@@ -369,12 +373,11 @@
     let currentGlobalChatUserId = null;
     let lastOrdersCount = 0;
     
-    // Периодический опрос для звука нового заказа
     setInterval(async () => {
         try {
             const data = await apiCall('orders');
             if(data && data.length > lastOrdersCount) {
-                if(lastOrdersCount > 0) document.getElementById('dingSound').play().catch(e => console.log('Audio autoplay blocked'));
+                if(lastOrdersCount > 0) document.getElementById('dingSound').play().catch(e => console.log('Audio blocked'));
                 lastOrdersCount = data.length;
                 if(document.getElementById('orders').style.display === 'block') loadOrders();
             }
@@ -391,6 +394,7 @@
         if(id === 'site') loadSettings();
         if(id === 'crm') loadUsers();
         if(id === 'analytics') loadAnalytics();
+        if(id === 'reviews') loadReviews();
     }
 
     function toggleSub(showId, hideIds, btn) {
@@ -406,7 +410,7 @@
         try {
             const response = await fetch(`/api/admin/${endpoint}`, options);
             return await response.json();
-        } catch (e) { console.error('API Error:', e); return null; }
+        } catch (e) { return null; }
     }
 
     function openModal(title, htmlBody, btnText, saveCallback) {
@@ -417,6 +421,41 @@
         const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn);
         newBtn.onclick = () => { saveCallback(); bootstrap.Modal.getInstance(document.getElementById('universalModal')).hide(); };
         new bootstrap.Modal(document.getElementById('universalModal')).show();
+    }
+
+    /* ================= ОТЗЫВЫ ================= */
+    async function loadReviews() {
+        const revs = await apiCall('reviews');
+        if(!revs) return;
+        document.getElementById('tableReviews').innerHTML = revs.map(r => {
+            let statusBadge = r.is_approved ? '<span class="badge bg-success">Опубликован</span>' : '<span class="badge bg-warning text-dark">Скрыт</span>';
+            let stars = '★'.repeat(r.rating) + '☆'.repeat(5-r.rating);
+            return `<tr>
+                <td><div class="fw-bold">${r.prod_name}</div><div class="small text-muted">${r.date.split(' ')[0]}</div></td>
+                <td>${r.full_name || r.phone}</td>
+                <td><div class="text-warning fw-bold">${stars}</div><div class="small">${r.text}</div></td>
+                <td>${statusBadge}</td>
+                <td><button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" onclick='openReviewModal(${JSON.stringify(r)})'>Модерация</button></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openReviewModal(r) {
+        openModal('Модерация отзыва', `
+            <input type="hidden" id="rId" value="${r.id}">
+            <label class="small fw-bold text-muted mb-1">Количество звезд (1-5)</label>
+            <input type="number" id="rRating" class="form-control bg-light border mb-2 p-2" min="1" max="5" value="${r.rating}">
+            <label class="small fw-bold text-muted mb-1">Текст отзыва</label>
+            <textarea id="rText" class="form-control bg-light border mb-3 p-2" rows="3">${r.text}</textarea>
+            <label class="small fw-bold text-muted mb-1">Статус на сайте</label>
+            <select id="rApproved" class="form-select bg-light border p-2">
+                <option value="1" ${r.is_approved==1?'selected':''}>Опубликован (Все видят)</option>
+                <option value="0" ${r.is_approved==0?'selected':''}>Скрыт (Черновик)</option>
+            </select>
+        `, 'Сохранить', async () => {
+            await apiCall('reviews', 'POST', { id: document.getElementById('rId').value, rating: document.getElementById('rRating').value, text: document.getElementById('rText').value, is_approved: document.getElementById('rApproved').value });
+            loadReviews();
+        });
     }
 
     /* ================= ЗАКАЗЫ И ЧАТ ================= */
@@ -448,7 +487,7 @@
         const res = await apiCall('order_chat/' + orderId);
         if(!res || res.error) return alert("Ошибка загрузки заказа");
         const o = res.order; const u = res.user; const msgs = res.messages;
-        currentGlobalChatUserId = u.id; // Для связи
+        currentGlobalChatUserId = u.id;
         
         document.getElementById('ocTitle').innerText = `Заказ #${o.id}`;
         let itemsHtml = Object.values(o.items).map(i => `<li>${i.name} — ${i.qty}${i.unit}</li>`).join('');
@@ -493,10 +532,7 @@
         } else { alert("Ошибка отправки:\n\n" + (res.error || "Неизвестная ошибка")); }
     }
 
-    function promptTaxi() {
-        const price = prompt("Введите тариф Яндекс.Логистики в рублях:");
-        if(price) sendOrderMsg('taxi', price);
-    }
+    function promptTaxi() { const price = prompt("Введите тариф Яндекс.Логистики в рублях:"); if(price) sendOrderMsg('taxi', price); }
 
     /* ================= ЦЕНТР СООБЩЕНИЙ ================= */
     async function openAllChatsModal() {
@@ -504,35 +540,28 @@
         const users = await apiCall('all_chats');
         const list = document.getElementById('chatUserList');
         if(!users || users.length === 0) { list.innerHTML = '<div class="p-3 text-muted small">Нет диалогов.</div>'; return; }
-        
         list.innerHTML = users.map(u => {
             let badge = u.social_link && u.social_link.includes('vk.com') ? '<span class="badge bg-primary float-end">VK</span>' : '<span class="badge bg-success float-end">WEB</span>';
-            return `<div class="p-3 border-bottom bg-white mb-1 rounded shadow-sm" style="cursor:pointer;" onclick="openGlobalChat(${u.id}, '${u.full_name || u.phone}')">
-                <div class="fw-bold">${u.full_name || u.phone} ${badge}</div>
-            </div>`;
+            return `<div class="p-3 border-bottom bg-white mb-1 rounded shadow-sm" style="cursor:pointer;" onclick="openGlobalChat(${u.id}, '${u.full_name || u.phone}')"><div class="fw-bold">${u.full_name || u.phone} ${badge}</div></div>`;
         }).join('');
     }
 
     async function openGlobalChat(userId, name) {
         currentGlobalChatUserId = userId;
         document.getElementById('activeChatName').innerText = "Чат с " + name;
-        // Запросим чат через первый попавшийся заказ этого юзера (хитрость API)
         const res = await fetch(`/api/admin/orders`);
         const orders = await res.json();
         const userOrder = orders.find(o => o.user_id === userId);
         if(userOrder) {
             const chatRes = await apiCall('order_chat/' + userOrder.id);
             renderOrderChatMessages(chatRes.messages, 'globalChatMessages');
-        } else {
-            document.getElementById('globalChatMessages').innerHTML = '<div class="text-center text-muted small mt-5">Нет активных заказов для привязки чата.</div>';
-        }
+        } else { document.getElementById('globalChatMessages').innerHTML = '<div class="text-center text-muted small mt-5">Нет активных заказов для привязки чата.</div>'; }
     }
 
     async function sendGlobalChatMsg() {
         const text = document.getElementById('globalChatInput').value.trim();
         if(!text || !currentGlobalChatUserId) return;
         document.getElementById('globalChatInput').value = '';
-        
         const res = await fetch(`/api/admin/orders`);
         const orders = await res.json();
         const userOrder = orders.find(o => o.user_id === currentGlobalChatUserId);
@@ -594,11 +623,7 @@
     async function loadAnalytics() {
         const data = await apiCall('analytics');
         if(!data) return;
-        
-        // Топ товаров
         document.getElementById('topItemsList').innerHTML = data.top.map(item => `<li class="list-group-item d-flex justify-content-between align-items-start"><div class="ms-2 me-auto"><div class="fw-bold">${item[0]}</div></div><span class="badge bg-primary rounded-pill">${item[1]} шт</span></li>`).join('');
-        
-        // График продаж
         const ctx = document.getElementById('salesChart').getContext('2d');
         const labels = data.sales.map(s => s.d).reverse();
         const values = data.sales.map(s => s.t).reverse();
@@ -675,8 +700,9 @@
                 <div id="uploadStatus" class="small text-primary mb-2 fw-bold"></div><div id="pPhotoPreviewBox" class="d-flex flex-wrap mb-3 pb-2"></div>
             </div></div>
         `, 'Сохранить товар', async () => {
+            // ИСПРАВЛЕННЫЙ БАГ: В JavaScript нужно использовать trim(), а не strip()
             const stickersRaw = document.getElementById('pStickers').value;
-            const stickersArr = stickersRaw ? stickersRaw.split(',').map(s => s.strip()).filter(s => s) : [];
+            const stickersArr = stickersRaw ? stickersRaw.split(',').map(s => s.trim()).filter(s => s) : [];
             await apiCall('product', 'POST', { id: document.getElementById('pId').value, name: document.getElementById('pName').value, desc: document.getElementById('pDesc').value, price: document.getElementById('pPrice').value, old_price: document.getElementById('pOld').value, stock: document.getElementById('pStock').value, category_id: document.getElementById('pCat').value, images: currentProductImages, unit: document.getElementById('pUnit').value, step: document.getElementById('pStep').value, stickers: stickersArr });
             loadWarehouse();
         });
@@ -715,10 +741,8 @@
             document.getElementById('setAdminPin').value = settings.admin_pin || '0000';
             document.getElementById('setOfertaText').value = settings.oferta_text || '';
             document.getElementById('setPrivacyText').value = settings.privacy_text || '';
-            
             document.getElementById('setPkServer').value = settings.pk_server || '';
             document.getElementById('setPkSecret').value = settings.pk_secret || '';
-            
             document.getElementById('setBgMain').value = settings.bg_main || '#fdfbf7';
             document.getElementById('setBgHeader').value = settings.bg_header || 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress';
             document.getElementById('setBgCat').value = settings.bg_cat || 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress';

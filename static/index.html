@@ -54,7 +54,6 @@
         .locked-18 .p-img-box::after { content: '🔒 18+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: 900; color: #fff; background: rgba(220,53,69,0.85); padding: 8px 18px; border-radius: 12px; z-index: 10; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .locked-18 .p-name { filter: blur(5px); opacity: 0.6; user-select: none; }
         .locked-18 .p-price { filter: blur(5px); opacity: 0.6; }
-        /* Прячем текст на кнопке и пишем "Открыть" */
         .locked-18 .btn-add { font-size: 0 !important; background: #333 !important; color: #fff !important; border: 1px solid #555; pointer-events: none; box-shadow: none; }
         .locked-18 .btn-add::after { content: 'Открыть'; font-size: 14px; font-weight: 800; display: block; }
         
@@ -184,12 +183,12 @@
                          data-id="{{ p.id }}" 
                          data-cat="{{ p.category_id }}" 
                          data-hidden="{{ p.is_hidden|default(0) }}" 
-                         data-name="{{ p.name|escape }}" 
+                         data-name="{{ p.name | replace('\"', '&quot;') | replace('\'', '&apos;') }}" 
                          data-price="{{ p.price }}" 
                          data-step="{{ p.step }}" 
                          data-unit="{{ p.unit }}" 
                          data-img="{{ p.images[0] if p.images else '' }}" 
-                         data-desc="{{ p.desc|escape }}">
+                         data-desc="{{ p.desc | replace('\"', '&quot;') | replace('\'', '&apos;') | replace('\n', ' ') if p.desc else '' }}">
                          
                         <div class="p-card" onclick="handleProductClick(this)">
                             <div class="p-stickers">
@@ -226,12 +225,12 @@
                  data-id="{{ p.id }}" 
                  data-cat="{{ p.category_id }}" 
                  data-hidden="{{ p.is_hidden|default(0) }}" 
-                 data-name="{{ p.name|escape }}" 
+                 data-name="{{ p.name | replace('\"', '&quot;') | replace('\'', '&apos;') }}" 
                  data-price="{{ p.price }}" 
                  data-step="{{ p.step }}" 
                  data-unit="{{ p.unit }}" 
                  data-img="{{ p.images[0] if p.images else '' }}" 
-                 data-desc="{{ p.desc|escape }}" style="display: block;">
+                 data-desc="{{ p.desc | replace('\"', '&quot;') | replace('\'', '&apos;') | replace('\n', ' ') if p.desc else '' }}" style="display: block;">
                  
                 <div class="p-card" onclick="handleProductClick(this)">
                     <div class="p-stickers">
@@ -257,273 +256,80 @@
     </div>
 </div>
 
-<div class="container mt-5 pt-3 pb-2"><h5 class="fw-bold mb-3 text-center">Мы ВКонтакте</h5><div class="d-flex justify-content-center"><div id="vk_groups" class="shadow-sm rounded-4 overflow-hidden" style="border: 1px solid #eee;"></div></div><script> VK.Widgets.Group("vk_groups", {mode: 3, width: "auto", color1: 'FFFFFF', color2: '1d1d1f', color3: '00b853'}, 235562112); </script></div>
+<div class="container mt-5 pt-3 pb-2 text-center">
+    <h5 class="fw-bold mb-3">Мы ВКонтакте</h5>
+    <div class="d-flex justify-content-center mb-4"><div id="vk_groups" class="shadow-sm rounded-4 overflow-hidden" style="border: 1px solid #eee;"></div></div>
+    <script> VK.Widgets.Group("vk_groups", {mode: 3, width: "auto", color1: 'FFFFFF', color2: '1d1d1f', color3: '00b853'}, 235562112); </script>
+    
+    <div class="small text-muted mb-2">{{ settings.footer_text }}</div>
+    <div class="d-flex justify-content-center gap-3 small fw-bold mb-4">
+        <span class="text-secondary" style="cursor:pointer; text-decoration:underline;" onclick="new bootstrap.Modal(document.getElementById('ofertaModal')).show()">Публичная оферта</span>
+        <span class="text-secondary" style="cursor:pointer; text-decoration:underline;" onclick="new bootstrap.Modal(document.getElementById('privacyModal')).show()">Политика конфиденциальности</span>
+    </div>
+</div>
 
+{% if settings.show_lock_icon|default('1') == '1' %}
 <div class="text-center mb-5 pb-4"><i class="bi bi-shield-lock" style="color: #ccc; cursor: pointer; font-size: 24px; opacity: 0.5;" onclick="new bootstrap.Modal(document.getElementById('vipModal')).show()"></i></div>
+{% endif %}
 
 <div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()"><span id="cartCount">0 товаров</span><span id="cartSum">0 ₽</span></div>
 <div class="floating-chat-btn" onclick="openChat()"><i class="bi bi-chat-dots-fill"></i></div>
 
-<div class="modal fade" id="androidInstallModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
-            <i class="bi bi-android2 fs-1 text-success mb-3"></i>
-            <h4 class="fw-bold mb-3">Установка на телефон</h4>
-            <p class="text-muted small mb-3">Чтобы добавить магазин «Николаич» на ваш экран:</p>
-            <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
-                <li>Нажмите на три точки <i class="bi bi-three-dots-vertical border rounded px-1"></i> в браузере.</li>
-                <li>Выберите <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b>.</li>
-            </ol>
-            <button class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
-        </div>
-    </div>
+<div id="cookieBanner" class="position-fixed bottom-0 start-0 w-100 bg-dark text-white p-3 d-flex justify-content-between align-items-center shadow-lg" style="z-index: 3000; display: none;">
+    <div class="small me-3 opacity-75">Мы используем файлы cookie. Продолжая, вы соглашаетесь с <span class="text-info text-decoration-underline" style="cursor:pointer;" onclick="new bootstrap.Modal(document.getElementById('privacyModal')).show()">Политикой конфиденциальности</span>.</div>
+    <button class="btn btn-sm btn-success fw-bold rounded-pill px-4" onclick="acceptCookies()">OK</button>
 </div>
 
-<div class="modal fade" id="iosInstallModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
-            <i class="bi bi-apple fs-1 mb-3"></i>
-            <h4 class="fw-bold mb-3">Установка на iPhone</h4>
-            <p class="text-muted small mb-3">Чтобы добавить магазин «Николаич» на ваш экран:</p>
-            <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
-                <li>Нажмите кнопку <i class="bi bi-box-arrow-up border rounded px-1 text-primary" style="font-size: 16px;"></i> <b>Поделиться</b> в нижней панели браузера.</li>
-                <li>В появившемся меню выберите <i class="bi bi-plus-square border rounded px-1 text-dark" style="font-size: 16px;"></i> <b>На экран «Домой»</b>.</li>
-            </ol>
-            <button class="btn btn-dark w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="ofertaModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-3">Публичная оферта</h4><div class="small text-muted overflow-auto" style="white-space: pre-wrap; max-height: 60vh;">{{ settings.oferta_text | default('Текст оферты не задан.') }}</div><button class="btn btn-dark w-100 mt-4 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button></div></div></div>
+<div class="modal fade" id="privacyModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-3">Политика конфиденциальности</h4><div class="small text-muted overflow-auto" style="white-space: pre-wrap; max-height: 60vh;">{{ settings.privacy_text | default('Текст политики конфиденциальности не задан.') }}</div><button class="btn btn-dark w-100 mt-4 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button></div></div></div>
 
-<div class="modal fade" id="ageVerificationModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center" style="background: #1d1d1f; color: #fff;">
-            <i class="bi bi-exclamation-octagon text-danger mb-3" style="font-size: 60px;"></i>
-            <h4 class="fw-bold mb-2">Внимание: Контент 18+</h4>
-            <p class="text-white-50 small mb-3">Данный раздел содержит продукцию для взрослых. Для доступа введите дату вашего рождения:</p>
-            
-            <input type="date" id="dobInput" class="form-control bg-dark text-white border-secondary mb-3 text-center fw-bold fs-5">
-            
-            <div class="d-flex gap-2">
-                <button class="btn btn-outline-light w-50 fw-bold rounded-pill" onclick="cancelAge()">Отмена</button>
-                <button class="btn btn-danger w-50 fw-bold rounded-pill" onclick="confirmAgeDOB()">Подтвердить</button>
-            </div>
-            
-            <div id="dobError" class="text-danger small fw-bold mt-2" style="display:none;">Доступ разрешен только с 18 лет!</div>
-            <div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны гостям только для Самовывоза с оплатой на кассе. Для доставки нужна регистрация VIP статуса.</div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="androidInstallModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><i class="bi bi-android2 fs-1 text-success mb-3"></i><h4 class="fw-bold mb-3">Установка на телефон</h4><p class="text-muted small mb-3">Чтобы добавить магазин «Николаич» на ваш экран:</p><ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;"><li>Нажмите на три точки <i class="bi bi-three-dots-vertical border rounded px-1"></i> в браузере.</li><li>Выберите <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b>.</li></ol><button class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button></div></div></div>
+<div class="modal fade" id="iosInstallModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><i class="bi bi-apple fs-1 mb-3"></i><h4 class="fw-bold mb-3">Установка на iPhone</h4><p class="text-muted small mb-3">Чтобы добавить магазин «Николаич» на ваш экран:</p><ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;"><li>Нажмите кнопку <i class="bi bi-box-arrow-up border rounded px-1 text-primary" style="font-size: 16px;"></i> <b>Поделиться</b> в нижней панели браузера.</li><li>В появившемся меню выберите <i class="bi bi-plus-square border rounded px-1 text-dark" style="font-size: 16px;"></i> <b>На экран «Домой»</b>.</li></ol><button class="btn btn-dark w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button></div></div></div>
 
-<div class="modal fade" id="cabinetModal" tabindex="-1">
-    <div class="modal-dialog modal-fullscreen-md-down modal-lg">
-        <div class="modal-content p-0 h-100 bg-light">
-            <div class="p-4 bg-white border-bottom d-flex justify-content-between align-items-center sticky-top">
-                <h3 class="fw-bold m-0" id="cabMainTitle"><i class="bi bi-person-circle text-primary me-2"></i>Профиль</h3>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="p-4 overflow-auto">
-                <div class="cab-nav" id="cabNavContainer">
-                    <div class="cab-nav-item active" id="cabTabOrders" onclick="switchCabTab('cab_orders', this)">История чеков</div>
-                    <div class="cab-nav-item" id="cabTabTickets" onclick="switchCabTab('cab_tickets', this)">Мои билеты 🎰</div>
-                    <div class="cab-nav-item" id="cabTabProfile" onclick="switchCabTab('cab_profile', this)">Мои данные</div>
-                    <div class="cab-nav-item" id="cabTabSecurity" onclick="switchCabTab('cab_security', this)">Безопасность</div>
-                </div>
-                
-                <div id="cab_orders" class="cab-tab-content"><div id="cabinetOrders"></div></div>
-                
-                <div id="cab_tickets" class="cab-tab-content" style="display:none;">
-                    <div class="cab-card border-warning">
-                        <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-ticket-perforated-fill me-2"></i>Ваши билеты на розыгрыш</h5>
-                        <div id="cabinetTicketsList"></div>
-                    </div>
-                </div>
-                
-                <div id="cab_profile" class="cab-tab-content" style="display:none;">
-                    <div class="cab-card">
-                        <h5 class="fw-bold mb-4">Личная информация</h5>
-                        <label class="small text-muted fw-bold mb-1">Ваше Имя</label>
-                        <input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold">
-                        <label class="small text-muted fw-bold mb-1">Номер телефона</label>
-                        <input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-4 p-3 fw-bold">
-                        
-                        <div id="cabAddrBlock">
-                            <h5 class="fw-bold mb-3">Сохраненные адреса</h5>
-                            <div id="cabAddressesList" class="d-flex flex-column gap-2 mb-3"></div>
-                            <div class="input-group mb-4">
-                                <input type="text" id="cabNewAddress" class="form-control bg-light border-0 p-3 fw-bold" placeholder="Добавить новый адрес">
-                                <button class="btn btn-dark fw-bold px-4" onclick="addAddress()">+</button>
-                            </div>
-                        </div>
+<div class="modal fade" id="vipModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-4 rounded-4 border-0 shadow-lg"><div class="text-center mb-4"><i class="bi bi-shield-lock-fill text-warning mb-2" style="font-size: 45px;"></i><h4 class="fw-bold mb-2">Полный доступ к каталогу</h4><p class="text-muted small" style="line-height: 1.5;">По правилам магазина, товары из скрытых категорий (18+) доступны для доставки только верифицированным клиентам.<br><br>Заполните форму ниже. Мы оперативно проверим данные и снимем ограничения для вашего аккаунта. Это конфиденциально.</p></div><label class="small text-muted fw-bold ms-2 mb-1">Как к вам обращаться?</label><input type="text" id="vipFio" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold" placeholder="Ваши Фамилия и Имя"><label class="small text-muted fw-bold ms-2 mb-1">Номер для связи</label><input type="tel" id="vipPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold" placeholder="+7 (999) 000-00-00" value="{{ user.phone if user else '' }}"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (для быстрой проверки)</label><input type="text" id="vipSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold" placeholder="https://vk.com/..."><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold shadow-sm fs-6" onclick="sendVipRequest()">Отправить на проверку</button></div></div></div>
 
-                        <div id="cabTipsBlock" style="display:none;">
-                            <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-cup-hot-fill"></i> Настройка чаевых</h5>
-                            <div class="accordion mb-4" id="tipsAccordion">
-                              <div class="accordion-item border-0 bg-white rounded-3 shadow-sm mb-2" style="border: 1px solid #ffe69c !important;">
-                                <h2 class="accordion-header">
-                                  <button class="accordion-button collapsed fw-bold rounded-3 text-dark bg-warning bg-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTips">
-                                    Как создать ссылку/QR? (Инструкция)
-                                  </button>
-                                </h2>
-                                <div id="collapseTips" class="accordion-collapse collapse" data-bs-parent="#tipsAccordion">
-                                  <div class="accordion-body small text-muted">
-                                    <b>Вариант 1 (Т-Банк / Сбербанк):</b> В приложении своего банка нажмите "Пополнить" или "Запросить деньги" -> скопируйте ссылку или сохраните QR-код.<br><br>
-                                    <b>Вариант 2 (CloudTips):</b> Зарегистрируйтесь на сайте <i>cloudtips.ru</i> как физлицо (по номеру телефона), привяжите любую вашу карту и скопируйте личную ссылку и QR-код.
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <label class="small text-muted fw-bold mb-1">Ваша ссылка на перевод (СБП/CloudTips)</label>
-                            <input type="text" id="cabTipsLink" class="form-control bg-light border border-warning rounded-3 mb-3 p-3 fw-bold" placeholder="https://pay.cloudtips.ru/...">
-                            <label class="small text-muted fw-bold mb-1">QR-код для перевода (картинка)</label>
-                            <input type="hidden" id="cabTipsQr">
-                            <input type="file" id="cabTipsQrFile" class="form-control bg-light border border-warning rounded-3 mb-2 p-2" accept="image/*" onchange="uploadCourQr(this)">
-                            <img id="courQrPreview" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm">
-                        </div>
-                        
-                        <button class="btn btn-success w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Сохранить изменения</button>
-                    </div>
-                </div>
-                
-                <div id="cab_security" class="cab-tab-content" style="display:none;">
-                    <div class="cab-card border-danger">
-                        <h5 class="fw-bold mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Защита профиля</h5>
-                        <p class="small text-muted mb-3">Установите пароль на вход по номеру.</p>
-                        <input type="password" id="cabPass" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold" placeholder="Придумайте пароль">
-                        <button class="btn btn-danger w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Установить пароль</button>
-                    </div>
-                    <button class="btn btn-outline-dark w-100 fw-bold rounded-4 py-3 mt-4" onclick="logout()">Выйти из аккаунта</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="ageVerificationModal" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center" style="background: #1d1d1f; color: #fff;"><i class="bi bi-exclamation-octagon text-danger mb-3" style="font-size: 60px;"></i><h4 class="fw-bold mb-2">Внимание: Контент 18+</h4><p class="text-white-50 small mb-3">Данный раздел содержит продукцию для взрослых. Для доступа введите дату вашего рождения:</p><input type="date" id="dobInput" class="form-control bg-dark text-white border-secondary mb-3 text-center fw-bold fs-5"><div class="d-flex gap-2"><button class="btn btn-outline-light w-50 fw-bold rounded-pill" onclick="cancelAge()">Отмена</button><button class="btn btn-danger w-50 fw-bold rounded-pill" onclick="confirmAgeDOB()">Подтвердить</button></div><div id="dobError" class="text-danger small fw-bold mt-2" style="display:none;">Доступ разрешен только с 18 лет!</div><div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны гостям только для Самовывоза с оплатой на кассе. Для доставки нужна регистрация.</div></div></div></div>
 
-<div class="modal fade" id="deliveryRatingModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
-            <h5 class="fw-bold mb-2">Оцените доставку</h5>
-            <p class="small text-muted fw-bold mb-3">Был ли курьер (<span id="drCourName"></span>) вежлив? Всё ли понравилось?</p>
-            <div class="star-rating-dr mb-3 w-100">
-                <input type="radio" id="dr_star5" name="dr_rating" value="5" checked><label for="dr_star5" title="5 звезд">★</label>
-                <input type="radio" id="dr_star4" name="dr_rating" value="4"><label for="dr_star4" title="4 звезды">★</label>
-                <input type="radio" id="dr_star3" name="dr_rating" value="3"><label for="dr_star3" title="3 звезды">★</label>
-                <input type="radio" id="dr_star2" name="dr_rating" value="2"><label for="dr_star2" title="2 звезды">★</label>
-                <input type="radio" id="dr_star1" name="dr_rating" value="1"><label for="dr_star1" title="1 звезда">★</label>
-            </div>
-            <textarea id="drComment" class="form-control bg-light border-0 rounded-4 p-3 mb-4" rows="2" placeholder="Ваши впечатления о доставке"></textarea>
-            
-            <div id="drTipsContainer" style="display:none;" class="mb-4 text-start">
-                <button id="drShowTipsBtn" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm py-2" onclick="document.getElementById('drTipsDetails').style.display='block'; this.style.display='none';"><i class="bi bi-cup-hot-fill me-1"></i>Хотите оставить чаевые?</button>
-                <div id="drTipsDetails" style="display:none;" class="p-3 bg-success bg-opacity-10 rounded-4 border border-success text-center">
-                    <p class="small text-success fw-bold mb-3" style="line-height: 1.3;">Это личные реквизиты курьера. Средства поступят напрямую на его счет.</p>
-                    <img id="drTipsQr" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm">
-                    <a id="drTipsLink" href="" target="_blank" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" style="display:none;">Перевести по ссылке</a>
-                </div>
-            </div>
-            <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="submitDeliveryRating()">Отправить оценку</button>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="cabinetModal" tabindex="-1"><div class="modal-dialog modal-fullscreen-md-down modal-lg"><div class="modal-content p-0 h-100 bg-light"><div class="p-4 bg-white border-bottom d-flex justify-content-between align-items-center sticky-top"><h3 class="fw-bold m-0" id="cabMainTitle"><i class="bi bi-person-circle text-primary me-2"></i>Профиль</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="p-4 overflow-auto"><div class="cab-nav" id="cabNavContainer"><div class="cab-nav-item active" id="cabTabOrders" onclick="switchCabTab('cab_orders', this)">История чеков</div><div class="cab-nav-item" id="cabTabTickets" onclick="switchCabTab('cab_tickets', this)">Мои билеты 🎰</div><div class="cab-nav-item" id="cabTabProfile" onclick="switchCabTab('cab_profile', this)">Мои данные</div><div class="cab-nav-item" id="cabTabSecurity" onclick="switchCabTab('cab_security', this)">Безопасность</div></div><div id="cab_orders" class="cab-tab-content"><div id="cabinetOrders"></div></div><div id="cab_tickets" class="cab-tab-content" style="display:none;"><div class="cab-card border-warning"><h5 class="fw-bold mb-3 text-warning"><i class="bi bi-ticket-perforated-fill me-2"></i>Ваши билеты на розыгрыш</h5><div id="cabinetTicketsList"></div></div></div><div id="cab_profile" class="cab-tab-content" style="display:none;"><div class="cab-card"><h5 class="fw-bold mb-4">Личная информация</h5><label class="small text-muted fw-bold mb-1">Ваше Имя</label><input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold"><label class="small text-muted fw-bold mb-1">Номер телефона</label><input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-4 p-3 fw-bold"><div id="cabAddrBlock"><h5 class="fw-bold mb-3">Сохраненные адреса</h5><div id="cabAddressesList" class="d-flex flex-column gap-2 mb-3"></div><div class="input-group mb-4"><input type="text" id="cabNewAddress" class="form-control bg-light border-0 p-3 fw-bold" placeholder="Добавить новый адрес"><button class="btn btn-dark fw-bold px-4" onclick="addAddress()">+</button></div></div><div id="cabTipsBlock" style="display:none;"><h5 class="fw-bold mb-3 text-warning"><i class="bi bi-cup-hot-fill"></i> Настройка чаевых</h5><div class="accordion mb-4" id="tipsAccordion"><div class="accordion-item border-0 bg-white rounded-3 shadow-sm mb-2" style="border: 1px solid #ffe69c !important;"><h2 class="accordion-header"><button class="accordion-button collapsed fw-bold rounded-3 text-dark bg-warning bg-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTips">Как создать ссылку/QR? (Инструкция)</button></h2><div id="collapseTips" class="accordion-collapse collapse" data-bs-parent="#tipsAccordion"><div class="accordion-body small text-muted"><b>Вариант 1 (Т-Банк / Сбербанк):</b> В приложении своего банка нажмите "Пополнить" или "Запросить деньги" -> скопируйте ссылку или сохраните QR-код.<br><br><b>Вариант 2 (CloudTips):</b> Зарегистрируйтесь на сайте <i>cloudtips.ru</i> как физлицо (по номеру телефона), привяжите любую вашу карту и скопируйте личную ссылку и QR-код.</div></div></div></div><label class="small text-muted fw-bold mb-1">Ваша ссылка на перевод (СБП/CloudTips)</label><input type="text" id="cabTipsLink" class="form-control bg-light border border-warning rounded-3 mb-3 p-3 fw-bold" placeholder="https://pay.cloudtips.ru/..."><label class="small text-muted fw-bold mb-1">QR-код для перевода (картинка)</label><input type="hidden" id="cabTipsQr"><input type="file" id="cabTipsQrFile" class="form-control bg-light border border-warning rounded-3 mb-2 p-2" accept="image/*" onchange="uploadCourQr(this)"><img id="courQrPreview" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm"></div><button class="btn btn-success w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Сохранить изменения</button></div></div><div id="cab_security" class="cab-tab-content" style="display:none;"><div class="cab-card border-danger"><h5 class="fw-bold mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Защита профиля</h5><p class="small text-muted mb-3">Установите пароль на вход по номеру.</p><input type="password" id="cabPass" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold" placeholder="Придумайте пароль"><button class="btn btn-danger w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Установить пароль</button></div><button class="btn btn-outline-dark w-100 fw-bold rounded-4 py-3 mt-4" onclick="logout()">Выйти из аккаунта</button></div></div></div></div></div>
+
+<div class="modal fade" id="deliveryRatingModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-2">Оцените доставку</h5><p class="small text-muted fw-bold mb-3">Был ли курьер (<span id="drCourName"></span>) вежлив? Всё ли понравилось?</p><div class="star-rating-dr mb-3 w-100"><input type="radio" id="dr_star5" name="dr_rating" value="5" checked><label for="dr_star5" title="5 звезд">★</label><input type="radio" id="dr_star4" name="dr_rating" value="4"><label for="dr_star4" title="4 звезды">★</label><input type="radio" id="dr_star3" name="dr_rating" value="3"><label for="dr_star3" title="3 звезды">★</label><input type="radio" id="dr_star2" name="dr_rating" value="2"><label for="dr_star2" title="2 звезды">★</label><input type="radio" id="dr_star1" name="dr_rating" value="1"><label for="dr_star1" title="1 звезда">★</label></div><textarea id="drComment" class="form-control bg-light border-0 rounded-4 p-3 mb-4" rows="2" placeholder="Ваши впечатления о доставке"></textarea><div id="drTipsContainer" style="display:none;" class="mb-4 text-start"><button id="drShowTipsBtn" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm py-2" onclick="document.getElementById('drTipsDetails').style.display='block'; this.style.display='none';"><i class="bi bi-cup-hot-fill me-1"></i>Хотите оставить чаевые?</button><div id="drTipsDetails" style="display:none;" class="p-3 bg-success bg-opacity-10 rounded-4 border border-success text-center"><p class="small text-success fw-bold mb-3" style="line-height: 1.3;">Это личные реквизиты курьера. Средства поступят напрямую на его счет.</p><img id="drTipsQr" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm"><a id="drTipsLink" href="" target="_blank" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" style="display:none;">Перевести по ссылке</a></div></div><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="submitDeliveryRating()">Отправить оценку</button></div></div></div>
 
 <div class="modal fade" id="addReviewModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-1">Оцените товар</h5><div class="small text-muted fw-bold mb-3" id="revProdName"></div><div class="star-rating mb-3"><input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 звезд">★</label><input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 звезды">★</label><input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 звезды">★</label><input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 звезды">★</label><input type="radio" id="star1" name="rating" value="1" checked><label for="star1" title="1 звезда">★</label></div><textarea id="revText" class="form-control bg-light border-0 rounded-4 p-3 mb-3" rows="3" placeholder="Что вам понравилось?"></textarea><button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitReview()">Отправить отзыв</button></div></div></div>
 
-<div class="modal fade" id="productDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 pb-5 rounded-4">
-            <button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 rounded-circle shadow-sm" data-bs-dismiss="modal" style="z-index: 10;"></button>
-            <img id="pdImg" src="" class="w-100 rounded-4 mb-3 shadow-sm" style="height:280px; object-fit:cover; display:none;">
-            <h3 class="fw-bold mb-1" id="pdName"></h3>
-            <h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4>
-            <p class="text-muted small mb-4" id="pdDesc"></p>
-            <button class="btn w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-4" id="pdAddBtn"></button>
-            <h5 class="fw-bold mb-3"><i class="bi bi-chat-left-text text-primary me-2"></i>Отзывы покупателей</h5>
-            <div id="pdReviewsList" class="d-flex flex-column gap-3"></div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="productDetailModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4"><button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 rounded-circle shadow-sm" data-bs-dismiss="modal" style="z-index: 10;"></button><img id="pdImg" src="" class="w-100 rounded-4 mb-3 shadow-sm" style="height:280px; object-fit:cover; display:none;"><h3 class="fw-bold mb-1" id="pdName"></h3><h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4><p class="text-muted small mb-4" id="pdDesc"></p><button class="btn w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-4" id="pdAddBtn"></button><h5 class="fw-bold mb-3"><i class="bi bi-chat-left-text text-primary me-2"></i>Отзывы покупателей</h5><div id="pdReviewsList" class="d-flex flex-column gap-3"></div></div></div></div>
 
-<div class="modal fade" id="cartModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;">
-        <div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        
-        <div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;">
-            <i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз. Выдача строго по паспорту.
-        </div>
-
-        <div id="cartItemsList" class="mb-4"></div>
-        <h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div>
-        
-        <div class="checkout-box">
-            <h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6>
-            <select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()">
-                <option value="pickup">Самовывоз (Магазин)</option>
-                <option value="courier">Доставка курьером</option>
-                <option value="taxi">Отправка Яндекс.Доставкой</option>
-            </select>
-            <select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime"><option value="Как можно скорее">🕒 Как можно скорее</option><option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option><option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option></select>
-            <div id="addressBox" style="display:none;">
-                <label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label>
-                <div class="d-flex gap-2 mb-2"><button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button><button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button></div>
-                <select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select>
-                <div id="newAddrWrap" class="input-group mb-2"><input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира"><button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button></div>
-            </div>
-        </div>
-        
-        <div class="checkout-box">
-            <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6>
-            <select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()">
-                <option value="online" class="text-success fw-bold">Картой онлайн (Безопасно)</option>
-                <option value="cash" id="optCash">Наличными при получении</option>
-                <option value="transfer">Перевод (Реквизиты в чате)</option>
-            </select>
-        </div>
-        
-        <div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div>
-        <div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div>
-        <div class="d-flex justify-content-between mb-1 text-muted"><span>Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Скидка / Баланс</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div>
-        <label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
-        <div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div>
-        <button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button>
-    </div></div>
-</div>
+<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз. Выдача строго по паспорту.</div><div id="cartItemsList" class="mb-4"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6><select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()"><option value="pickup">Самовывоз (Магазин)</option><option value="courier">Доставка курьером</option><option value="taxi">Отправка Яндекс.Доставкой</option></select><select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime"><option value="Как можно скорее">🕒 Как можно скорее</option><option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option><option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option></select><div id="addressBox" style="display:none;"><label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label><div class="d-flex gap-2 mb-2"><button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button><button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button></div><select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select><div id="newAddrWrap" class="input-group mb-2"><input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира"><button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button></div></div></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (Безопасно)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Скидка / Баланс</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
 
 <div class="modal fade" id="chatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden"><div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center"><h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Чат с магазином</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="site-chat-container"><div class="site-chat-messages" id="siteChatBox"></div><div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;"><input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()"><button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button></div></div></div></div></div>
+
 <div class="modal fade" id="loginModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center">Вход в систему</h4><div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div><div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div><input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00"><input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button></div></div></div>
+
 <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 text-center"><i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i><h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3><a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="location.reload()"><i class="bi bi-send-fill me-2"></i> Написать боту в VK</a><button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.reload()">Закрыть</button></div></div></div>
-<div class="modal fade" id="vipModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5"><h4 class="fw-bold mb-2 text-warning"><i class="bi bi-shield-lock-fill"></i> VIP Клуб (18+)</h4><p class="text-muted small mb-4">Отправьте заявку, чтобы снять ограничения на доставку и оплату товаров 18+. Директор лично проверяет профили.</p><input type="text" id="vipFio" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold" placeholder="Ваши Фамилия и Имя"><input type="tel" id="vipPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold" placeholder="Номер телефона" value="{{ user.phone if user else '' }}"><input type="text" id="vipSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold" placeholder="Ссылка на профиль VK"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold shadow-sm" onclick="sendVipRequest()">Отправить заявку</button></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // БРОНЕБОЙНОЕ ЧТЕНИЕ КОРЗИНЫ (Именно это роняло сайт)
+    // БРОНЕБОЙНОЕ ЧТЕНИЕ КОРЗИНЫ
     let cart = {};
-    try {
-        const stored = localStorage.getItem('nikolaich_cart');
-        if (stored && stored !== 'undefined') {
-            cart = JSON.parse(stored);
-        }
-    } catch (e) {
-        console.error("Ошибка корзины. Сброс.");
-        localStorage.removeItem('nikolaich_cart');
-        cart = {};
-    }
+    try { const stored = localStorage.getItem('nikolaich_cart'); if (stored && stored !== 'undefined') { cart = JSON.parse(stored); } } catch (e) { localStorage.removeItem('nikolaich_cart'); cart = {}; }
 
     let itemsTotal = 0; let lastCalc = null; let userAddresses = []; let currentReviewProdId = null;
-    let calcDebounceTimer = null; let currentAddressMode = 'new';
-    let currentRatingOrderId = null;
-    let pendingAction = null; 
-    let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}') || 0;
+    let calcDebounceTimer = null; let currentAddressMode = 'new'; let currentRatingOrderId = null;
+    let pendingAction = null; let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}') || 0;
 
-    // PWA БАННЕР УСТАНОВКИ
+    // ПРАВИЛА COOKIE
+    if(!localStorage.getItem('cookies_accepted')) { document.getElementById('cookieBanner').style.setProperty('display', 'flex', 'important'); }
+    function acceptCookies() { localStorage.setItem('cookies_accepted', 'true'); document.getElementById('cookieBanner').style.display = 'none'; }
+
+    // PWA БАННЕР (ЧИТАЕТ НАСТРОЙКИ АДМИНКИ)
     let deferredPrompt;
     const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+    const showPwa = '{{ settings.show_pwa_banner | default("1") }}';
     
-    if (!isStandalone) { 
+    if (!isStandalone && showPwa === '1') { 
         document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); 
     }
 
-    window.addEventListener('beforeinstallprompt', (e) => { 
-        e.preventDefault(); deferredPrompt = e; 
-    });
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
     function handleInstallClick() {
         const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
@@ -533,29 +339,19 @@
                 if (choiceResult.outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; }
                 deferredPrompt = null;
             });
-        } else if (isIos) {
-            new bootstrap.Modal(document.getElementById('iosInstallModal')).show();
-        } else {
-            new bootstrap.Modal(document.getElementById('androidInstallModal')).show();
-        }
+        } else if (isIos) { new bootstrap.Modal(document.getElementById('iosInstallModal')).show();
+        } else { new bootstrap.Modal(document.getElementById('androidInstallModal')).show(); }
     }
 
-    // ЛОГИКА БЛЮРА 18+
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
         document.querySelectorAll('.p-item').forEach(el => {
             const pHidden = parseInt(el.dataset.hidden || '0');
-            if (pHidden === 1 && !isConfirmed) { 
-                el.classList.add('locked-18'); 
-            } else { 
-                el.classList.remove('locked-18'); 
-            }
+            if (pHidden === 1 && !isConfirmed) { el.classList.add('locked-18'); } else { el.classList.remove('locked-18'); }
         });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        updateProductVisibility(); recalcTotals();
-    });
+    document.addEventListener("DOMContentLoaded", () => { updateProductVisibility(); recalcTotals(); });
 
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
     
@@ -565,12 +361,9 @@
         document.getElementById('filteredProductsBlock').style.display = query ? 'block' : 'none'; 
         document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; 
         document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); 
-        
         if(query) { 
             document.getElementById('filterTitle').innerText = 'Результаты поиска'; 
-            document.querySelectorAll('.filter-item').forEach(el => { 
-                el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; 
-            }); 
+            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.toLowerCase().includes(query) ? 'block' : 'none'; }); 
             updateProductVisibility(); 
         } else { updateProductVisibility(); }
     }
@@ -578,10 +371,8 @@
     function filterCat(catId, btnEl, isHidden) { 
         if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
             pendingAction = () => executeFilterCat(catId, btnEl);
-            document.getElementById('dobError').style.display = 'none';
-            document.getElementById('dobInput').value = '';
-            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show();
-            return;
+            document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
+            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return;
         }
         executeFilterCat(catId, btnEl);
     }
@@ -591,46 +382,30 @@
         document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; 
         document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; 
         document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); 
-        
         if (catId !== 'all') { 
             document.getElementById('filterTitle').innerText = 'Категория'; 
-            document.querySelectorAll('.filter-item').forEach(el => { 
-                el.style.display = el.dataset.cat == catId ? 'block' : 'none'; 
-            }); 
+            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }); 
             updateProductVisibility();
         } else { updateProductVisibility(); }
     }
 
-    function cancelAge() {
-        bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
-        pendingAction = null;
-    }
+    function cancelAge() { bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide(); pendingAction = null; }
     
     function confirmAgeDOB() {
         const dobVal = document.getElementById('dobInput').value;
         if(!dobVal) return alert("Пожалуйста, выберите дату вашего рождения!");
-        
-        const dob = new Date(dobVal);
-        const today = new Date();
-        let age = today.getFullYear() - dob.getFullYear();
-        const m = today.getMonth() - dob.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
-        
+        const dob = new Date(dobVal); const today = new Date(); let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth(); if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
         if (age >= 18) {
-            sessionStorage.setItem('age_confirmed', 'true');
-            updateProductVisibility();
+            sessionStorage.setItem('age_confirmed', 'true'); updateProductVisibility();
             bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
             if (pendingAction) { pendingAction(); pendingAction = null; }
         } else { document.getElementById('dobError').style.display = 'block'; }
     }
 
-    // БЕЗОПАСНЫЙ ОБРАБОТЧИК КЛИКОВ
     function handleProductClick(el) {
         const parent = el.closest('.p-item');
-        const id = parent.dataset.id; const name = parent.dataset.name; const desc = parent.dataset.desc;
-        const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step);
-        const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0');
-        
+        const id = parent.dataset.id; const name = parent.dataset.name; const desc = parent.dataset.desc; const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0');
         if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
             pendingAction = () => openProductView(id, name, img, desc, price, step, unit, isHidden);
             document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
@@ -641,9 +416,7 @@
 
     function handleAddClick(btn) {
         const parent = btn.closest('.p-item');
-        const id = parent.dataset.id; const name = parent.dataset.name; const price = parseFloat(parent.dataset.price);
-        const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0');
-        
+        const id = parent.dataset.id; const name = parent.dataset.name; const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0');
         if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
             pendingAction = () => add(btn, id, price, name, step, unit, img, isHidden);
             document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
@@ -660,8 +433,7 @@
         addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; 
         if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } 
         const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); 
-        if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } 
-        else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } 
+        if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } 
         new bootstrap.Modal(document.getElementById('productDetailModal')).show(); 
     }
     
@@ -673,34 +445,19 @@
     }
     
     function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
-    
-    function recalcTotals() { 
-        itemsTotal = 0; let count = 0; 
-        for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } 
-        localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); 
-        document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; 
-        document.getElementById('cartCount').innerText = count + ' позиций'; 
-        document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; 
-        if(calcDebounceTimer) clearTimeout(calcDebounceTimer); 
-        calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); 
-    }
-
+    function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
     function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
 
     async function loadUpsell() {
         const cartNames = Object.values(cart).map(i => i.name);
         const res = await fetch('/api/ai/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})});
-        const prods = await res.json();
-        const box = document.getElementById('upsellBox');
+        const prods = await res.json(); const box = document.getElementById('upsellBox');
         if(prods.length > 0) {
             box.innerHTML = prods.map(p => {
-                let img = p.images && p.images.length > 0 ? p.images[0] : '';
-                let imgHtml = img ? `<img src="${img}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`;
-                const hdn = p.is_hidden || 0;
-                const safeName = p.name.replace(/'/g,"");
-                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${img}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
-            }).join('');
-            box.parentElement.style.display = 'block';
+                let imgHtml = p.images && p.images.length > 0 ? `<img src="${p.images[0]}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`;
+                const hdn = p.is_hidden || 0; const safeName = p.name.replace(/'/g,"");
+                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${p.images&&p.images.length>0?p.images[0]:''}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
+            }).join(''); box.parentElement.style.display = 'block';
         } else { box.parentElement.style.display = 'none'; }
     }
 
@@ -712,40 +469,19 @@
             html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${img}<div class="fw-bold lh-1" style="font-size:13px;">${i.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width:40px; text-align:center;">${i.qty} ${i.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width:25%;">${is.toFixed(0)} ₽</div></div>`);
         }
         document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>';
-        try {
-            const res = await fetch('/api/user/cabinet'); const data = await res.json();
-            if(!data.error && data.user) {
-                let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {}
-                if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); }
-            }
-        } catch(e){}
-        await loadUpsell();
-        await calcCart();
+        try { const res = await fetch('/api/user/cabinet'); const data = await res.json(); if(!data.error && data.user) { let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {} if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); } } } catch(e){}
+        await loadUpsell(); await calcCart();
     }
 
     async function calcCart() {
         if(Object.keys(cart).length === 0) return;
         let dt = document.getElementById('deliveryType').value; let pt = document.getElementById('paymentType').value; const oc = document.getElementById('optCash'); const pc = document.getElementById('promoCode').value; const ph = document.getElementById('checkoutPhone').value;
-        
         const res = await fetch('/api/cart/calc', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items_total: itemsTotal, delivery_type: dt, promo_code: pc, phone: ph, cart: cart})});
         lastCalc = await res.json();
         
-        const warnBox = document.getElementById('cart18Warning');
-        const delSelect = document.getElementById('deliveryType');
-        const paySelect = document.getElementById('paymentType');
-
-        if(lastCalc.force_pickup_18) {
-            warnBox.style.display = 'block';
-            dt = 'pickup'; pt = 'cash';
-            delSelect.value = 'pickup'; delSelect.disabled = true;
-            paySelect.value = 'cash'; paySelect.disabled = true;
-            document.getElementById('addressBox').style.display = 'none';
-        } else {
-            warnBox.style.display = 'none';
-            delSelect.disabled = false; paySelect.disabled = false;
-            document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block';
-            if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; }
-        }
+        const warnBox = document.getElementById('cart18Warning'); const delSelect = document.getElementById('deliveryType'); const paySelect = document.getElementById('paymentType');
+        if(lastCalc.force_pickup_18) { warnBox.style.display = 'block'; dt = 'pickup'; pt = 'cash'; delSelect.value = 'pickup'; delSelect.disabled = true; paySelect.value = 'cash'; paySelect.disabled = true; document.getElementById('addressBox').style.display = 'none'; } 
+        else { warnBox.style.display = 'none'; delSelect.disabled = false; paySelect.disabled = false; document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block'; if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; } }
         
         const ps = document.getElementById('promoStatus'); ps.innerText = lastCalc.promo_status || ''; ps.className = lastCalc.promo_status && lastCalc.promo_status.includes('Скидка') ? "mt-2 small fw-bold text-success" : "mt-2 small fw-bold text-danger";
         document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽';
@@ -766,11 +502,8 @@
         const data = await res.json();
         if(data.status === 'ok') {
             cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals();
-            if(data.pay_data) {
-                const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url;
-                for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } }
-                document.body.appendChild(f); f.submit();
-            } else { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); }
+            if(data.pay_data) { const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url; for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } } document.body.appendChild(f); f.submit(); } 
+            else { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); }
         } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); }
     }
 
@@ -784,19 +517,9 @@
         const res = await fetch('/api/user/cabinet'); const data = await res.json();
         if(data.error) return new bootstrap.Modal(document.getElementById('loginModal')).show();
         
-        document.getElementById('cabName').value = data.user.full_name || '';
-        document.getElementById('cabPhone').value = data.user.phone || '';
-        
+        document.getElementById('cabName').value = data.user.full_name || ''; document.getElementById('cabPhone').value = data.user.phone || '';
         if (data.user.role === 'courier') {
-            document.getElementById('cabMainTitle').innerHTML = '<i class="bi bi-box-seam text-warning me-2"></i>Пульт Курьера';
-            document.getElementById('cabTabOrders').innerText = 'Мои доставки';
-            document.getElementById('cabTabTickets').style.display = 'none';
-            document.getElementById('cabAddrBlock').style.display = 'none';
-            document.getElementById('cabTipsBlock').style.display = 'block';
-            document.getElementById('cabTipsLink').value = data.user.tips_link || '';
-            document.getElementById('cabTipsQr').value = data.user.tips_qr || '';
-            if(data.user.tips_qr) { document.getElementById('courQrPreview').src = data.user.tips_qr; document.getElementById('courQrPreview').style.display = 'block'; }
-            
+            document.getElementById('cabMainTitle').innerHTML = '<i class="bi bi-box-seam text-warning me-2"></i>Пульт Курьера'; document.getElementById('cabTabOrders').innerText = 'Мои доставки'; document.getElementById('cabTabTickets').style.display = 'none'; document.getElementById('cabAddrBlock').style.display = 'none'; document.getElementById('cabTipsBlock').style.display = 'block'; document.getElementById('cabTipsLink').value = data.user.tips_link || ''; document.getElementById('cabTipsQr').value = data.user.tips_qr || ''; if(data.user.tips_qr) { document.getElementById('courQrPreview').src = data.user.tips_qr; document.getElementById('courQrPreview').style.display = 'block'; }
             if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Нет активных заказов для доставки.</div>'; } 
             else {
                 const stC = {'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success'};
@@ -808,17 +531,9 @@
                 }).join('');
             }
         } else {
-            document.getElementById('cabAddrBlock').style.display = 'block';
-            document.getElementById('cabTipsBlock').style.display = 'none';
-            document.getElementById('cabTabTickets').style.display = 'block';
-            
-            userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : []; 
-            document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span></div>`).join('');
-            
-            if(data.tickets && data.tickets.length > 0) {
-                document.getElementById('cabinetTicketsList').innerHTML = data.tickets.map(t => `<div class="ticket-item"><div class="small fw-bold opacity-75">${t.title}</div><div class="ticket-num">${t.ticket_number}</div></div>`).join('');
-            } else { document.getElementById('cabinetTicketsList').innerHTML = '<div class="text-muted small">У вас пока нет билетов. Сделайте заказ!</div>'; }
-
+            document.getElementById('cabAddrBlock').style.display = 'block'; document.getElementById('cabTipsBlock').style.display = 'none'; document.getElementById('cabTabTickets').style.display = 'block';
+            userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : []; document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span></div>`).join('');
+            if(data.tickets && data.tickets.length > 0) { document.getElementById('cabinetTicketsList').innerHTML = data.tickets.map(t => `<div class="ticket-item"><div class="small fw-bold opacity-75">${t.title}</div><div class="ticket-num">${t.ticket_number}</div></div>`).join(''); } else { document.getElementById('cabinetTicketsList').innerHTML = '<div class="text-muted small">У вас пока нет билетов. Сделайте заказ!</div>'; }
             const stC = {'Новый':'secondary', 'Оплачен':'primary', 'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success', 'Отменен':'danger'};
             if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Вы еще ничего не заказывали.</div>'; } 
             else {

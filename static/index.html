@@ -44,38 +44,50 @@
         .old-price { font-size: 13px; text-decoration: line-through; color: #ffaaaa; font-weight: 600; }
         .p-unit { font-size: 12px; color: #ffdab3; font-weight: 600; text-shadow: 1px 1px 3px rgba(0,0,0,1); margin-bottom: auto;}
         .p-name { font-size: 14px; color: #fff; font-weight: 800; line-height: 1.2; margin-top: 6px; cursor: pointer; height: 36px; overflow: hidden; text-shadow: 1px 1px 4px rgba(0,0,0,1); }
+        
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .btn-add.added { background: var(--accent); color: #fff; }
         .btn-add-18 { background: #dc3545; color: #fff; } 
+        
+        /* БАННЕР PWA */
+        .pwa-banner { background: linear-gradient(135deg, #00b853, #00d65f); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,184,83,0.3); margin: 15px 20px 0 20px; border-radius: 16px; cursor: pointer; }
+        
         @keyframes cartPop { 0% { transform: scale(1); } 50% { transform: scale(1.08); background-color: #00d65f; } 100% { transform: scale(1); background-color: var(--accent); } }
         .cart-bounce { animation: cartPop 0.4s ease; }
+        
         .floating-cart { position: fixed; bottom: 20px; left: 20px; right: 80px; background: var(--accent); color: #fff; border-radius: 20px; padding: 18px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 2000; cursor: pointer; }
         .floating-chat-btn { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: #007aff; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 10px 25px rgba(0, 122, 255, 0.4); z-index: 2000; cursor: pointer; transition: 0.2s; }
+        
         .checkout-box { background: #f9f9f9; border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; }
         .upsell-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
         .upsell-card { min-width: 140px; background: #fff; border-radius: 16px; padding: 10px; border: 1px solid #eee; text-align: center; }
         .upsell-card img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; margin-bottom: 8px; }
+        
         .cab-nav { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; }
         .cab-nav-item { padding: 10px 20px; border-radius: 20px; font-weight: 700; color: #8e8e93; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .cab-nav-item.active { background: #1d1d1f; color: #fff; }
         .cab-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 20px; }
+        
         .order-receipt { background: #fff; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; margin-bottom: 20px; position: relative; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
         .order-receipt::before, .order-receipt::after { content:''; position:absolute; top: 60px; width: 24px; height: 24px; background: #f4f5f7; border-radius: 50%; z-index: 1;}
         .order-receipt::before { left: -12px; border-right: 1px dashed #ccc; }
         .order-receipt::after { right: -12px; border-left: 1px dashed #ccc; }
         .receipt-line { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px; color: #444; }
         .receipt-divider { border-bottom: 2px dotted #eee; margin: 15px 0; }
+        
         .site-chat-container { display: flex; flex-direction: column; height: 60vh; background: #f4f5f7; border-radius: 16px; overflow: hidden; }
         .site-chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.4; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .chat-bot { align-self: flex-start; background: #fff; color: #000; border-bottom-left-radius: 4px; border: 1px solid #eee;}
         .chat-user { align-self: flex-end; background: #007aff; color: #fff; border-bottom-right-radius: 4px; }
         .chat-btn { background: #e8f0fe; color: #007aff; border: none; padding: 8px 15px; border-radius: 20px; font-weight: 600; font-size: 13px; margin-top: 5px; cursor: pointer; text-align: left; display: block; width: fit-content; transition: 0.2s;}
+        
         .star-rating, .star-rating-dr { direction: rtl; display: inline-flex; font-size: 35px; justify-content: center;}
         .star-rating input, .star-rating-dr input { display: none; }
         .star-rating label, .star-rating-dr label { color: #ddd; cursor: pointer; padding: 0 5px; transition: 0.2s; }
         .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #ffc107; }
         .star-rating-dr label:hover, .star-rating-dr label:hover ~ label, .star-rating-dr input:checked ~ label { color: #00b853; }
+        
         .ticket-item { background: linear-gradient(135deg, #f1c40f, #f39c12); color: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(241, 196, 15, 0.4); border: 2px dashed rgba(255,255,255,0.5); }
         .ticket-num { font-size: 24px; font-weight: 900; letter-spacing: 2px; }
     </style>
@@ -113,6 +125,19 @@
             {% endfor %}
         </div>
     </div>
+</div>
+
+<div id="pwaInstallBanner" class="pwa-banner" style="display: none;" onclick="installApp()">
+    <div class="d-flex align-items-center">
+        <div style="background: #fff; padding: 6px; border-radius: 12px; margin-right: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <i class="bi bi-phone-vibrate text-success fs-3 lh-1"></i>
+        </div>
+        <div>
+            <div class="fw-bold lh-1 mb-1">Приложение «Николаич»</div>
+            <div class="small opacity-75" style="font-size: 11px;">Установите для быстрого доступа</div>
+        </div>
+    </div>
+    <button class="btn btn-light btn-sm fw-bold rounded-pill text-success px-3 shadow-sm">Установить</button>
 </div>
 
 {% if banners %}
@@ -202,12 +227,17 @@
         <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center" style="background: #1d1d1f; color: #fff;">
             <i class="bi bi-exclamation-octagon text-danger mb-3" style="font-size: 60px;"></i>
             <h4 class="fw-bold mb-2">Внимание: Контент 18+</h4>
-            <p class="text-white-50 small mb-4">Данный товар предназначен только для лиц, достигших 18 лет. Пожалуйста, подтвердите свой возраст.</p>
+            <p class="text-white-50 small mb-3">Данный товар содержит продукцию для взрослых. Для доступа введите дату вашего рождения:</p>
+            
+            <input type="date" id="dobInput" class="form-control bg-dark text-white border-secondary mb-3 text-center fw-bold fs-5">
+            
             <div class="d-flex gap-2">
-                <button class="btn btn-outline-light w-50 fw-bold rounded-pill" data-bs-dismiss="modal">Мне нет 18</button>
-                <button class="btn btn-danger w-50 fw-bold rounded-pill" onclick="confirmAge()">Мне есть 18 лет</button>
+                <button class="btn btn-outline-light w-50 fw-bold rounded-pill" data-bs-dismiss="modal">Отмена</button>
+                <button class="btn btn-danger w-50 fw-bold rounded-pill" onclick="confirmAgeDOB()">Подтвердить</button>
             </div>
-            <div class="small text-danger mt-3 fw-bold">Товары 18+ доступны только для самовывоза.</div>
+            
+            <div id="dobError" class="text-danger small fw-bold mt-2" style="display:none;">Доступ разрешен только с 18 лет!</div>
+            <div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны обычным гостям только для Самовывоза с оплатой на кассе.</div>
         </div>
     </div>
 </div>
@@ -345,7 +375,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         
         <div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;">
-            <i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.
+            <i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз. Выдача строго по паспорту.
         </div>
 
         <div id="cartItemsList" class="mb-4"></div>
@@ -399,24 +429,51 @@
     let pendingAction = null; 
     let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}');
 
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault(); deferredPrompt = e; document.getElementById('pwaInstallBanner').style.display = 'flex';
+    });
+    async function installApp() {
+        if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; } deferredPrompt = null; }
+    }
+
     document.addEventListener("DOMContentLoaded", () => recalcTotals());
 
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
     function searchProducts() { const query = document.getElementById('searchInput').value.toLowerCase(); document.getElementById('mainContentBlocks').style.display = query ? 'none' : 'block'; document.getElementById('filteredProductsBlock').style.display = query ? 'block' : 'none'; document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); if(query) { document.getElementById('filterTitle').innerText = 'Результаты поиска'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; }); } }
     function filterCat(catId, btnEl) { if(btnEl) { document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active')); btnEl.classList.add('active'); } document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); if (catId !== 'all') { document.getElementById('filterTitle').innerText = 'Категория'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }); } }
     
+    // ЛОГИКА 18+ С ДАТОЙ РОЖДЕНИЯ
     function checkAgeAndExecute(isHidden, callback) {
         if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
             pendingAction = callback;
+            document.getElementById('dobError').style.display = 'none';
+            document.getElementById('dobInput').value = '';
             new bootstrap.Modal(document.getElementById('ageVerificationModal')).show();
         } else {
             callback();
         }
     }
-    function confirmAge() {
-        sessionStorage.setItem('age_confirmed', 'true');
-        bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
-        if (pendingAction) { pendingAction(); pendingAction = null; }
+    
+    function confirmAgeDOB() {
+        const dobVal = document.getElementById('dobInput').value;
+        if(!dobVal) return alert("Пожалуйста, выберите дату вашего рождения!");
+        
+        const dob = new Date(dobVal);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        
+        if (age >= 18) {
+            sessionStorage.setItem('age_confirmed', 'true');
+            bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
+            if (pendingAction) { pendingAction(); pendingAction = null; }
+        } else {
+            document.getElementById('dobError').style.display = 'block';
+        }
     }
 
     async function sendVipRequest() {

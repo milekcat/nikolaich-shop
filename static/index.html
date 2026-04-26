@@ -34,6 +34,7 @@
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
         
+        /* БАННЕР PWA */
         .pwa-banner { background: linear-gradient(135deg, #00b853, #00d65f); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,184,83,0.3); margin: 15px 20px 0 20px; border-radius: 16px; cursor: pointer; transition: 0.3s; }
         .pwa-banner:active { transform: scale(0.98); }
         
@@ -48,13 +49,13 @@
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         
-        /* === ЭФФЕКТ СПОЙЛЕРА (БЛЮРА) ДЛЯ 18+ === */
-        .locked-18 .p-img-box img { filter: blur(15px) grayscale(50%); transform: scale(1.1); transition: 0.3s; }
+        /* === ИДЕАЛЬНЫЙ БЛЮР 18+ === */
+        .locked-18 .p-img-box img { filter: blur(20px) grayscale(50%); transform: scale(1.1); transition: 0.3s; }
         .locked-18 .p-img-box::after { content: '🔒 18+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: 900; color: #fff; background: rgba(220,53,69,0.85); padding: 8px 18px; border-radius: 12px; z-index: 10; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
-        .locked-18 .p-name { filter: blur(4px); opacity: 0.6; user-select: none; }
-        .locked-18 .p-price { filter: blur(4px); opacity: 0.6; }
+        .locked-18 .p-name { filter: blur(5px); opacity: 0.6; user-select: none; }
+        .locked-18 .p-price { filter: blur(5px); opacity: 0.6; }
         .locked-18 .btn-add { background: #333 !important; color: #888 !important; border: 1px solid #555; pointer-events: none; }
-        .locked-18 .btn-add::after { content: ' Открыть'; }
+        .locked-18 .btn-add::after { content: ' Подтвердить'; }
         
         .p-stickers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .p-fav { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(255,255,255,0.9); border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;}
@@ -70,6 +71,7 @@
         
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .btn-add.added { background: var(--accent); color: #fff; }
+        .btn-add-18 { background: #dc3545; color: #fff; } 
         
         .d-none-18 { display: none !important; }
         
@@ -177,8 +179,18 @@
             <div class="row g-3" id="grid-block-{{ block.id }}">
                 {% for p in products %}
                     {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
-                    <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}">
-                        <div class="p-card" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name|replace('\'', '\\\'') }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ')|replace('\'', '\\\'') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
+                    <div class="col-6 col-md-4 col-lg-3 p-item" 
+                         data-id="{{ p.id }}" 
+                         data-cat="{{ p.category_id }}" 
+                         data-hidden="{{ p.is_hidden|default(0) }}" 
+                         data-name="{{ p.name|escape }}" 
+                         data-price="{{ p.price }}" 
+                         data-step="{{ p.step }}" 
+                         data-unit="{{ p.unit }}" 
+                         data-img="{{ p.images[0] if p.images else '' }}" 
+                         data-desc="{{ p.desc|escape }}">
+                         
+                        <div class="p-card" onclick="handleProductClick(this)">
                             <div class="p-stickers">
                                 {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
                                 {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
@@ -192,10 +204,9 @@
                             <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
                             <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                             <div class="p-unit">за 1 {{ p.unit }}</div>
-                            
                             <div class="p-name">{{ p.name }}</div>
                             
-                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name|replace('\'', '\\\'') }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
+                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
                         </div>
                     </div>
                     {% endif %}
@@ -210,8 +221,18 @@
     <div class="prod-grid">
         <div class="row g-3" id="grid-filter">
             {% for p in products %}
-            <div class="col-6 col-md-4 col-lg-3 p-item filter-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}" style="display: block;">
-                <div class="p-card" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name|replace('\'', '\\\'') }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ')|replace('\'', '\\\'') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
+            <div class="col-6 col-md-4 col-lg-3 p-item filter-item" 
+                 data-id="{{ p.id }}" 
+                 data-cat="{{ p.category_id }}" 
+                 data-hidden="{{ p.is_hidden|default(0) }}" 
+                 data-name="{{ p.name|escape }}" 
+                 data-price="{{ p.price }}" 
+                 data-step="{{ p.step }}" 
+                 data-unit="{{ p.unit }}" 
+                 data-img="{{ p.images[0] if p.images else '' }}" 
+                 data-desc="{{ p.desc|escape }}" style="display: block;">
+                 
+                <div class="p-card" onclick="handleProductClick(this)">
                     <div class="p-stickers">
                         {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
                         {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
@@ -225,10 +246,9 @@
                     <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
                     <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                     <div class="p-unit">за 1 {{ p.unit }}</div>
-                    
                     <div class="p-name">{{ p.name }}</div>
                     
-                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name|replace('\'', '\\\'') }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
+                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
                 </div>
             </div>
             {% endfor %}
@@ -480,19 +500,11 @@
     let pendingAction = null; 
     let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}');
 
-    // ЛОГИКА PWA И УСТАНОВКИ ПРИЛОЖЕНИЯ
+    // PWA БАННЕР
     let deferredPrompt;
-    // ОПРЕДЕЛЯЕМ УСТРОЙСТВО И СТАТУС УСТАНОВКИ
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    
-    // БАННЕР ТЕПЕРЬ ПОКАЗЫВАЕТСЯ ВСЕГДА В БРАУЗЕРЕ (Пока клиент не установит приложение)
-    if (!isStandalone) { 
-        document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); 
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => { 
-        e.preventDefault(); deferredPrompt = e; 
-    });
+    if (!isStandalone) { document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); }
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
     function handleInstallClick() {
         const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
@@ -509,24 +521,16 @@
         }
     }
 
-    // ЛОГИКА БЛЮРА 18+ ТОВАРОВ
+    // БЛЮР ТОВАРОВ 18+
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
-        
-        // Перебираем ВСЕ товары и накидываем класс с блюром
         document.querySelectorAll('.p-item').forEach(el => {
             const pHidden = parseInt(el.dataset.hidden || '0');
-            if (pHidden === 1 && !isConfirmed) { 
-                el.classList.add('locked-18'); 
-            } else { 
-                el.classList.remove('locked-18'); 
-            }
+            if (pHidden === 1 && !isConfirmed) { el.classList.add('locked-18'); } else { el.classList.remove('locked-18'); }
         });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        updateProductVisibility(); recalcTotals();
-    });
+    document.addEventListener("DOMContentLoaded", () => { updateProductVisibility(); recalcTotals(); });
 
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
     
@@ -536,12 +540,9 @@
         document.getElementById('filteredProductsBlock').style.display = query ? 'block' : 'none'; 
         document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; 
         document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); 
-        
         if(query) { 
             document.getElementById('filterTitle').innerText = 'Результаты поиска'; 
-            document.querySelectorAll('.filter-item').forEach(el => { 
-                el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; 
-            }); 
+            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; }); 
             updateProductVisibility(); 
         } else { updateProductVisibility(); }
     }
@@ -562,12 +563,9 @@
         document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; 
         document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; 
         document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); 
-        
         if (catId !== 'all') { 
             document.getElementById('filterTitle').innerText = 'Категория'; 
-            document.querySelectorAll('.filter-item').forEach(el => { 
-                el.style.display = el.dataset.cat == catId ? 'block' : 'none'; 
-            }); 
+            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }); 
             updateProductVisibility();
         } else { updateProductVisibility(); }
     }
@@ -580,19 +578,152 @@
     function confirmAgeDOB() {
         const dobVal = document.getElementById('dobInput').value;
         if(!dobVal) return alert("Пожалуйста, выберите дату вашего рождения!");
-        
-        const dob = new Date(dobVal);
-        const today = new Date();
-        let age = today.getFullYear() - dob.getFullYear();
-        const m = today.getMonth() - dob.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
-        
+        const dob = new Date(dobVal); const today = new Date(); let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth(); if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
         if (age >= 18) {
             sessionStorage.setItem('age_confirmed', 'true');
-            updateProductVisibility(); // Снимаем блюр!
+            updateProductVisibility(); 
             bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
             if (pendingAction) { pendingAction(); pendingAction = null; }
         } else { document.getElementById('dobError').style.display = 'block'; }
+    }
+
+    // БЕЗОПАСНЫЙ ОБРАБОТЧИК КЛИКОВ ПО КАРТОЧКЕ
+    function handleProductClick(el) {
+        const parent = el.closest('.p-item');
+        const id = parent.dataset.id; const name = parent.dataset.name; const desc = parent.dataset.desc;
+        const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step);
+        const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0');
+        
+        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
+            pendingAction = () => openProductView(id, name, img, desc, price, step, unit, isHidden);
+            document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
+            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return;
+        }
+        openProductView(id, name, img, desc, price, step, unit, isHidden);
+    }
+
+    // БЕЗОПАСНЫЙ ОБРАБОТЧИК КНОПКИ "В КОРЗИНУ"
+    function handleAddClick(btn) {
+        const parent = btn.closest('.p-item');
+        const id = parent.dataset.id; const name = parent.dataset.name; const price = parseFloat(parent.dataset.price);
+        const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0');
+        
+        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
+            pendingAction = () => add(btn, id, price, name, step, unit, img, isHidden);
+            document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
+            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return;
+        }
+        add(btn, id, price, name, step, unit, img, isHidden);
+    }
+
+    async function openProductView(id, name, img, desc, price, step, unit, isHidden) {
+        document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; 
+        if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } 
+        const addBtn = document.getElementById('pdAddBtn'); 
+        addBtn.onclick = () => { add(null, id, price, name, step, unit, img, isHidden); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; 
+        addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; 
+        if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } 
+        const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); 
+        if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } 
+        else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } 
+        new bootstrap.Modal(document.getElementById('productDetailModal')).show(); 
+    }
+    
+    function add(btn, id, price, name, step, unit, img, isHidden) { 
+        if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden}; } 
+        cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); 
+        if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } 
+        const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); 
+    }
+    
+    function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
+    function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
+    function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
+
+    async function loadUpsell() {
+        const cartNames = Object.values(cart).map(i => i.name);
+        const res = await fetch('/api/ai/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})});
+        const prods = await res.json();
+        const box = document.getElementById('upsellBox');
+        if(prods.length > 0) {
+            box.innerHTML = prods.map(p => {
+                let img = p.images && p.images.length > 0 ? p.images[0] : '';
+                let imgHtml = img ? `<img src="${img}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`;
+                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${p.name.replace(/'/g,"")}', ${p.step}, '${p.unit}', '${img}', ${p.is_hidden|default(0)})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
+            }).join('');
+            box.parentElement.style.display = 'block';
+        } else { box.parentElement.style.display = 'none'; }
+    }
+
+    async function prepareCart() {
+        const html = [];
+        for(let id in cart) {
+            const i = cart[id]; const is = i.price * i.qty;
+            let img = i.img ? `<img src="${i.img}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;margin-right:12px;">` : '';
+            html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${img}<div class="fw-bold lh-1" style="font-size:13px;">${i.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width:40px; text-align:center;">${i.qty} ${i.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width:25%;">${is.toFixed(0)} ₽</div></div>`);
+        }
+        document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>';
+        try {
+            const res = await fetch('/api/user/cabinet'); const data = await res.json();
+            if(!data.error && data.user) {
+                let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {}
+                if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); }
+            }
+        } catch(e){}
+        await loadUpsell();
+        await calcCart();
+    }
+
+    async function calcCart() {
+        if(Object.keys(cart).length === 0) return;
+        let dt = document.getElementById('deliveryType').value; let pt = document.getElementById('paymentType').value; const oc = document.getElementById('optCash'); const pc = document.getElementById('promoCode').value; const ph = document.getElementById('checkoutPhone').value;
+        
+        const res = await fetch('/api/cart/calc', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items_total: itemsTotal, delivery_type: dt, promo_code: pc, phone: ph, cart: cart})});
+        lastCalc = await res.json();
+        
+        const warnBox = document.getElementById('cart18Warning');
+        const delSelect = document.getElementById('deliveryType');
+        const paySelect = document.getElementById('paymentType');
+
+        if(lastCalc.force_pickup_18) {
+            warnBox.style.display = 'block';
+            dt = 'pickup'; pt = 'cash';
+            delSelect.value = 'pickup'; delSelect.disabled = true;
+            paySelect.value = 'cash'; paySelect.disabled = true;
+            document.getElementById('addressBox').style.display = 'none';
+        } else {
+            warnBox.style.display = 'none';
+            delSelect.disabled = false; paySelect.disabled = false;
+            document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block';
+            if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; }
+        }
+        
+        const ps = document.getElementById('promoStatus'); ps.innerText = lastCalc.promo_status || ''; ps.className = lastCalc.promo_status && lastCalc.promo_status.includes('Скидка') ? "mt-2 small fw-bold text-success" : "mt-2 small fw-bold text-danger";
+        document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽';
+        const td = (lastCalc.discount || 0) + (lastCalc.sysadmin_pay || 0); document.getElementById('tDiscount').innerText = td > 0 ? '- ' + td.toFixed(0) + ' ₽' : '0 ₽';
+        const btn = document.getElementById('checkoutBtn'); const mo = lastCalc.min_order || 0;
+        if(lastCalc.items_total < mo) { btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary'); btn.innerHTML = `Добавьте ещё на ${mo - lastCalc.items_total} ₽`; } 
+        else { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; }
+    }
+
+    async function sendOrder() {
+        if(Object.keys(cart).length === 0) return;
+        const ph = document.getElementById('checkoutPhone').value; const soc = document.getElementById('checkoutSocial').value; const pt = document.getElementById('paymentType').value; const dt = document.getElementById('deliveryType').value; const d_time = document.getElementById('checkoutTime').value; const comm = document.getElementById('checkoutComment').value;
+        if(!ph) return alert("Введите номер телефона!");
+        let addr = ''; if(dt !== 'pickup' && !lastCalc.force_pickup_18) { addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; if(!addr) return alert("Укажите адрес доставки!"); }
+        const btn = document.getElementById('checkoutBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Оформление...';
+        const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc};
+        const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)});
+        const data = await res.json();
+        if(data.status === 'ok') {
+            cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals();
+            if(data.pay_data) {
+                const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url;
+                for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } }
+                document.body.appendChild(f); f.submit();
+            } else { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); }
+        } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); }
     }
 
     async function sendVipRequest() {
@@ -601,7 +732,6 @@
         await fetch('/api/user/vip_request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: phone, fio: fio, social: social})});
         alert("Заявка отправлена директору!"); location.reload();
     }
-
     function openReviewDialog(prodId, prodName) { currentReviewProdId = prodId; document.getElementById('revProdName').innerText = prodName; document.getElementById('revText').value = ''; new bootstrap.Modal(document.getElementById('addReviewModal')).show(); }
     async function submitReview() { const rating = document.querySelector('input[name="rating"]:checked').value; const text = document.getElementById('revText').value; if(!text.trim()) return alert("Напишите пару слов!"); await fetch('/api/user/add_review', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: currentReviewProdId, rating: parseInt(rating), text: text})}); bootstrap.Modal.getInstance(document.getElementById('addReviewModal')).hide(); alert("Спасибо! Отзыв отправлен на модерацию."); }
     function repeatOrder(itemsStr) { const itemsObj = JSON.parse(itemsStr); for(let key in itemsObj) { const i = itemsObj[key]; if(cart[key]) cart[key].qty += i.qty; else cart[key] = i; } recalcTotals(); new bootstrap.Modal(document.getElementById('cartModal')).show(); prepareCart(); }
@@ -706,131 +836,6 @@
     async function logout() { await fetch('/api/auth/logout', {method: 'POST'}); location.reload(); }
     async function toggleFav(id, el) { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); const res = await fetch('/api/user/fav', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: id})}); const data = await res.json(); if(data.status === 'added') el.classList.add('active'); else el.classList.remove('active'); }
     
-    async function openProductView(id, name, img, desc, price, step, unit, isHidden) {
-        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
-            pendingAction = () => openProductView(id, name, img, desc, price, step, unit, isHidden);
-            document.getElementById('dobError').style.display = 'none';
-            document.getElementById('dobInput').value = '';
-            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show();
-            return;
-        }
-        
-        document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; 
-        if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } 
-        const addBtn = document.getElementById('pdAddBtn'); 
-        addBtn.onclick = () => { add(null, id, price, name, step, unit, img, isHidden); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; 
-        addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; 
-        
-        if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } 
-        
-        const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); 
-        if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } 
-        else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } 
-        new bootstrap.Modal(document.getElementById('productDetailModal')).show(); 
-    }
-    
-    function add(btn, id, price, name, step, unit, img, isHidden) { 
-        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
-            pendingAction = () => add(btn, id, price, name, step, unit, img, isHidden);
-            document.getElementById('dobError').style.display = 'none';
-            document.getElementById('dobInput').value = '';
-            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show();
-            return;
-        }
-        if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden}; } 
-        cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); 
-        if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } 
-        const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); 
-    }
-    function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
-    function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
-    function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
-
-    async function loadUpsell() {
-        const cartNames = Object.values(cart).map(i => i.name);
-        const res = await fetch('/api/ai/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})});
-        const prods = await res.json();
-        const box = document.getElementById('upsellBox');
-        if(prods.length > 0) {
-            box.innerHTML = prods.map(p => {
-                let img = p.images && p.images.length > 0 ? p.images[0] : '';
-                let imgHtml = img ? `<img src="${img}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`;
-                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${p.name.replace(/'/g,"")}', ${p.step}, '${p.unit}', '${img}', ${p.is_hidden|default(0)})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
-            }).join('');
-            box.parentElement.style.display = 'block';
-        } else { box.parentElement.style.display = 'none'; }
-    }
-
-    async function prepareCart() {
-        const html = [];
-        for(let id in cart) {
-            const i = cart[id]; const is = i.price * i.qty;
-            let img = i.img ? `<img src="${i.img}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;margin-right:12px;">` : '';
-            html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${img}<div class="fw-bold lh-1" style="font-size:13px;">${i.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width:40px; text-align:center;">${i.qty} ${i.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width:25%;">${is.toFixed(0)} ₽</div></div>`);
-        }
-        document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>';
-        try {
-            const res = await fetch('/api/user/cabinet'); const data = await res.json();
-            if(!data.error && data.user) {
-                let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {}
-                if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); }
-            }
-        } catch(e){}
-        await loadUpsell();
-        await calcCart();
-    }
-
-    async function calcCart() {
-        if(Object.keys(cart).length === 0) return;
-        let dt = document.getElementById('deliveryType').value; let pt = document.getElementById('paymentType').value; const oc = document.getElementById('optCash'); const pc = document.getElementById('promoCode').value; const ph = document.getElementById('checkoutPhone').value;
-        
-        const res = await fetch('/api/cart/calc', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items_total: itemsTotal, delivery_type: dt, promo_code: pc, phone: ph, cart: cart})});
-        lastCalc = await res.json();
-        
-        const warnBox = document.getElementById('cart18Warning');
-        const delSelect = document.getElementById('deliveryType');
-        const paySelect = document.getElementById('paymentType');
-
-        if(lastCalc.force_pickup_18) {
-            warnBox.style.display = 'block';
-            dt = 'pickup'; pt = 'cash';
-            delSelect.value = 'pickup'; delSelect.disabled = true;
-            paySelect.value = 'cash'; paySelect.disabled = true;
-            document.getElementById('addressBox').style.display = 'none';
-        } else {
-            warnBox.style.display = 'none';
-            delSelect.disabled = false; paySelect.disabled = false;
-            document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block';
-            if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; }
-        }
-        
-        const ps = document.getElementById('promoStatus'); ps.innerText = lastCalc.promo_status || ''; ps.className = lastCalc.promo_status && lastCalc.promo_status.includes('Скидка') ? "mt-2 small fw-bold text-success" : "mt-2 small fw-bold text-danger";
-        document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽';
-        const td = (lastCalc.discount || 0) + (lastCalc.sysadmin_pay || 0); document.getElementById('tDiscount').innerText = td > 0 ? '- ' + td.toFixed(0) + ' ₽' : '0 ₽';
-        const btn = document.getElementById('checkoutBtn'); const mo = lastCalc.min_order || 0;
-        if(lastCalc.items_total < mo) { btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary'); btn.innerHTML = `Добавьте ещё на ${mo - lastCalc.items_total} ₽`; } 
-        else { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; }
-    }
-
-    async function sendOrder() {
-        if(Object.keys(cart).length === 0) return;
-        const ph = document.getElementById('checkoutPhone').value; const soc = document.getElementById('checkoutSocial').value; const pt = document.getElementById('paymentType').value; const dt = document.getElementById('deliveryType').value; const d_time = document.getElementById('checkoutTime').value; const comm = document.getElementById('checkoutComment').value;
-        if(!ph) return alert("Введите номер телефона!");
-        let addr = ''; if(dt !== 'pickup' && !lastCalc.force_pickup_18) { addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; if(!addr) return alert("Укажите адрес доставки!"); }
-        const btn = document.getElementById('checkoutBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Оформление...';
-        const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc};
-        const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)});
-        const data = await res.json();
-        if(data.status === 'ok') {
-            cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals();
-            if(data.pay_data) {
-                const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url;
-                for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } }
-                document.body.appendChild(f); f.submit();
-            } else { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); }
-        } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); }
-    }
-
     let chatState = 'start'; let chatInterval = null;
     function openChat() { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); new bootstrap.Modal(document.getElementById('chatModal')).show(); renderBotMenu(); }
     function renderBotMenu() { const b = document.getElementById('siteChatBox'); document.getElementById('siteChatInputBox').style.setProperty('display', 'none', 'important'); if(chatState === 'start') { b.innerHTML = `<div class="chat-bubble chat-bot">Чем могу помочь?<button class="chat-btn" onclick="chatState='order_ask'; renderBotMenu();">Вопрос по заказу</button><button class="chat-btn" onclick="chatState='menu'; renderBotMenu();">Другой вопрос</button></div>`; } else if(chatState === 'order_ask') { b.innerHTML += `<div class="chat-bubble chat-user">По заказу</div><div class="chat-bubble chat-bot">Нажмите "Позвать Николаича" и напишите номер заказа.<button class="chat-btn" onclick="startLiveChat()">Позвать Николаича</button></div>`; } else if(chatState === 'menu') { b.innerHTML += `<div class="chat-bubble chat-user">Другой вопрос</div><div class="chat-bubble chat-bot">Выберите тему:<button class="chat-btn" onclick="botAnswer('Самовывоз и курьер магазина.')">📦 Доставка</button><button class="chat-btn" onclick="botAnswer('Картой на сайте или наличными.')">💳 Оплата</button><button class="chat-btn" onclick="startLiveChat()">👨‍🌾 Позвать Николаича</button></div>`; } b.scrollTop = b.scrollHeight; }

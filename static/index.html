@@ -54,8 +54,9 @@
         .locked-18 .p-img-box::after { content: '🔒 18+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: 900; color: #fff; background: rgba(220,53,69,0.85); padding: 8px 18px; border-radius: 12px; z-index: 10; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .locked-18 .p-name { filter: blur(5px); opacity: 0.6; user-select: none; }
         .locked-18 .p-price { filter: blur(5px); opacity: 0.6; }
-        .locked-18 .btn-add { background: #333 !important; color: #888 !important; border: 1px solid #555; pointer-events: none; }
-        .locked-18 .btn-add::after { content: ' Подтвердить'; }
+        /* Прячем текст на кнопке и пишем "Открыть" */
+        .locked-18 .btn-add { font-size: 0 !important; background: #333 !important; color: #fff !important; border: 1px solid #555; pointer-events: none; box-shadow: none; }
+        .locked-18 .btn-add::after { content: 'Открыть'; font-size: 14px; font-weight: 800; display: block; }
         
         .p-stickers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .p-fav { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(255,255,255,0.9); border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;}
@@ -71,7 +72,6 @@
         
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .btn-add.added { background: var(--accent); color: #fff; }
-        .btn-add-18 { background: #dc3545; color: #fff; } 
         
         .d-none-18 { display: none !important; }
         
@@ -179,6 +179,7 @@
             <div class="row g-3" id="grid-block-{{ block.id }}">
                 {% for p in products %}
                     {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
+                    
                     <div class="col-6 col-md-4 col-lg-3 p-item" 
                          data-id="{{ p.id }}" 
                          data-cat="{{ p.category_id }}" 
@@ -206,7 +207,7 @@
                             <div class="p-unit">за 1 {{ p.unit }}</div>
                             <div class="p-name">{{ p.name }}</div>
                             
-                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
+                            <button class="btn-add mt-auto" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
                         </div>
                     </div>
                     {% endif %}
@@ -248,7 +249,7 @@
                     <div class="p-unit">за 1 {{ p.unit }}</div>
                     <div class="p-name">{{ p.name }}</div>
                     
-                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
+                    <button class="btn-add mt-auto" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
                 </div>
             </div>
             {% endfor %}
@@ -493,18 +494,36 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    let cart = JSON.parse(localStorage.getItem('nikolaich_cart')) || {}; 
+    // БРОНЕБОЙНОЕ ЧТЕНИЕ КОРЗИНЫ (Именно это роняло сайт)
+    let cart = {};
+    try {
+        const stored = localStorage.getItem('nikolaich_cart');
+        if (stored && stored !== 'undefined') {
+            cart = JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error("Ошибка корзины. Сброс.");
+        localStorage.removeItem('nikolaich_cart');
+        cart = {};
+    }
+
     let itemsTotal = 0; let lastCalc = null; let userAddresses = []; let currentReviewProdId = null;
     let calcDebounceTimer = null; let currentAddressMode = 'new';
     let currentRatingOrderId = null;
     let pendingAction = null; 
-    let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}');
+    let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}') || 0;
 
-    // PWA БАННЕР
+    // PWA БАННЕР УСТАНОВКИ
     let deferredPrompt;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (!isStandalone) { document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); }
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+    
+    if (!isStandalone) { 
+        document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); 
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => { 
+        e.preventDefault(); deferredPrompt = e; 
+    });
 
     function handleInstallClick() {
         const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
@@ -521,16 +540,22 @@
         }
     }
 
-    // БЛЮР ТОВАРОВ 18+
+    // ЛОГИКА БЛЮРА 18+
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
         document.querySelectorAll('.p-item').forEach(el => {
             const pHidden = parseInt(el.dataset.hidden || '0');
-            if (pHidden === 1 && !isConfirmed) { el.classList.add('locked-18'); } else { el.classList.remove('locked-18'); }
+            if (pHidden === 1 && !isConfirmed) { 
+                el.classList.add('locked-18'); 
+            } else { 
+                el.classList.remove('locked-18'); 
+            }
         });
     }
 
-    document.addEventListener("DOMContentLoaded", () => { updateProductVisibility(); recalcTotals(); });
+    document.addEventListener("DOMContentLoaded", () => {
+        updateProductVisibility(); recalcTotals();
+    });
 
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
     
@@ -540,9 +565,12 @@
         document.getElementById('filteredProductsBlock').style.display = query ? 'block' : 'none'; 
         document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; 
         document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); 
+        
         if(query) { 
             document.getElementById('filterTitle').innerText = 'Результаты поиска'; 
-            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; }); 
+            document.querySelectorAll('.filter-item').forEach(el => { 
+                el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; 
+            }); 
             updateProductVisibility(); 
         } else { updateProductVisibility(); }
     }
@@ -563,9 +591,12 @@
         document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; 
         document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; 
         document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); 
+        
         if (catId !== 'all') { 
             document.getElementById('filterTitle').innerText = 'Категория'; 
-            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }); 
+            document.querySelectorAll('.filter-item').forEach(el => { 
+                el.style.display = el.dataset.cat == catId ? 'block' : 'none'; 
+            }); 
             updateProductVisibility();
         } else { updateProductVisibility(); }
     }
@@ -578,17 +609,22 @@
     function confirmAgeDOB() {
         const dobVal = document.getElementById('dobInput').value;
         if(!dobVal) return alert("Пожалуйста, выберите дату вашего рождения!");
-        const dob = new Date(dobVal); const today = new Date(); let age = today.getFullYear() - dob.getFullYear();
-        const m = today.getMonth() - dob.getMonth(); if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
+        
+        const dob = new Date(dobVal);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
+        
         if (age >= 18) {
             sessionStorage.setItem('age_confirmed', 'true');
-            updateProductVisibility(); 
+            updateProductVisibility();
             bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
             if (pendingAction) { pendingAction(); pendingAction = null; }
         } else { document.getElementById('dobError').style.display = 'block'; }
     }
 
-    // БЕЗОПАСНЫЙ ОБРАБОТЧИК КЛИКОВ ПО КАРТОЧКЕ
+    // БЕЗОПАСНЫЙ ОБРАБОТЧИК КЛИКОВ
     function handleProductClick(el) {
         const parent = el.closest('.p-item');
         const id = parent.dataset.id; const name = parent.dataset.name; const desc = parent.dataset.desc;
@@ -603,7 +639,6 @@
         openProductView(id, name, img, desc, price, step, unit, isHidden);
     }
 
-    // БЕЗОПАСНЫЙ ОБРАБОТЧИК КНОПКИ "В КОРЗИНУ"
     function handleAddClick(btn) {
         const parent = btn.closest('.p-item');
         const id = parent.dataset.id; const name = parent.dataset.name; const price = parseFloat(parent.dataset.price);
@@ -638,7 +673,18 @@
     }
     
     function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
-    function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
+    
+    function recalcTotals() { 
+        itemsTotal = 0; let count = 0; 
+        for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } 
+        localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); 
+        document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; 
+        document.getElementById('cartCount').innerText = count + ' позиций'; 
+        document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; 
+        if(calcDebounceTimer) clearTimeout(calcDebounceTimer); 
+        calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); 
+    }
+
     function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
 
     async function loadUpsell() {
@@ -650,7 +696,9 @@
             box.innerHTML = prods.map(p => {
                 let img = p.images && p.images.length > 0 ? p.images[0] : '';
                 let imgHtml = img ? `<img src="${img}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`;
-                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${p.name.replace(/'/g,"")}', ${p.step}, '${p.unit}', '${img}', ${p.is_hidden|default(0)})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
+                const hdn = p.is_hidden || 0;
+                const safeName = p.name.replace(/'/g,"");
+                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${img}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
             }).join('');
             box.parentElement.style.display = 'block';
         } else { box.parentElement.style.display = 'none'; }
@@ -726,16 +774,10 @@
         } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); }
     }
 
-    async function sendVipRequest() {
-        const phone = document.getElementById('vipPhone').value; const fio = document.getElementById('vipFio').value; const social = document.getElementById('vipSocial').value;
-        if(!phone) return alert("Введите номер!");
-        await fetch('/api/user/vip_request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: phone, fio: fio, social: social})});
-        alert("Заявка отправлена директору!"); location.reload();
-    }
+    async function sendVipRequest() { const phone = document.getElementById('vipPhone').value; const fio = document.getElementById('vipFio').value; const social = document.getElementById('vipSocial').value; if(!phone) return alert("Введите номер!"); await fetch('/api/user/vip_request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: phone, fio: fio, social: social})}); alert("Заявка отправлена директору!"); location.reload(); }
     function openReviewDialog(prodId, prodName) { currentReviewProdId = prodId; document.getElementById('revProdName').innerText = prodName; document.getElementById('revText').value = ''; new bootstrap.Modal(document.getElementById('addReviewModal')).show(); }
     async function submitReview() { const rating = document.querySelector('input[name="rating"]:checked').value; const text = document.getElementById('revText').value; if(!text.trim()) return alert("Напишите пару слов!"); await fetch('/api/user/add_review', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: currentReviewProdId, rating: parseInt(rating), text: text})}); bootstrap.Modal.getInstance(document.getElementById('addReviewModal')).hide(); alert("Спасибо! Отзыв отправлен на модерацию."); }
     function repeatOrder(itemsStr) { const itemsObj = JSON.parse(itemsStr); for(let key in itemsObj) { const i = itemsObj[key]; if(cart[key]) cart[key].qty += i.qty; else cart[key] = i; } recalcTotals(); new bootstrap.Modal(document.getElementById('cartModal')).show(); prepareCart(); }
-
     function switchCabTab(tabId, btn) { document.querySelectorAll('.cab-nav-item').forEach(el => el.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.cab-tab-content').forEach(el => el.style.display = 'none'); document.getElementById(tabId).style.display = 'block'; }
 
     async function refreshCabinetData() {
@@ -800,38 +842,11 @@
     }
 
     function openCabinet() { refreshCabinetData().then(() => new bootstrap.Modal(document.getElementById('cabinetModal')).show()); }
-    
-    async function setCourStatus(orderId, status) {
-        if(!confirm(`Точно перевести заказ #${orderId} в статус "${status}"?`)) return;
-        await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, status: status})});
-        refreshCabinetData();
-    }
-
-    async function uploadCourQr(input) {
-        if(!input.files || input.files.length === 0) return;
-        const formData = new FormData(); formData.append('file', input.files[0]);
-        try {
-            const res = await fetch('/api/user/upload_qr', {method: 'POST', body: formData});
-            const data = await res.json();
-            if(data.url) { document.getElementById('cabTipsQr').value = data.url; document.getElementById('courQrPreview').src = data.url; document.getElementById('courQrPreview').style.display = 'block'; }
-        } catch(e) { alert("Ошибка загрузки QR-кода."); }
-    }
-
+    async function setCourStatus(orderId, status) { if(!confirm(`Точно перевести заказ #${orderId} в статус "${status}"?`)) return; await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, status: status})}); refreshCabinetData(); }
+    async function uploadCourQr(input) { if(!input.files || input.files.length === 0) return; const formData = new FormData(); formData.append('file', input.files[0]); try { const res = await fetch('/api/user/upload_qr', {method: 'POST', body: formData}); const data = await res.json(); if(data.url) { document.getElementById('cabTipsQr').value = data.url; document.getElementById('courQrPreview').src = data.url; document.getElementById('courQrPreview').style.display = 'block'; } } catch(e) { alert("Ошибка загрузки QR-кода."); } }
     async function addAddress() { const addr = document.getElementById('cabNewAddress').value.trim(); if(!addr) return; await fetch('/api/user/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({new_address: addr})}); document.getElementById('cabNewAddress').value = ''; refreshCabinetData(); }
-    
-    async function updateProfile() {
-        const payload = { full_name: document.getElementById('cabName').value, phone: document.getElementById('cabPhone').value, tips_link: document.getElementById('cabTipsLink').value, tips_qr: document.getElementById('cabTipsQr').value, password: document.getElementById('cabPass').value };
-        await fetch('/api/user/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
-        alert("Данные сохранены!"); refreshCabinetData();
-    }
-
-    function openDeliveryRating(orderId, courName, tipsLink, tipsQr) {
-        currentRatingOrderId = orderId; document.getElementById('drCourName').innerText = courName || 'ваш курьер'; document.getElementById('drComment').value = '';
-        const tipsContainer = document.getElementById('drTipsContainer'); const tipsDetails = document.getElementById('drTipsDetails'); const showTipsBtn = document.getElementById('drShowTipsBtn'); const tLink = document.getElementById('drTipsLink'); const tQr = document.getElementById('drTipsQr');
-        if (tipsLink || tipsQr) { tipsContainer.style.display = 'block'; tipsDetails.style.display = 'none'; showTipsBtn.style.display = 'block'; if (tipsLink) { tLink.href = tipsLink; tLink.style.display = 'inline-block'; } else { tLink.style.display = 'none'; } if (tipsQr) { tQr.src = tipsQr; tQr.style.display = 'block'; } else { tQr.style.display = 'none'; } } else { tipsContainer.style.display = 'none'; }
-        new bootstrap.Modal(document.getElementById('deliveryRatingModal')).show();
-    }
-
+    async function updateProfile() { const payload = { full_name: document.getElementById('cabName').value, phone: document.getElementById('cabPhone').value, tips_link: document.getElementById('cabTipsLink').value, tips_qr: document.getElementById('cabTipsQr').value, password: document.getElementById('cabPass').value }; await fetch('/api/user/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}); alert("Данные сохранены!"); refreshCabinetData(); }
+    function openDeliveryRating(orderId, courName, tipsLink, tipsQr) { currentRatingOrderId = orderId; document.getElementById('drCourName').innerText = courName || 'ваш курьер'; document.getElementById('drComment').value = ''; const tipsContainer = document.getElementById('drTipsContainer'); const tipsDetails = document.getElementById('drTipsDetails'); const showTipsBtn = document.getElementById('drShowTipsBtn'); const tLink = document.getElementById('drTipsLink'); const tQr = document.getElementById('drTipsQr'); if (tipsLink || tipsQr) { tipsContainer.style.display = 'block'; tipsDetails.style.display = 'none'; showTipsBtn.style.display = 'block'; if (tipsLink) { tLink.href = tipsLink; tLink.style.display = 'inline-block'; } else { tLink.style.display = 'none'; } if (tipsQr) { tQr.src = tipsQr; tQr.style.display = 'block'; } else { tQr.style.display = 'none'; } } else { tipsContainer.style.display = 'none'; } new bootstrap.Modal(document.getElementById('deliveryRatingModal')).show(); }
     async function submitDeliveryRating() { const rating = document.querySelector('input[name="dr_rating"]:checked').value; const comment = document.getElementById('drComment').value; await fetch('/api/order/rate_delivery', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: currentRatingOrderId, rating: parseInt(rating), comment: comment}) }); bootstrap.Modal.getInstance(document.getElementById('deliveryRatingModal')).hide(); alert("Спасибо за оценку доставки!"); refreshCabinetData(); }
     async function logout() { await fetch('/api/auth/logout', {method: 'POST'}); location.reload(); }
     async function toggleFav(id, el) { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); const res = await fetch('/api/user/fav', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: id})}); const data = await res.json(); if(data.status === 'added') el.classList.add('active'); else el.classList.remove('active'); }
@@ -847,7 +862,7 @@
     document.getElementById('loginModal').addEventListener('shown.bs.modal', function() { if('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) { const VKID = window.VKIDSDK; VKID.Config.init({ app: 54556739, redirectUrl: 'https://nikolaich.shop', responseMode: VKID.ConfigResponseMode.Callback }); new VKID.OAuthList().render({ container: document.getElementById('vkIdContainer'), oauthList: ['vkid'] }).on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, p => { VKID.Auth.exchangeCode(p.code, p.device_id).then(d => { fetch('/api/auth/vk', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({access_token: d.access_token}) }).then(() => location.reload()); }); }); } });
     async function loginPhone() { const r = await fetch('/api/auth/shadow', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone: document.getElementById('loginPhone').value, password: document.getElementById('loginPass').value }) }); const d = await r.json(); if(d.error) alert(d.error); else location.reload(); }
     
-    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/static/sw.js').then((reg) => console.log('SW Registered')).catch((err) => console.log('SW Error')); }); }
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/static/sw.js').catch((err) => console.log('SW Error')); }); }
 </script>
 </body>
 </html>

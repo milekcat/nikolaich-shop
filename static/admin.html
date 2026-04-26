@@ -49,7 +49,7 @@
         <a class="nav-link text-info" onclick="showTab('analytics', this)"><i class="bi bi-graph-up-arrow me-2 fs-5"></i> Аналитика</a>
     </nav>
     <button class="btn btn-outline-danger mt-auto mb-2 fw-bold rounded-pill shadow-sm" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i>Выход</button>
-    <div class="small text-muted text-center fw-bold">ERP System v48.3 (Final)</div>
+    <div class="small text-muted text-center fw-bold">ERP System v48.3 (Final Fix)</div>
 </div>
 
 <div class="main-content">
@@ -345,18 +345,14 @@
         numBox.classList.remove('roulette-winner');
         
         let counter = 0;
-        const maxSpins = 40; // Сколько раз мелькнут цифры (около 4 секунд)
-        
-        // Звук трещотки можно добавить сюда
+        const maxSpins = 40; 
         
         const spinInterval = setInterval(() => {
-            // Показываем случайные фейковые номера для эффекта барабана
             numBox.innerText = Math.floor(100000 + Math.random() * 900000);
             counter++;
             
             if(counter >= maxSpins) {
                 clearInterval(spinInterval);
-                // Выбираем реального победителя
                 const winnerIndex = Math.floor(Math.random() * currentRouletteTickets.length);
                 const winner = currentRouletteTickets[winnerIndex];
                 
@@ -369,7 +365,7 @@
                 btn.disabled = false;
                 btn.innerText = 'КРУТИТЬ ЕЩЕ РАЗ';
             }
-        }, 80); // скорость мелькания
+        }, 80); 
     }
 
     function resetRoulette() {
@@ -378,7 +374,12 @@
     }
 
 
-    /* ================= ЗАКАЗЫ И КУРЬЕРЫ ================= */
+    /* ================= ЗАКАЗЫ И КУРЬЕРЫ (ИСПРАВЛЕННЫЙ ВАРИАНТ) ================= */
+    function getCourId(orderId) {
+        let el = document.getElementById('cour_' + orderId);
+        return el ? el.value : 0;
+    }
+
     async function loadOrders() {
         const data = await apiCall('orders');
         activeCouriers = await apiCall('couriers') || [];
@@ -395,7 +396,7 @@
                 <td class="small">Компл.: <b>${typeStr}</b><br>Оплата: <b>${payStr}</b>${addressHtml}</td>
                 <td class="fw-bold text-success fs-6">${o.final_total} ₽</td>
                 <td>
-                    <select class="form-select form-select-sm fw-bold border-2 mb-1 ${o.status=='Выполнен'?'bg-success text-white':''}" onchange="changeOrderStatus(${o.id}, this.value, document.getElementById('cour_${o.id}').value)">
+                    <select class="form-select form-select-sm fw-bold border-2 mb-1 ${o.status=='Выполнен'?'bg-success text-white':''}" onchange="changeOrderStatus(${o.id}, this.value, getCourId(${o.id}))">
                         ${['Новый', 'Ожидает оплаты', 'Оплачен', 'Собран', 'В пути', 'Выполнен', 'Отменен'].map(s => `<option value="${s}" ${o.status===s ? 'selected' : ''}>${s}</option>`).join('')}
                     </select>
                     ${o.delivery_type === 'courier' ? `
@@ -469,16 +470,15 @@
 
     function promptTaxi() { const price = prompt("Введите тариф Яндекс.Логистики в рублях:"); if(price) sendOrderMsg('taxi', price); }
 
-    /* ================= CRM И РОЛИ И 18+ ================= */
+    /* ================= CRM И РОЛИ И 18+ (ИСПРАВЛЕНО) ================= */
     async function loadUsers() {
         const data = await apiCall('users');
         if(!data) return;
         document.getElementById('tableUsers').innerHTML = data.map(u => {
             let roleHtml = '';
             
-            // Если клиент отправил заявку на 18+, выводим яркую кнопку ОДОБРИТЬ
             if (u.age_verified == 1) {
-                roleHtml += `<button class="btn btn-sm btn-danger fw-bold rounded-pill mb-1 px-2 shadow-sm" onclick="approveVip(${u.id}, ${u.balance}, '${u.role}', '${u.comm_type}', ${u.comm_val})"><i class="bi bi-shield-check me-1"></i> Одобрить 18+</button><br>`;
+                roleHtml += `<button class="btn btn-sm btn-danger fw-bold rounded-pill mb-1 px-2 shadow-sm" onclick="approveVip(${u.id})"><i class="bi bi-shield-check me-1"></i> Одобрить 18+</button><br>`;
             } else if (u.age_verified == 2) {
                 roleHtml += '<span class="badge bg-success mb-1"><i class="bi bi-shield-lock-fill"></i> VIP 18+</span> ';
             }
@@ -491,10 +491,10 @@
         }).join('');
     }
     
-    async function approveVip(userId, balance, role, comm_type, comm_val) {
+    async function approveVip(userId) {
         if(!confirm("Одобрить доступ в VIP 18+ для этого клиента?")) return;
-        // Мы отправляем те же данные, просто меняя age_verified на 2
-        await apiCall('users', 'POST', { id: userId, age_verified: 2, balance: balance, role: role, comm_type: comm_type, comm_val: comm_val });
+        // Сервер теперь умен и обновит только то, что мы пришлем
+        await apiCall('users', 'POST', { id: userId, age_verified: 2 });
         loadUsers();
     }
 
@@ -644,7 +644,7 @@
         }
     }
 
-    /* ================= СКЛАД И НАСТРОЙКИ (Как в v48.1) ================= */
+    /* ================= СКЛАД И НАСТРОЙКИ ================= */
     async function loadWarehouse() {
         const data = await apiCall('warehouse'); if(!data) return; categoriesList = data.categories;
         document.getElementById('tableProducts').innerHTML = data.products.map(p => {

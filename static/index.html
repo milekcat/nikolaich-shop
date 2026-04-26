@@ -49,13 +49,10 @@
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         
-        /* === ЭФФЕКТ СПОЙЛЕРА ДЛЯ 18+ === */
-        .locked-18 .p-img-box img { filter: blur(25px) grayscale(50%); transform: scale(1.1); transition: 0.3s; }
-        .locked-18 .p-img-box::after { content: '🔒 18+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: 900; color: #fff; background: rgba(220,53,69,0.85); padding: 8px 18px; border-radius: 12px; z-index: 10; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none;}
-        .locked-18 .p-name { filter: blur(5px); opacity: 0.7; user-select: none; }
-        .locked-18 .p-price { filter: blur(5px); opacity: 0.7; }
-        .locked-18 .btn-add { background: #333 !important; color: #888 !important; opacity: 0.8; }
-        .locked-18 .btn-add::after { content: ' Подтвердить'; }
+        /* === ЭФФЕКТ СПОЙЛЕРА (БЛЮРА) ДЛЯ 18+ БЛОКОВ === */
+        .spoiler-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 10; display: flex; align-items: center; justify-content: center; border-radius: 20px; cursor: pointer; transition: opacity 0.4s; border: 2px dashed rgba(220,53,69,0.5); }
+        .grid-blurred { filter: blur(8px) grayscale(40%); pointer-events: none; user-select: none; }
+        .d-none-18 { display: none !important; }
         
         .p-stickers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .p-fav { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(255,255,255,0.9); border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;}
@@ -172,34 +169,59 @@
 
 <div id="mainContentBlocks">
     {% for block in blocks %}
-        <h4 class="fw-bold mt-4 mb-3 block-title">{{ block.title }}</h4>
-        <div class="prod-grid">
-            <div class="row g-3" id="grid-block-{{ block.id }}">
-                {% for p in products %}
-                    {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
-                    <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}">
-                        <div class="p-card">
-                            <div class="p-stickers">
-                                {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
-                                {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
-                            </div>
-                            <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
-                            
-                            <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
-                                {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
-                            </div>
-                            
-                            <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
-                            <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
-                            <div class="p-unit">за 1 {{ p.unit }}</div>
-                            
-                            <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">{{ p.name }}</div>
-                            
-                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
-                        </div>
+        
+        {% set block_is_18 = 0 %}
+        {% if block.block_type == 'category' %}
+            {% for c in categories %}
+                {% if c.id == block.category_id and c.is_hidden == 1 %}
+                    {% set block_is_18 = 1 %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        <div class="homepage-block-wrap position-relative">
+            <h4 class="fw-bold mt-4 mb-3 block-title">{{ block.title }}</h4>
+            
+            <div class="prod-grid position-relative pb-2">
+                
+                {% if block_is_18 == 1 %}
+                <div class="spoiler-overlay" onclick="checkAgeAndExecute(1, () => {})">
+                    <div class="text-center p-4">
+                        <i class="bi bi-shield-lock-fill text-danger mb-2 d-block" style="font-size: 40px;"></i>
+                        <h4 class="fw-bold text-white mb-1">Раздел 18+</h4>
+                        <p class="text-white-50 small mb-3">Контент скрыт. Требуется подтверждение возраста.</p>
+                        <button class="btn btn-danger rounded-pill fw-bold px-4 shadow-sm">Подтвердить возраст</button>
                     </div>
-                    {% endif %}
-                {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="row g-3 {% if block_is_18 == 1 %}grid-18 grid-blurred{% endif %}" id="grid-block-{{ block.id }}">
+                    {% for p in products %}
+                        {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
+                        <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}">
+                            <div class="p-card">
+                                <div class="p-stickers">
+                                    {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
+                                    {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
+                                </div>
+                                <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
+                                
+                                <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
+                                    {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
+                                </div>
+                                
+                                <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
+                                <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
+                                <div class="p-unit">за 1 {{ p.unit }}</div>
+                                
+                                <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">{{ p.name }}</div>
+                                
+                                <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
         </div>
     {% endfor %}
@@ -243,15 +265,30 @@
 <div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()"><span id="cartCount">0 товаров</span><span id="cartSum">0 ₽</span></div>
 <div class="floating-chat-btn" onclick="openChat()"><i class="bi bi-chat-dots-fill"></i></div>
 
+<div class="modal fade" id="androidInstallModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
+            <i class="bi bi-android2 fs-1 text-success mb-3"></i>
+            <h4 class="fw-bold mb-3">Установка на Android</h4>
+            <p class="text-muted small mb-3">Чтобы добавить магазин «Николаич» на ваш экран:</p>
+            <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
+                <li>Нажмите на три точки <i class="bi bi-three-dots-vertical border rounded px-1"></i> в правом верхнем углу браузера.</li>
+                <li>Выберите пункт <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b>.</li>
+            </ol>
+            <button class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="iosInstallModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
             <i class="bi bi-apple fs-1 mb-3"></i>
             <h4 class="fw-bold mb-3">Установка на iPhone</h4>
-            <p class="text-muted small mb-3">Чтобы установить приложение «У Николаича» на ваш экран:</p>
+            <p class="text-muted small mb-3">Чтобы добавить магазин «Николаич» на ваш экран:</p>
             <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
                 <li>Нажмите кнопку <i class="bi bi-box-arrow-up border rounded px-1 text-primary" style="font-size: 16px;"></i> <b>Поделиться</b> в нижней панели браузера.</li>
-                <li>В появившемся меню выберите пункт <i class="bi bi-plus-square border rounded px-1 text-dark" style="font-size: 16px;"></i> <b>На экран «Домой»</b>.</li>
+                <li>В появившемся меню выберите <i class="bi bi-plus-square border rounded px-1 text-dark" style="font-size: 16px;"></i> <b>На экран «Домой»</b>.</li>
             </ol>
             <button class="btn btn-dark w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
         </div>
@@ -273,7 +310,7 @@
             </div>
             
             <div id="dobError" class="text-danger small fw-bold mt-2" style="display:none;">Доступ разрешен только с 18 лет!</div>
-            <div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны обычным гостям только для Самовывоза с оплатой на кассе.</div>
+            <div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны гостям только для Самовывоза с оплатой на кассе. Для доставки нужна регистрация VIP статуса.</div>
         </div>
     </div>
 </div>
@@ -467,36 +504,52 @@
 
     // ЛОГИКА PWA И УСТАНОВКИ ПРИЛОЖЕНИЯ
     let deferredPrompt;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    if (!isStandalone) { document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); }
+    // Показываем баннер на ВСЕХ мобилках, если не установлено
+    if (isMobile && !isStandalone) { 
+        document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); 
+    }
 
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+    window.addEventListener('beforeinstallprompt', (e) => { 
+        e.preventDefault(); deferredPrompt = e; 
+    });
 
     function handleInstallClick() {
-        if (isIos) {
-            new bootstrap.Modal(document.getElementById('iosInstallModal')).show();
-        } else if (deferredPrompt) {
+        if (deferredPrompt) {
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; }
                 deferredPrompt = null;
             });
+        } else if (isIos) {
+            new bootstrap.Modal(document.getElementById('iosInstallModal')).show();
         } else {
-            alert('Откройте меню браузера и нажмите "Добавить на главный экран".');
+            new bootstrap.Modal(document.getElementById('androidInstallModal')).show();
         }
     }
 
-    // ЛОГИКА СПОЙЛЕРА (БЛЮРА) ТОВАРОВ 18+
+    // ЛОГИКА БЛЮРА 18+ БЛОКОВ И ТОВАРОВ
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
-        document.querySelectorAll('.p-item').forEach(el => {
+        
+        // 1. Блюр для целых блоков 18+ (на главной)
+        document.querySelectorAll('.spoiler-overlay').forEach(el => {
+            el.style.display = isConfirmed ? 'none' : 'flex';
+        });
+        document.querySelectorAll('.grid-18').forEach(el => {
+            if(isConfirmed) { el.classList.remove('grid-blurred'); } else { el.classList.add('grid-blurred'); }
+        });
+
+        // 2. Скрытие отдельных товаров 18+ в "Поиске" и "Всех товарах"
+        document.querySelectorAll('.filter-item').forEach(el => {
             const pHidden = parseInt(el.dataset.hidden || '0');
             if (pHidden === 1 && !isConfirmed) { 
-                el.classList.add('locked-18'); 
+                el.classList.add('d-none-18'); 
             } else { 
-                el.classList.remove('locked-18'); 
+                el.classList.remove('d-none-18'); 
             }
         });
     }
@@ -519,7 +572,7 @@
             document.querySelectorAll('.filter-item').forEach(el => { 
                 el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; 
             }); 
-            updateProductVisibility(); // Применяем блюр к найденным
+            updateProductVisibility(); 
         } else { updateProductVisibility(); }
     }
 
@@ -545,7 +598,7 @@
             document.querySelectorAll('.filter-item').forEach(el => { 
                 el.style.display = el.dataset.cat == catId ? 'block' : 'none'; 
             }); 
-            updateProductVisibility(); // Применяем блюр
+            updateProductVisibility();
         } else { updateProductVisibility(); }
     }
 
@@ -566,7 +619,7 @@
         
         if (age >= 18) {
             sessionStorage.setItem('age_confirmed', 'true');
-            updateProductVisibility(); // Снимаем блюр!
+            updateProductVisibility(); // Снимаем блюр и показываем товары!
             bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
             if (pendingAction) { pendingAction(); pendingAction = null; }
         } else { document.getElementById('dobError').style.display = 'block'; }
@@ -819,14 +872,7 @@
     document.getElementById('loginModal').addEventListener('shown.bs.modal', function() { if('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) { const VKID = window.VKIDSDK; VKID.Config.init({ app: 54556739, redirectUrl: 'https://nikolaich.shop', responseMode: VKID.ConfigResponseMode.Callback }); new VKID.OAuthList().render({ container: document.getElementById('vkIdContainer'), oauthList: ['vkid'] }).on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, p => { VKID.Auth.exchangeCode(p.code, p.device_id).then(d => { fetch('/api/auth/vk', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({access_token: d.access_token}) }).then(() => location.reload()); }); }); } });
     async function loginPhone() { const r = await fetch('/api/auth/shadow', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone: document.getElementById('loginPhone').value, password: document.getElementById('loginPass').value }) }); const d = await r.json(); if(d.error) alert(d.error); else location.reload(); }
     
-    // РЕГИСТРАЦИЯ SERVICE WORKER (ДЛЯ РАБОТЫ PWA)
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/static/sw.js')
-            .then((reg) => console.log('SW Registered', reg))
-            .catch((err) => console.log('SW Reg Failed', err));
-        });
-    }
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/static/sw.js').then((reg) => console.log('SW Registered')).catch((err) => console.log('SW Error')); }); }
 </script>
 </body>
 </html>

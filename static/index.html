@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#00b853">
     <link rel="manifest" href="/static/manifest.json">
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <script src="https://unpkg.com/@vkid/sdk@latest/dist-sdk/umd/index.js"></script>
@@ -15,6 +16,7 @@
         :root { --accent: #00b853; --text: #1d1d1f; }
         body { background: {{ settings.bg_main | default('#fdfbf7') }}; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { display: none; }
+        
         .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('{{ settings.bg_header | default("https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress") }}'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 15px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -22,22 +24,32 @@
         .search-container { padding: 15px 20px 0 20px; }
         .search-bar { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 12px 20px; display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-weight: 600; color: #000; font-size: 16px; }
+        
         .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('{{ settings.bg_cat | default("https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress") }}'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; }
         .cat-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 0 20px; scroll-behavior: smooth; }
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
+        
+        /* БАННЕР PWA УСТАНОВКИ */
+        .pwa-banner { background: linear-gradient(135deg, #00b853, #00d65f); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,184,83,0.3); margin: 15px 20px 0 20px; border-radius: 16px; cursor: pointer; transition: 0.3s; }
+        .pwa-banner:active { transform: scale(0.98); }
+        
         .banner-track { display: flex; overflow-x: auto; gap: 15px; padding: 25px 20px 10px 20px; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
         .banner-card { min-width: 85%; scroll-snap-align: center; border-radius: 24px; position: relative; overflow: hidden; height: 160px; box-shadow: 0 6px 15px rgba(0,0,0,0.15); cursor: pointer; background: #eee; }
         .banner-card img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
         .prod-grid { padding: 0 20px; }
+        
         .p-card { background-color: #4a2e1b !important; background-image: url('{{ settings.bg_card | default("https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress") }}') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid rgba(0,0,0,0.4); position: relative; overflow: hidden; }
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
+        
         .p-stickers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .p-fav { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(255,255,255,0.9); border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;}
         .p-fav.active { color: #e63946; }
         .p-rating { color: #ffc107; font-size: 13px; margin-bottom: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold;}
+        
         .p-img-box { width: 100%; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 10px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
         .p-img-box img { width: 100%; height: 100%; object-fit: cover; }
         .p-price { font-weight: 900; font-size: 20px; color: #fff; text-shadow: 1px 1px 4px rgba(0,0,0,1); display: flex; align-items: baseline; gap: 6px; }
@@ -49,8 +61,7 @@
         .btn-add.added { background: var(--accent); color: #fff; }
         .btn-add-18 { background: #dc3545; color: #fff; } 
         
-        /* БАННЕР PWA */
-        .pwa-banner { background: linear-gradient(135deg, #00b853, #00d65f); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,184,83,0.3); margin: 15px 20px 0 20px; border-radius: 16px; cursor: pointer; }
+        .d-none-18 { display: none !important; } /* Класс для сокрытия 18+ товаров */
         
         @keyframes cartPop { 0% { transform: scale(1); } 50% { transform: scale(1.08); background-color: #00d65f; } 100% { transform: scale(1); background-color: var(--accent); } }
         .cart-bounce { animation: cartPop 0.4s ease; }
@@ -116,18 +127,18 @@
     </div>
     <div class="cat-scroll-wrapper">
         <div class="cat-scroll">
-            <div class="cat-pill active" onclick="filterCat('all', this)">Весь каталог</div>
+            <div class="cat-pill active" onclick="filterCat('all', this, 0)">Весь каталог</div>
             {% for c in categories %}
-                <div class="cat-pill" onclick="filterCat({{ c.id }}, this)">
+                <div class="cat-pill" onclick="filterCat({{ c.id }}, this, {{ c.is_hidden|default(0) }})">
                     {{ c.icon }} {{ c.name }}
-                    {% if c.is_hidden == 1 %}<span class="ms-1 text-danger">18+</span>{% endif %}
+                    {% if c.is_hidden == 1 %}<span class="ms-1 text-danger"><i class="bi bi-lock-fill"></i> 18+</span>{% endif %}
                 </div>
             {% endfor %}
         </div>
     </div>
 </div>
 
-<div id="pwaInstallBanner" class="pwa-banner" style="display: none;" onclick="installApp()">
+<div id="pwaInstallBanner" class="pwa-banner" style="display: none;" onclick="handleInstallClick()">
     <div class="d-flex align-items-center">
         <div style="background: #fff; padding: 6px; border-radius: 12px; margin-right: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
             <i class="bi bi-phone-vibrate text-success fs-3 lh-1"></i>
@@ -141,7 +152,7 @@
 </div>
 
 {% if banners %}
-<div class="banner-track" id="bannerCarousel">{% for b in banners %}<div class="banner-card" onclick="filterCat({{ b.link_cat }}, null)"><img src="{{ b.img_url }}"></div>{% endfor %}</div>
+<div class="banner-track" id="bannerCarousel">{% for b in banners %}<div class="banner-card" onclick="filterCat({{ b.link_cat }}, null, 0)"><img src="{{ b.img_url }}"></div>{% endfor %}</div>
 {% endif %}
 
 <div class="d-flex gap-2 px-4 mt-4 mb-2 overflow-auto" id="sortButtons" style="display: none !important;">
@@ -156,15 +167,15 @@
             <div class="row g-3" id="grid-block-{{ block.id }}">
                 {% for p in products %}
                     {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
-                    <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}">
+                    <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}">
                         <div class="p-card">
                             <div class="p-stickers">
-                                {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1">18+</span>{% endif %}
+                                {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
                                 {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
                             </div>
                             <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
                             
-                            <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}'))">
+                            <div class="p-img-box" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">
                                 {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
                             </div>
                             
@@ -172,9 +183,9 @@
                             <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                             <div class="p-unit">за 1 {{ p.unit }}</div>
                             
-                            <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}'))">{{ p.name }}</div>
+                            <div class="p-name" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">{{ p.name }}</div>
                             
-                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}'))">+ {{ p.step }} {{ p.unit }}</button>
+                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}')">+ {{ p.step }} {{ p.unit }}</button>
                         </div>
                     </div>
                     {% endif %}
@@ -189,15 +200,15 @@
     <div class="prod-grid">
         <div class="row g-3" id="grid-filter">
             {% for p in products %}
-            <div class="col-6 col-md-4 col-lg-3 p-item filter-item" data-cat="{{ p.category_id }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}" style="display: block;">
+            <div class="col-6 col-md-4 col-lg-3 p-item filter-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}" style="display: block;">
                 <div class="p-card">
                     <div class="p-stickers">
-                        {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1">18+</span>{% endif %}
+                        {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
                         {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
                     </div>
                     <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
                     
-                    <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}'))">
+                    <div class="p-img-box" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">
                         {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
                     </div>
                     
@@ -205,9 +216,9 @@
                     <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                     <div class="p-unit">за 1 {{ p.unit }}</div>
                     
-                    <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}'))">{{ p.name }}</div>
+                    <div class="p-name" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">{{ p.name }}</div>
                     
-                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}'))">+ {{ p.step }} {{ p.unit }}</button>
+                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}')">+ {{ p.step }} {{ p.unit }}</button>
                 </div>
             </div>
             {% endfor %}
@@ -222,12 +233,27 @@
 <div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()"><span id="cartCount">0 товаров</span><span id="cartSum">0 ₽</span></div>
 <div class="floating-chat-btn" onclick="openChat()"><i class="bi bi-chat-dots-fill"></i></div>
 
+<div class="modal fade" id="iosInstallModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
+            <i class="bi bi-apple fs-1 mb-3"></i>
+            <h4 class="fw-bold mb-3">Установка на iPhone</h4>
+            <p class="text-muted small mb-3">Чтобы установить приложение «У Николаича» на ваш экран:</p>
+            <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
+                <li>Нажмите кнопку <i class="bi bi-box-arrow-up border rounded px-1 text-primary" style="font-size: 16px;"></i> <b>Поделиться</b> в нижней панели браузера.</li>
+                <li>В появившемся меню выберите пункт <i class="bi bi-plus-square border rounded px-1 text-dark" style="font-size: 16px;"></i> <b>На экран «Домой»</b>.</li>
+            </ol>
+            <button class="btn btn-dark w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="ageVerificationModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center" style="background: #1d1d1f; color: #fff;">
             <i class="bi bi-exclamation-octagon text-danger mb-3" style="font-size: 60px;"></i>
             <h4 class="fw-bold mb-2">Внимание: Контент 18+</h4>
-            <p class="text-white-50 small mb-3">Данный товар содержит продукцию для взрослых. Для доступа введите дату вашего рождения:</p>
+            <p class="text-white-50 small mb-3">Данный раздел содержит продукцию для взрослых. Для доступа введите дату вашего рождения:</p>
             
             <input type="date" id="dobInput" class="form-control bg-dark text-white border-secondary mb-3 text-center fw-bold fs-5">
             
@@ -429,29 +455,111 @@
     let pendingAction = null; 
     let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}');
 
+    // ЛОГИКА PWA И УСТАНОВКИ ПРИЛОЖЕНИЯ
     let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault(); deferredPrompt = e; document.getElementById('pwaInstallBanner').style.display = 'flex';
-    });
-    async function installApp() {
-        if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; } deferredPrompt = null; }
+    const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    if (!isStandalone) {
+        document.getElementById('pwaInstallBanner').style.display = 'flex';
     }
 
-    document.addEventListener("DOMContentLoaded", () => recalcTotals());
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+    });
+
+    function handleInstallClick() {
+        if (isIos) {
+            new bootstrap.Modal(document.getElementById('iosInstallModal')).show();
+        } else if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    document.getElementById('pwaInstallBanner').style.display = 'none';
+                }
+                deferredPrompt = null;
+            });
+        } else {
+            alert('Откройте меню браузера и нажмите "Добавить на главный экран".');
+        }
+    }
+
+    // ЛОГИКА СКРЫТИЯ ТОВАРОВ 18+ (ПОКА НЕ ПОДТВЕРДЯТ ВОЗРАСТ)
+    function updateProductVisibility() {
+        const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
+        document.querySelectorAll('.p-item').forEach(el => {
+            const pHidden = parseInt(el.dataset.hidden || '0');
+            if (pHidden === 1 && !isConfirmed) {
+                el.classList.add('d-none-18');
+            } else {
+                el.classList.remove('d-none-18');
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        updateProductVisibility();
+        recalcTotals();
+    });
 
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
-    function searchProducts() { const query = document.getElementById('searchInput').value.toLowerCase(); document.getElementById('mainContentBlocks').style.display = query ? 'none' : 'block'; document.getElementById('filteredProductsBlock').style.display = query ? 'block' : 'none'; document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); if(query) { document.getElementById('filterTitle').innerText = 'Результаты поиска'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; }); } }
-    function filterCat(catId, btnEl) { if(btnEl) { document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active')); btnEl.classList.add('active'); } document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); if (catId !== 'all') { document.getElementById('filterTitle').innerText = 'Категория'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }); } }
     
-    // ЛОГИКА 18+ С ДАТОЙ РОЖДЕНИЯ
-    function checkAgeAndExecute(isHidden, callback) {
+    function searchProducts() { 
+        const query = document.getElementById('searchInput').value.toLowerCase(); 
+        document.getElementById('mainContentBlocks').style.display = query ? 'none' : 'block'; 
+        document.getElementById('filteredProductsBlock').style.display = query ? 'block' : 'none'; 
+        document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; 
+        document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); 
+        
+        const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
+        
+        if(query) { 
+            document.getElementById('filterTitle').innerText = 'Результаты поиска'; 
+            document.querySelectorAll('.filter-item').forEach(el => { 
+                const pHidden = parseInt(el.dataset.hidden || '0');
+                if (pHidden === 1 && !isConfirmed) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; 
+                }
+            }); 
+        } else {
+            updateProductVisibility(); // Вернуть базовую видимость
+        }
+    }
+
+    function filterCat(catId, btnEl, isHidden) { 
         if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
-            pendingAction = callback;
+            pendingAction = () => executeFilterCat(catId, btnEl);
             document.getElementById('dobError').style.display = 'none';
             document.getElementById('dobInput').value = '';
             new bootstrap.Modal(document.getElementById('ageVerificationModal')).show();
+            return;
+        }
+        executeFilterCat(catId, btnEl);
+    }
+    
+    function executeFilterCat(catId, btnEl) {
+        if(btnEl) { document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active')); btnEl.classList.add('active'); } 
+        document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; 
+        document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; 
+        document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); 
+        
+        const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
+        
+        if (catId !== 'all') { 
+            document.getElementById('filterTitle').innerText = 'Категория'; 
+            document.querySelectorAll('.filter-item').forEach(el => { 
+                const pHidden = parseInt(el.dataset.hidden || '0');
+                if (pHidden === 1 && !isConfirmed) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = el.dataset.cat == catId ? 'block' : 'none'; 
+                }
+            }); 
         } else {
-            callback();
+            updateProductVisibility();
         }
     }
     
@@ -469,6 +577,7 @@
         
         if (age >= 18) {
             sessionStorage.setItem('age_confirmed', 'true');
+            updateProductVisibility(); // Показываем 18+ товары
             bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
             if (pendingAction) { pendingAction(); pendingAction = null; }
         } else {
@@ -587,7 +696,29 @@
     async function logout() { await fetch('/api/auth/logout', {method: 'POST'}); location.reload(); }
     async function toggleFav(id, el) { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); const res = await fetch('/api/user/fav', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: id})}); const data = await res.json(); if(data.status === 'added') el.classList.add('active'); else el.classList.remove('active'); }
     
-    async function openProductView(id, name, img, desc, price, step, unit) { document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } const addBtn = document.getElementById('pdAddBtn'); addBtn.onclick = () => { add(null, id, price, name, step, unit, img); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; const is18 = document.querySelector(`.p-item[data-name='${name.toLowerCase()}'] .badge.bg-danger`); if(is18) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } new bootstrap.Modal(document.getElementById('productDetailModal')).show(); }
+    async function openProductView(id, name, img, desc, price, step, unit, isHidden) {
+        // Проверка перед открытием модалки
+        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
+            pendingAction = () => openProductView(id, name, img, desc, price, step, unit, isHidden);
+            document.getElementById('dobError').style.display = 'none';
+            document.getElementById('dobInput').value = '';
+            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show();
+            return;
+        }
+        
+        document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; 
+        if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } 
+        const addBtn = document.getElementById('pdAddBtn'); 
+        addBtn.onclick = () => { add(null, id, price, name, step, unit, img); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; 
+        addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; 
+        
+        if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } 
+        
+        const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); 
+        if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } 
+        else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } 
+        new bootstrap.Modal(document.getElementById('productDetailModal')).show(); 
+    }
     
     function add(btn, id, price, name, step, unit, img) { if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img}; } cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); }
     function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
@@ -665,7 +796,7 @@
         const ph = document.getElementById('checkoutPhone').value; const soc = document.getElementById('checkoutSocial').value; const pt = document.getElementById('paymentType').value; const dt = document.getElementById('deliveryType').value; const d_time = document.getElementById('checkoutTime').value; const comm = document.getElementById('checkoutComment').value;
         if(!ph) return alert("Введите номер телефона!");
         let addr = ''; if(dt !== 'pickup' && !lastCalc.force_pickup_18) { addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; if(!addr) return alert("Укажите адрес доставки!"); }
-        const btn = document.getElementById('checkoutBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Проверка склада...';
+        const btn = document.getElementById('checkoutBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Оформление...';
         const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc};
         const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)});
         const data = await res.json();

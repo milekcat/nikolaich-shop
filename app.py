@@ -97,7 +97,6 @@ def award_tickets(conn, order_id, user_id, final_total):
                 t_num = f"{random.randint(100000, 999999)}"
                 conn.execute("INSERT INTO tickets (contest_id, user_id, order_id, ticket_number) VALUES (?,?,?,?)", (contest[0], user_id, order_id, t_num))
 
-# ================= ПЛАТЕЖНЫЕ ВЕБХУКИ =================
 @app.route('/api/paykeeper_webhook', methods=['POST'])
 def paykeeper_webhook():
     data = request.form; pk_id = data.get('id', ''); orderid = data.get('orderid', ''); key = data.get('key', '')
@@ -128,7 +127,6 @@ def vk_webhook():
             with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], obj['text']))
     return 'ok'
 
-# ================= АВТОРИЗАЦИЯ =================
 @app.route('/api/auth/vk', methods=['POST'])
 def auth_vk():
     data = request.json; access_token = data.get('access_token')
@@ -159,7 +157,6 @@ def auth_shadow():
 @app.route('/api/auth/logout', methods=['POST'])
 def auth_logout(): session.clear(); return jsonify({"status": "ok"})
 
-# ================= ВИТРИНА =================
 @app.route('/')
 def index():
     auth_val = session.get('user_identifier')
@@ -294,7 +291,6 @@ def add_review():
     with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO reviews (product_id, user_id, rating, text) VALUES (?,?,?,?)", (data['product_id'], user['id'], data['rating'], data['text']))
     return jsonify({"status": "ok"})
 
-# ================= ОГРАНИЧЕНИЕ 18+ И КОРЗИНА =================
 @app.route('/api/cart/calc', methods=['POST'])
 def calc_cart():
     data = request.json
@@ -429,7 +425,7 @@ def ai_upsell():
     random.shuffle(recommendations)
     return jsonify(recommendations[:3])
 
-# ================= АДМИНКА И БЕЗОПАСНЫЙ CRUD =================
+# ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): 
     if not session.get('is_admin'): return render_template('admin_login.html')
@@ -511,20 +507,19 @@ def admin_crud(entity):
                 if data.get('id'): conn.execute("UPDATE contests SET title=?, description=?, img_url=?, min_sum=?, active=? WHERE id=?", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO contests (title, description, img_url, min_sum, active) VALUES (?,?,?,?,?)", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active']))
             
-            # УМНОЕ ОБНОВЛЕНИЕ КЛИЕНТОВ (Без затирания данных)
+            # УМНОЕ И БЕЗОПАСНОЕ ОБНОВЛЕНИЕ КЛИЕНТОВ (По именам колонок)
             elif entity == 'users':
-                u = conn.execute("SELECT * FROM users WHERE id=?", (data['id'],)).fetchone()
+                u = get_db_query("SELECT * FROM users WHERE id=?", (data['id'],), fetch_one=True)
                 if u:
                     conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=? WHERE id=?", 
-                        (data.get('full_name', u[3]), data.get('phone', u[1]), data.get('social_link', u[4]), data.get('addresses', u[5]), 
-                         data.get('age_verified', u[7]), data.get('balance', u[11]), data.get('role', u[14]), data.get('comm_type', u[15]), 
-                         data.get('comm_val', u[16]), data.get('password', u[13]), data['id']))
+                        (data.get('full_name', u['full_name']), data.get('phone', u['phone']), data.get('social_link', u['social_link']), data.get('addresses', u['addresses']), 
+                         data.get('age_verified', u['age_verified']), data.get('balance', u['balance']), data.get('role', u['role']), data.get('comm_type', u['comm_type']), 
+                         data.get('comm_val', u['comm_val']), data.get('password', u['password']), data['id']))
             
-            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ (С проверкой курьера)
+            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ
             elif entity == 'orders':
                 order_id = data.get('id'); new_status = data.get('status')
-                cid_raw = data.get('courier_id')
-                new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
+                cid_raw = data.get('courier_id'); new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
                 
                 old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id FROM orders WHERE id=?", (order_id,)).fetchone()
                 if old_order:

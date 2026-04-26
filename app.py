@@ -59,7 +59,6 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, product_id INTEGER, user_id INTEGER, rating INTEGER, text TEXT, date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, is_approved INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER)''')
         
-        # ТАБЛИЦЫ ДЛЯ КОНКУРСОВ
         c.execute('''CREATE TABLE IF NOT EXISTS contests (id INTEGER PRIMARY KEY, title TEXT, description TEXT, img_url TEXT, min_sum REAL DEFAULT 1500, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 
@@ -168,10 +167,7 @@ def index():
     user = get_user_by_identifier(auth_val, is_vk=(auth_type=='vk')) if auth_val else None
     
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    
-    # ТЕПЕРЬ ВСЕ ВИДЯТ ВСЕ КАТЕГОРИИ (Без скрытия)
     cats = get_db_query("SELECT * FROM categories ORDER BY sort_order")
-    # Продукты тянут is_hidden категории, чтобы фронтенд знал, где вешать значок 18+ и просить подтверждение
     prods = get_db_query("SELECT p.*, c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1")
     
     favs = [f['product_id'] for f in get_db_query("SELECT product_id FROM favorites WHERE user_id=?", (user['id'],))] if user else []
@@ -305,7 +301,6 @@ def calc_cart():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     cart_items = data.get('cart', {})
     
-    # ПРОВЕРКА НА 18+ ТОВАРЫ
     has_18 = False
     for p_id in cart_items.keys():
         prod_cat = get_db_query("SELECT c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id=?", (p_id,), fetch_one=True)
@@ -319,7 +314,6 @@ def calc_cart():
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
     if not user and phone: user = get_user_by_identifier(phone)
     
-    # ПРОВЕРКА VIP-СТАТУСА. Если не VIP и есть 18+ -> ЖЕСТКО САМОВЫВОЗ
     is_vip = user and user.get('age_verified') == 2
     force_pickup_18 = has_18 and not is_vip
     
@@ -435,7 +429,7 @@ def ai_upsell():
     random.shuffle(recommendations)
     return jsonify(recommendations[:3])
 
-# ================= АДМИНКА =================
+# ================= АДМИНКА И БЕЗОПАСНЫЙ CRUD =================
 @app.route('/admin')
 def admin(): 
     if not session.get('is_admin'): return render_template('admin_login.html')
@@ -516,15 +510,27 @@ def admin_crud(entity):
             elif entity == 'contests':
                 if data.get('id'): conn.execute("UPDATE contests SET title=?, description=?, img_url=?, min_sum=?, active=? WHERE id=?", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO contests (title, description, img_url, min_sum, active) VALUES (?,?,?,?,?)", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active']))
+            
+            # УМНОЕ ОБНОВЛЕНИЕ КЛИЕНТОВ (Без затирания данных)
             elif entity == 'users':
-                conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=? WHERE id=?", (data['full_name'], data['phone'], data['social_link'], data.get('addresses','[]'), data['age_verified'], data.get('balance', 0), data.get('role', 'client'), data.get('comm_type', 'fixed'), data.get('comm_val', 0), data.get('password', ''), data['id']))
+                u = conn.execute("SELECT * FROM users WHERE id=?", (data['id'],)).fetchone()
+                if u:
+                    conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=? WHERE id=?", 
+                        (data.get('full_name', u[3]), data.get('phone', u[1]), data.get('social_link', u[4]), data.get('addresses', u[5]), 
+                         data.get('age_verified', u[7]), data.get('balance', u[11]), data.get('role', u[14]), data.get('comm_type', u[15]), 
+                         data.get('comm_val', u[16]), data.get('password', u[13]), data['id']))
+            
+            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ (С проверкой курьера)
             elif entity == 'orders':
-                order_id = data.get('id'); new_status = data.get('status'); new_courier_id = data.get('courier_id')
+                order_id = data.get('id'); new_status = data.get('status')
+                cid_raw = data.get('courier_id')
+                new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
+                
                 old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id FROM orders WHERE id=?", (order_id,)).fetchone()
                 if old_order:
                     conn.execute("UPDATE orders SET status=?, courier_id=? WHERE id=?", (new_status, new_courier_id, order_id))
                     if new_status == 'Выполнен' and old_order[2] == 0:
-                        if new_courier_id and int(new_courier_id) > 0:
+                        if new_courier_id > 0:
                             courier = conn.execute("SELECT comm_type, comm_val FROM users WHERE id=?", (new_courier_id,)).fetchone()
                             if courier:
                                 payout = float(courier[1]) if courier[0] == 'fixed' else (float(old_order[1]) * float(courier[1]) / 100)

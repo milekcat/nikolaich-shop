@@ -52,15 +52,27 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1, stickers TEXT DEFAULT "[]", rating REAL DEFAULT 5.0)''')
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, active INTEGER DEFAULT 1)')
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0, password TEXT DEFAULT "", role TEXT DEFAULT "client", comm_type TEXT DEFAULT "fixed", comm_val REAL DEFAULT 0, tips_link TEXT DEFAULT "", tips_qr TEXT DEFAULT "")''')
-        c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, address TEXT DEFAULT "", delivery_time TEXT DEFAULT "Как можно скорее", comment TEXT DEFAULT "", courier_id INTEGER DEFAULT 0, is_paid_to_courier INTEGER DEFAULT 0, courier_rating INTEGER DEFAULT 0, courier_comment TEXT DEFAULT "")''')
+        c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, address TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY, user_id INTEGER, is_incoming INTEGER, text TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS promocodes (id INTEGER PRIMARY KEY, code TEXT UNIQUE, discount_percent REAL DEFAULT 0, discount_rub REAL DEFAULT 0, min_sum REAL DEFAULT 0, is_active INTEGER DEFAULT 1, is_sysadmin_only INTEGER DEFAULT 0)''')
         c.execute('''CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, product_id INTEGER, user_id INTEGER, rating INTEGER, text TEXT, date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, is_approved INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER)''')
-        
         c.execute('''CREATE TABLE IF NOT EXISTS contests (id INTEGER PRIMARY KEY, title TEXT, description TEXT, img_url TEXT, min_sum REAL DEFAULT 1500, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+
+        # БРОНЕБОЙНАЯ МИГРАЦИЯ КОЛОНОК (Именно это чинит баг с сохранением)
+        for col in ['vk_id TEXT DEFAULT ""', 'balance REAL DEFAULT 0', 'is_sysadmin INTEGER DEFAULT 0', 'password TEXT DEFAULT ""', 'role TEXT DEFAULT "client"', 'comm_type TEXT DEFAULT "fixed"', 'comm_val REAL DEFAULT 0', 'tips_link TEXT DEFAULT ""', 'tips_qr TEXT DEFAULT ""']:
+            try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
+            except: pass
+            
+        for col in ['delivery_time TEXT DEFAULT "Как можно скорее"', 'comment TEXT DEFAULT ""', 'courier_id INTEGER DEFAULT 0', 'is_paid_to_courier INTEGER DEFAULT 0', 'courier_rating INTEGER DEFAULT 0', 'courier_comment TEXT DEFAULT ""']:
+            try: c.execute(f'ALTER TABLE orders ADD COLUMN {col}')
+            except: pass
+
+        for col in ['stickers TEXT DEFAULT "[]"', 'rating REAL DEFAULT 5.0']:
+            try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
+            except: pass
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
@@ -97,6 +109,7 @@ def award_tickets(conn, order_id, user_id, final_total):
                 t_num = f"{random.randint(100000, 999999)}"
                 conn.execute("INSERT INTO tickets (contest_id, user_id, order_id, ticket_number) VALUES (?,?,?,?)", (contest[0], user_id, order_id, t_num))
 
+# ================= ПЛАТЕЖНЫЕ ВЕБХУКИ =================
 @app.route('/api/paykeeper_webhook', methods=['POST'])
 def paykeeper_webhook():
     data = request.form; pk_id = data.get('id', ''); orderid = data.get('orderid', ''); key = data.get('key', '')
@@ -127,6 +140,7 @@ def vk_webhook():
             with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], obj['text']))
     return 'ok'
 
+# ================= АВТОРИЗАЦИЯ =================
 @app.route('/api/auth/vk', methods=['POST'])
 def auth_vk():
     data = request.json; access_token = data.get('access_token')
@@ -157,6 +171,7 @@ def auth_shadow():
 @app.route('/api/auth/logout', methods=['POST'])
 def auth_logout(): session.clear(); return jsonify({"status": "ok"})
 
+# ================= ВИТРИНА =================
 @app.route('/')
 def index():
     auth_val = session.get('user_identifier')
@@ -209,7 +224,7 @@ def user_cabinet():
     
     tickets = get_db_query("SELECT t.ticket_number, c.title FROM tickets t JOIN contests c ON t.contest_id = c.id WHERE t.user_id=? ORDER BY t.id DESC", (user['id'],))
     
-    if user['role'] == 'courier': orders = get_db_query("SELECT o.*, u.full_name as client_name, u.phone as client_phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.courier_id=? AND o.status != 'Отменен' ORDER BY o.id DESC LIMIT 30", (user['id'],))
+    if user.get('role') == 'courier': orders = get_db_query("SELECT o.*, u.full_name as client_name, u.phone as client_phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.courier_id=? AND o.status != 'Отменен' ORDER BY o.id DESC LIMIT 30", (user['id'],))
     else: orders = get_db_query("SELECT o.*, c.tips_link as c_tips, c.tips_qr as c_tips_qr, c.full_name as c_name FROM orders o LEFT JOIN users c ON o.courier_id = c.id WHERE o.user_id=? ORDER BY o.id DESC", (user['id'],))
         
     for o in orders: o['items'] = json.loads(o['items'])
@@ -236,7 +251,7 @@ def user_update():
 def upload_qr():
     auth_val = session.get('user_identifier')
     user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if not user or user['role'] != 'courier': return jsonify({'error': 'Unauthorized'}), 403
+    if not user or user.get('role') != 'courier': return jsonify({'error': 'Unauthorized'}), 403
     if 'file' not in request.files: return jsonify({'error': 'No file part'})
     file = request.files['file']
     filename = secure_filename("qr_" + str(uuid.uuid4())[:8] + "_" + file.filename)
@@ -256,7 +271,7 @@ def rate_delivery():
 def courier_action():
     auth_val = session.get('user_identifier')
     user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if not user or user['role'] != 'courier': return jsonify({"error": "access denied"}), 403
+    if not user or user.get('role') != 'courier': return jsonify({"error": "access denied"}), 403
     order_id = request.json.get('order_id')
     new_status = request.json.get('status')
     
@@ -291,6 +306,7 @@ def add_review():
     with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO reviews (product_id, user_id, rating, text) VALUES (?,?,?,?)", (data['product_id'], user['id'], data['rating'], data['text']))
     return jsonify({"status": "ok"})
 
+# ================= ОГРАНИЧЕНИЕ 18+ И КОРЗИНА =================
 @app.route('/api/cart/calc', methods=['POST'])
 def calc_cart():
     data = request.json
@@ -507,19 +523,20 @@ def admin_crud(entity):
                 if data.get('id'): conn.execute("UPDATE contests SET title=?, description=?, img_url=?, min_sum=?, active=? WHERE id=?", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO contests (title, description, img_url, min_sum, active) VALUES (?,?,?,?,?)", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active']))
             
-            # УМНОЕ И БЕЗОПАСНОЕ ОБНОВЛЕНИЕ КЛИЕНТОВ (По именам колонок)
+            # УМНОЕ ОБНОВЛЕНИЕ КЛИЕНТОВ
             elif entity == 'users':
                 u = get_db_query("SELECT * FROM users WHERE id=?", (data['id'],), fetch_one=True)
                 if u:
                     conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=? WHERE id=?", 
-                        (data.get('full_name', u['full_name']), data.get('phone', u['phone']), data.get('social_link', u['social_link']), data.get('addresses', u['addresses']), 
-                         data.get('age_verified', u['age_verified']), data.get('balance', u['balance']), data.get('role', u['role']), data.get('comm_type', u['comm_type']), 
-                         data.get('comm_val', u['comm_val']), data.get('password', u['password']), data['id']))
+                        (data.get('full_name', u.get('full_name')), data.get('phone', u.get('phone')), data.get('social_link', u.get('social_link')), data.get('addresses', u.get('addresses')), 
+                         data.get('age_verified', u.get('age_verified')), data.get('balance', u.get('balance')), data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
+                         data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data['id']))
             
             # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ
             elif entity == 'orders':
                 order_id = data.get('id'); new_status = data.get('status')
-                cid_raw = data.get('courier_id'); new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
+                cid_raw = data.get('courier_id')
+                new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
                 
                 old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id FROM orders WHERE id=?", (order_id,)).fetchone()
                 if old_order:

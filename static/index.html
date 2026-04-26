@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <title>{{ settings.shop_name }}</title>
     <meta name="theme-color" content="#00b853">
     <link rel="manifest" href="/static/manifest.json">
@@ -30,7 +34,7 @@
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
         
-        /* БАННЕР PWA УСТАНОВКИ */
+        /* БАННЕР PWA */
         .pwa-banner { background: linear-gradient(135deg, #00b853, #00d65f); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,184,83,0.3); margin: 15px 20px 0 20px; border-radius: 16px; cursor: pointer; transition: 0.3s; }
         .pwa-banner:active { transform: scale(0.98); }
         
@@ -41,27 +45,33 @@
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
         .prod-grid { padding: 0 20px; }
         
-        .p-card { background-color: #4a2e1b !important; background-image: url('{{ settings.bg_card | default("https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress") }}') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid rgba(0,0,0,0.4); position: relative; overflow: hidden; }
+        .p-card { background-color: #4a2e1b !important; background-image: url('{{ settings.bg_card | default("https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress") }}') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid rgba(0,0,0,0.4); position: relative; overflow: hidden; transition: 0.3s;}
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
+        
+        /* === ЭФФЕКТ СПОЙЛЕРА ДЛЯ 18+ === */
+        .locked-18 .p-img-box img { filter: blur(25px) grayscale(50%); transform: scale(1.1); transition: 0.3s; }
+        .locked-18 .p-img-box::after { content: '🔒 18+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: 900; color: #fff; background: rgba(220,53,69,0.85); padding: 8px 18px; border-radius: 12px; z-index: 10; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none;}
+        .locked-18 .p-name { filter: blur(5px); opacity: 0.7; user-select: none; }
+        .locked-18 .p-price { filter: blur(5px); opacity: 0.7; }
+        .locked-18 .btn-add { background: #333 !important; color: #888 !important; opacity: 0.8; }
+        .locked-18 .btn-add::after { content: ' Подтвердить'; }
         
         .p-stickers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .p-fav { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(255,255,255,0.9); border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;}
         .p-fav.active { color: #e63946; }
         .p-rating { color: #ffc107; font-size: 13px; margin-bottom: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold;}
         
-        .p-img-box { width: 100%; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 10px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        .p-img-box { width: 100%; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 10px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.4); position: relative; }
         .p-img-box img { width: 100%; height: 100%; object-fit: cover; }
-        .p-price { font-weight: 900; font-size: 20px; color: #fff; text-shadow: 1px 1px 4px rgba(0,0,0,1); display: flex; align-items: baseline; gap: 6px; }
+        .p-price { font-weight: 900; font-size: 20px; color: #fff; text-shadow: 1px 1px 4px rgba(0,0,0,1); display: flex; align-items: baseline; gap: 6px; transition: 0.3s; }
         .old-price { font-size: 13px; text-decoration: line-through; color: #ffaaaa; font-weight: 600; }
         .p-unit { font-size: 12px; color: #ffdab3; font-weight: 600; text-shadow: 1px 1px 3px rgba(0,0,0,1); margin-bottom: auto;}
-        .p-name { font-size: 14px; color: #fff; font-weight: 800; line-height: 1.2; margin-top: 6px; cursor: pointer; height: 36px; overflow: hidden; text-shadow: 1px 1px 4px rgba(0,0,0,1); }
+        .p-name { font-size: 14px; color: #fff; font-weight: 800; line-height: 1.2; margin-top: 6px; cursor: pointer; height: 36px; overflow: hidden; text-shadow: 1px 1px 4px rgba(0,0,0,1); transition: 0.3s; }
         
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .btn-add.added { background: var(--accent); color: #fff; }
         .btn-add-18 { background: #dc3545; color: #fff; } 
-        
-        .d-none-18 { display: none !important; } /* Класс для сокрытия 18+ товаров */
         
         @keyframes cartPop { 0% { transform: scale(1); } 50% { transform: scale(1.08); background-color: #00d65f; } 100% { transform: scale(1); background-color: var(--accent); } }
         .cart-bounce { animation: cartPop 0.4s ease; }
@@ -175,7 +185,7 @@
                             </div>
                             <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
                             
-                            <div class="p-img-box" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">
+                            <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
                                 {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
                             </div>
                             
@@ -183,9 +193,9 @@
                             <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                             <div class="p-unit">за 1 {{ p.unit }}</div>
                             
-                            <div class="p-name" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">{{ p.name }}</div>
+                            <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">{{ p.name }}</div>
                             
-                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }})">+ {{ p.step }} {{ p.unit }}</button>
+                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
                         </div>
                     </div>
                     {% endif %}
@@ -208,7 +218,7 @@
                     </div>
                     <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
                     
-                    <div class="p-img-box" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">
+                    <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
                         {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
                     </div>
                     
@@ -216,9 +226,9 @@
                     <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                     <div class="p-unit">за 1 {{ p.unit }}</div>
                     
-                    <div class="p-name" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">{{ p.name }}</div>
+                    <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">{{ p.name }}</div>
                     
-                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }})">+ {{ p.step }} {{ p.unit }}</button>
+                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
                 </div>
             </div>
             {% endfor %}
@@ -460,7 +470,7 @@
     const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    if (!isStandalone) { document.getElementById('pwaInstallBanner').style.display = 'flex'; }
+    if (!isStandalone) { document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); }
 
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
@@ -478,12 +488,16 @@
         }
     }
 
-    // ЛОГИКА СКРЫТИЯ ТОВАРОВ 18+
+    // ЛОГИКА СПОЙЛЕРА (БЛЮРА) ТОВАРОВ 18+
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
         document.querySelectorAll('.p-item').forEach(el => {
             const pHidden = parseInt(el.dataset.hidden || '0');
-            if (pHidden === 1 && !isConfirmed) { el.classList.add('d-none-18'); } else { el.classList.remove('d-none-18'); }
+            if (pHidden === 1 && !isConfirmed) { 
+                el.classList.add('locked-18'); 
+            } else { 
+                el.classList.remove('locked-18'); 
+            }
         });
     }
 
@@ -500,15 +514,12 @@
         document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; 
         document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); 
         
-        const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
-        
         if(query) { 
             document.getElementById('filterTitle').innerText = 'Результаты поиска'; 
             document.querySelectorAll('.filter-item').forEach(el => { 
-                const pHidden = parseInt(el.dataset.hidden || '0');
-                if (pHidden === 1 && !isConfirmed) { el.style.display = 'none'; } 
-                else { el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; }
+                el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; 
             }); 
+            updateProductVisibility(); // Применяем блюр к найденным
         } else { updateProductVisibility(); }
     }
 
@@ -529,15 +540,12 @@
         document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; 
         document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); 
         
-        const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
-        
         if (catId !== 'all') { 
             document.getElementById('filterTitle').innerText = 'Категория'; 
             document.querySelectorAll('.filter-item').forEach(el => { 
-                const pHidden = parseInt(el.dataset.hidden || '0');
-                if (pHidden === 1 && !isConfirmed) { el.style.display = 'none'; } 
-                else { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }
+                el.style.display = el.dataset.cat == catId ? 'block' : 'none'; 
             }); 
+            updateProductVisibility(); // Применяем блюр
         } else { updateProductVisibility(); }
     }
 
@@ -558,7 +566,7 @@
         
         if (age >= 18) {
             sessionStorage.setItem('age_confirmed', 'true');
-            updateProductVisibility();
+            updateProductVisibility(); // Снимаем блюр!
             bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
             if (pendingAction) { pendingAction(); pendingAction = null; }
         } else { document.getElementById('dobError').style.display = 'block'; }
@@ -687,7 +695,7 @@
         document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; 
         if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } 
         const addBtn = document.getElementById('pdAddBtn'); 
-        addBtn.onclick = () => { add(null, id, price, name, step, unit, img); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; 
+        addBtn.onclick = () => { add(null, id, price, name, step, unit, img, isHidden); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; 
         addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; 
         
         if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } 

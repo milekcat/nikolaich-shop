@@ -12,33 +12,20 @@
     </style>
 </head>
 <body>
-
 <div class="login-box">
     <h3 class="fw-bold mb-4 text-success">ERP Николаич</h3>
     <p class="text-muted small mb-4">Введите PIN-код администратора для доступа к системе.</p>
     <input type="password" id="pinInput" class="form-control bg-light border-0 rounded-4 p-3 mb-3 pin-input" placeholder="••••" maxlength="10">
     <button class="btn btn-success w-100 py-3 rounded-4 fw-bold shadow-sm" onclick="login()">Войти</button>
 </div>
-
 <script>
     async function login() {
         const pin = document.getElementById('pinInput').value;
-        const res = await fetch('/api/admin/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({pin: pin})
-        });
+        const res = await fetch('/api/admin/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({pin: pin}) });
         const data = await res.json();
-        if(data.status === 'ok') {
-            window.location.reload();
-        } else {
-            alert(data.error || "Ошибка доступа");
-            document.getElementById('pinInput').value = '';
-        }
+        if(data.status === 'ok') { window.location.reload(); } else { alert(data.error || "Ошибка доступа"); document.getElementById('pinInput').value = ''; }
     }
-    document.getElementById('pinInput').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') login();
-    });
+    document.getElementById('pinInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') login(); });
 </script>
 </body>
 </html>

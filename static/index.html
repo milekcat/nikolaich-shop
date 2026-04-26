@@ -185,7 +185,7 @@
                             
                             <div class="p-name" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">{{ p.name }}</div>
                             
-                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}')">+ {{ p.step }} {{ p.unit }}</button>
+                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }})">+ {{ p.step }} {{ p.unit }}</button>
                         </div>
                     </div>
                     {% endif %}
@@ -218,7 +218,7 @@
                     
                     <div class="p-name" onclick="openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }})">{{ p.name }}</div>
                     
-                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}')">+ {{ p.step }} {{ p.unit }}</button>
+                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }})">+ {{ p.step }} {{ p.unit }}</button>
                 </div>
             </div>
             {% endfor %}
@@ -258,7 +258,7 @@
             <input type="date" id="dobInput" class="form-control bg-dark text-white border-secondary mb-3 text-center fw-bold fs-5">
             
             <div class="d-flex gap-2">
-                <button class="btn btn-outline-light w-50 fw-bold rounded-pill" data-bs-dismiss="modal">Отмена</button>
+                <button class="btn btn-outline-light w-50 fw-bold rounded-pill" onclick="cancelAge()">Отмена</button>
                 <button class="btn btn-danger w-50 fw-bold rounded-pill" onclick="confirmAgeDOB()">Подтвердить</button>
             </div>
             
@@ -460,14 +460,9 @@
     const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    if (!isStandalone) {
-        document.getElementById('pwaInstallBanner').style.display = 'flex';
-    }
+    if (!isStandalone) { document.getElementById('pwaInstallBanner').style.display = 'flex'; }
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-    });
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
     function handleInstallClick() {
         if (isIos) {
@@ -475,9 +470,7 @@
         } else if (deferredPrompt) {
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    document.getElementById('pwaInstallBanner').style.display = 'none';
-                }
+                if (choiceResult.outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; }
                 deferredPrompt = null;
             });
         } else {
@@ -485,22 +478,17 @@
         }
     }
 
-    // ЛОГИКА СКРЫТИЯ ТОВАРОВ 18+ (ПОКА НЕ ПОДТВЕРДЯТ ВОЗРАСТ)
+    // ЛОГИКА СКРЫТИЯ ТОВАРОВ 18+
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
         document.querySelectorAll('.p-item').forEach(el => {
             const pHidden = parseInt(el.dataset.hidden || '0');
-            if (pHidden === 1 && !isConfirmed) {
-                el.classList.add('d-none-18');
-            } else {
-                el.classList.remove('d-none-18');
-            }
+            if (pHidden === 1 && !isConfirmed) { el.classList.add('d-none-18'); } else { el.classList.remove('d-none-18'); }
         });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        updateProductVisibility();
-        recalcTotals();
+        updateProductVisibility(); recalcTotals();
     });
 
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
@@ -518,15 +506,10 @@
             document.getElementById('filterTitle').innerText = 'Результаты поиска'; 
             document.querySelectorAll('.filter-item').forEach(el => { 
                 const pHidden = parseInt(el.dataset.hidden || '0');
-                if (pHidden === 1 && !isConfirmed) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; 
-                }
+                if (pHidden === 1 && !isConfirmed) { el.style.display = 'none'; } 
+                else { el.style.display = el.dataset.name.includes(query) ? 'block' : 'none'; }
             }); 
-        } else {
-            updateProductVisibility(); // Вернуть базовую видимость
-        }
+        } else { updateProductVisibility(); }
     }
 
     function filterCat(catId, btnEl, isHidden) { 
@@ -552,15 +535,15 @@
             document.getElementById('filterTitle').innerText = 'Категория'; 
             document.querySelectorAll('.filter-item').forEach(el => { 
                 const pHidden = parseInt(el.dataset.hidden || '0');
-                if (pHidden === 1 && !isConfirmed) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = el.dataset.cat == catId ? 'block' : 'none'; 
-                }
+                if (pHidden === 1 && !isConfirmed) { el.style.display = 'none'; } 
+                else { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }
             }); 
-        } else {
-            updateProductVisibility();
-        }
+        } else { updateProductVisibility(); }
+    }
+
+    function cancelAge() {
+        bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
+        pendingAction = null;
     }
     
     function confirmAgeDOB() {
@@ -571,18 +554,14 @@
         const today = new Date();
         let age = today.getFullYear() - dob.getFullYear();
         const m = today.getMonth() - dob.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-            age--;
-        }
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
         
         if (age >= 18) {
             sessionStorage.setItem('age_confirmed', 'true');
-            updateProductVisibility(); // Показываем 18+ товары
+            updateProductVisibility();
             bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
             if (pendingAction) { pendingAction(); pendingAction = null; }
-        } else {
-            document.getElementById('dobError').style.display = 'block';
-        }
+        } else { document.getElementById('dobError').style.display = 'block'; }
     }
 
     async function sendVipRequest() {
@@ -697,7 +676,6 @@
     async function toggleFav(id, el) { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); const res = await fetch('/api/user/fav', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: id})}); const data = await res.json(); if(data.status === 'added') el.classList.add('active'); else el.classList.remove('active'); }
     
     async function openProductView(id, name, img, desc, price, step, unit, isHidden) {
-        // Проверка перед открытием модалки
         if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
             pendingAction = () => openProductView(id, name, img, desc, price, step, unit, isHidden);
             document.getElementById('dobError').style.display = 'none';
@@ -720,7 +698,19 @@
         new bootstrap.Modal(document.getElementById('productDetailModal')).show(); 
     }
     
-    function add(btn, id, price, name, step, unit, img) { if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img}; } cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); }
+    function add(btn, id, price, name, step, unit, img, isHidden) { 
+        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
+            pendingAction = () => add(btn, id, price, name, step, unit, img, isHidden);
+            document.getElementById('dobError').style.display = 'none';
+            document.getElementById('dobInput').value = '';
+            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show();
+            return;
+        }
+        if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden}; } 
+        cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); 
+        if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } 
+        const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); 
+    }
     function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
     function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
     function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
@@ -734,7 +724,7 @@
             box.innerHTML = prods.map(p => {
                 let img = p.images && p.images.length > 0 ? p.images[0] : '';
                 let imgHtml = img ? `<img src="${img}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`;
-                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${p.name.replace(/'/g,"")}', ${p.step}, '${p.unit}', '${img}')">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
+                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${p.name.replace(/'/g,"")}', ${p.step}, '${p.unit}', '${img}', ${p.is_hidden|default(0)})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
             }).join('');
             box.parentElement.style.display = 'block';
         } else { box.parentElement.style.display = 'none'; }
@@ -820,6 +810,15 @@
 
     document.getElementById('loginModal').addEventListener('shown.bs.modal', function() { if('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) { const VKID = window.VKIDSDK; VKID.Config.init({ app: 54556739, redirectUrl: 'https://nikolaich.shop', responseMode: VKID.ConfigResponseMode.Callback }); new VKID.OAuthList().render({ container: document.getElementById('vkIdContainer'), oauthList: ['vkid'] }).on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, p => { VKID.Auth.exchangeCode(p.code, p.device_id).then(d => { fetch('/api/auth/vk', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({access_token: d.access_token}) }).then(() => location.reload()); }); }); } });
     async function loginPhone() { const r = await fetch('/api/auth/shadow', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone: document.getElementById('loginPhone').value, password: document.getElementById('loginPass').value }) }); const d = await r.json(); if(d.error) alert(d.error); else location.reload(); }
+    
+    // РЕГИСТРАЦИЯ SERVICE WORKER (ДЛЯ РАБОТЫ PWA)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js')
+            .then((reg) => console.log('SW Registered', reg))
+            .catch((err) => console.log('SW Reg Failed', err));
+        });
+    }
 </script>
 </body>
 </html>

@@ -49,10 +49,12 @@
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         
-        /* === ЭФФЕКТ СПОЙЛЕРА (БЛЮРА) ДЛЯ 18+ БЛОКОВ === */
-        .spoiler-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 10; display: flex; align-items: center; justify-content: center; border-radius: 20px; cursor: pointer; transition: opacity 0.4s; border: 2px dashed rgba(220,53,69,0.5); }
-        .grid-blurred { filter: blur(8px) grayscale(40%); pointer-events: none; user-select: none; }
-        .d-none-18 { display: none !important; }
+        /* === ЭФФЕКТ СПОЙЛЕРА (БЛЮРА) ДЛЯ 18+ === */
+        .locked-18 .p-img-box img { filter: blur(20px) grayscale(50%); transform: scale(1.1); transition: 0.3s; }
+        .locked-18 .p-img-box::after { content: '🔒 18+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: 900; color: #fff; background: rgba(220,53,69,0.85); padding: 8px 18px; border-radius: 12px; z-index: 10; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none;}
+        .locked-18 .p-name { filter: blur(4px); opacity: 0.6; user-select: none; }
+        .locked-18 .p-price { filter: blur(4px); opacity: 0.6; }
+        .locked-18 .btn-add { background: #333 !important; color: #888 !important; border: 1px solid #555; pointer-events: none; }
         
         .p-stickers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .p-fav { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(255,255,255,0.9); border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;}
@@ -68,7 +70,6 @@
         
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .btn-add.added { background: var(--accent); color: #fff; }
-        .btn-add-18 { background: #dc3545; color: #fff; } 
         
         @keyframes cartPop { 0% { transform: scale(1); } 50% { transform: scale(1.08); background-color: #00d65f; } 100% { transform: scale(1); background-color: var(--accent); } }
         .cart-bounce { animation: cartPop 0.4s ease; }
@@ -169,59 +170,34 @@
 
 <div id="mainContentBlocks">
     {% for block in blocks %}
-        
-        {% set block_is_18 = 0 %}
-        {% if block.block_type == 'category' %}
-            {% for c in categories %}
-                {% if c.id == block.category_id and c.is_hidden == 1 %}
-                    {% set block_is_18 = 1 %}
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-
-        <div class="homepage-block-wrap position-relative">
-            <h4 class="fw-bold mt-4 mb-3 block-title">{{ block.title }}</h4>
-            
-            <div class="prod-grid position-relative pb-2">
-                
-                {% if block_is_18 == 1 %}
-                <div class="spoiler-overlay" onclick="checkAgeAndExecute(1, () => {})">
-                    <div class="text-center p-4">
-                        <i class="bi bi-shield-lock-fill text-danger mb-2 d-block" style="font-size: 40px;"></i>
-                        <h4 class="fw-bold text-white mb-1">Раздел 18+</h4>
-                        <p class="text-white-50 small mb-3">Контент скрыт. Требуется подтверждение возраста.</p>
-                        <button class="btn btn-danger rounded-pill fw-bold px-4 shadow-sm">Подтвердить возраст</button>
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="row g-3 {% if block_is_18 == 1 %}grid-18 grid-blurred{% endif %}" id="grid-block-{{ block.id }}">
-                    {% for p in products %}
-                        {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
-                        <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}">
-                            <div class="p-card">
-                                <div class="p-stickers">
-                                    {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
-                                    {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
-                                </div>
-                                <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
-                                
-                                <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
-                                    {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
-                                </div>
-                                
-                                <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
-                                <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
-                                <div class="p-unit">за 1 {{ p.unit }}</div>
-                                
-                                <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">{{ p.name }}</div>
-                                
-                                <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
+        <h4 class="fw-bold mt-4 mb-3 block-title">{{ block.title }}</h4>
+        <div class="prod-grid">
+            <div class="row g-3" id="grid-block-{{ block.id }}">
+                {% for p in products %}
+                    {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
+                    <div class="col-6 col-md-4 col-lg-3 p-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}">
+                        <div class="p-card" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
+                            <div class="p-stickers">
+                                {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
+                                {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
                             </div>
+                            <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="event.stopPropagation(); toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
+                            
+                            <div class="p-img-box">
+                                {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
+                            </div>
+                            
+                            <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
+                            <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
+                            <div class="p-unit">за 1 {{ p.unit }}</div>
+                            
+                            <div class="p-name">{{ p.name }}</div>
+                            
+                            <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
                         </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
             </div>
         </div>
     {% endfor %}
@@ -233,14 +209,14 @@
         <div class="row g-3" id="grid-filter">
             {% for p in products %}
             <div class="col-6 col-md-4 col-lg-3 p-item filter-item" data-cat="{{ p.category_id }}" data-hidden="{{ p.is_hidden|default(0) }}" data-name="{{ p.name | lower }}" data-price="{{ p.price }}" style="display: block;">
-                <div class="p-card">
+                <div class="p-card" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
                     <div class="p-stickers">
                         {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
                         {% for s in p.stickers %} <span class="badge bg-warning text-dark shadow-sm">{{ s }}</span> {% endfor %}
                     </div>
-                    <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
+                    <div class="p-fav {% if p.is_fav %}active{% endif %}" onclick="event.stopPropagation(); toggleFav({{ p.id }}, this)"><i class="bi bi-heart-fill"></i></div>
                     
-                    <div class="p-img-box" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">
+                    <div class="p-img-box">
                         {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
                     </div>
                     
@@ -248,9 +224,9 @@
                     <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                     <div class="p-unit">за 1 {{ p.unit }}</div>
                     
-                    <div class="p-name" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => openProductView({{ p.id }}, '{{ p.name }}', '{{ p.images[0] if p.images else '' }}', '{{ p.desc|replace('\n', ' ') }}', {{ p.price }}, {{ p.step }}, '{{ p.unit }}', {{ p.is_hidden|default(0) }}))">{{ p.name }}</div>
+                    <div class="p-name">{{ p.name }}</div>
                     
-                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
+                    <button class="btn-add mt-auto {% if p.is_hidden == 1 %}btn-add-18{% endif %}" onclick="event.stopPropagation(); checkAgeAndExecute({{ p.is_hidden|default(0) }}, () => add(this, {{ p.id }}, {{ p.price }}, '{{ p.name }}', {{ p.step }}, '{{ p.unit }}', '{{ p.images[0] if p.images else '' }}', {{ p.is_hidden|default(0) }}))">+ {{ p.step }} {{ p.unit }}</button>
                 </div>
             </div>
             {% endfor %}
@@ -269,11 +245,11 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
             <i class="bi bi-android2 fs-1 text-success mb-3"></i>
-            <h4 class="fw-bold mb-3">Установка на Android</h4>
+            <h4 class="fw-bold mb-3">Установка на телефон</h4>
             <p class="text-muted small mb-3">Чтобы добавить магазин «Николаич» на ваш экран:</p>
             <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
-                <li>Нажмите на три точки <i class="bi bi-three-dots-vertical border rounded px-1"></i> в правом верхнем углу браузера.</li>
-                <li>Выберите пункт <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b>.</li>
+                <li>Нажмите на три точки <i class="bi bi-three-dots-vertical border rounded px-1"></i> в браузере.</li>
+                <li>Выберите <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b>.</li>
             </ol>
             <button class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
         </div>
@@ -504,12 +480,10 @@
 
     // ЛОГИКА PWA И УСТАНОВКИ ПРИЛОЖЕНИЯ
     let deferredPrompt;
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    // Показываем баннер на ВСЕХ мобилках, если не установлено
-    if (isMobile && !isStandalone) { 
+    // ПОКАЗЫВАЕМ БАННЕР ВЕЗДЕ (ДЛЯ ТЕСТА), ЕСЛИ НЕ СТОИТ КАК ПРИЛОЖЕНИЕ
+    if (!isStandalone) { 
         document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); 
     }
 
@@ -518,6 +492,7 @@
     });
 
     function handleInstallClick() {
+        const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
         if (deferredPrompt) {
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
@@ -531,25 +506,17 @@
         }
     }
 
-    // ЛОГИКА БЛЮРА 18+ БЛОКОВ И ТОВАРОВ
+    // ЛОГИКА БЛЮРА 18+ БЛОКОВ И ТОВАРОВ (ИСПРАВЛЕНА!)
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
         
-        // 1. Блюр для целых блоков 18+ (на главной)
-        document.querySelectorAll('.spoiler-overlay').forEach(el => {
-            el.style.display = isConfirmed ? 'none' : 'flex';
-        });
-        document.querySelectorAll('.grid-18').forEach(el => {
-            if(isConfirmed) { el.classList.remove('grid-blurred'); } else { el.classList.add('grid-blurred'); }
-        });
-
-        // 2. Скрытие отдельных товаров 18+ в "Поиске" и "Всех товарах"
-        document.querySelectorAll('.filter-item').forEach(el => {
+        // Перебираем АБСОЛЮТНО ВСЕ товары на странице и накидываем класс
+        document.querySelectorAll('.p-item').forEach(el => {
             const pHidden = parseInt(el.dataset.hidden || '0');
             if (pHidden === 1 && !isConfirmed) { 
-                el.classList.add('d-none-18'); 
+                el.classList.add('locked-18'); 
             } else { 
-                el.classList.remove('d-none-18'); 
+                el.classList.remove('locked-18'); 
             }
         });
     }

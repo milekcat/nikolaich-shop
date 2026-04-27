@@ -24,7 +24,8 @@
         body { background: {{ settings.bg_main | default('#fdfbf7') }}; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { display: none; }
         
-        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('{{ settings.bg_header | default("https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress") }}'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        /* Взломщик кэша фонов ?v=2 заставит телефоны обновить картинки */
+        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('{{ settings.bg_header | default("https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&w=1920&h=400&q=80") }}?v=2'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 15px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
         .header-top h3 { color: #fff !important; text-shadow: 1px 1px 5px rgba(0,0,0,1); font-weight: 900; margin: 0; }
@@ -33,7 +34,7 @@
         .search-bar { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 12px 20px; display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-weight: 600; color: #000; font-size: 16px; }
         
-        .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('{{ settings.bg_cat | default("https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress") }}'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; }
+        .cat-scroll-wrapper { background-color: #2d5a27; background-image: url('{{ settings.bg_cat | default("https://images.unsplash.com/photo-1533460004989-cef01064af7e?auto=format&fit=crop&w=1920&h=300&q=80") }}?v=2'); background-size: cover; background-position: center; padding: 15px 0; box-shadow: inset 0 5px 20px rgba(0,0,0,0.6); border-top: 3px solid #144011; border-bottom: 3px solid #144011; }
         .cat-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 0 20px; scroll-behavior: smooth; }
         .cat-pill { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 10px 22px; font-weight: 800; font-size: 14px; white-space: nowrap; cursor: pointer; color: #1d1d1f; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.8); transition: 0.2s; }
         .cat-pill.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
@@ -49,7 +50,7 @@
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
         .prod-grid { padding: 0 20px; }
         
-        .p-card { background-color: #4a2e1b !important; background-image: url('{{ settings.bg_card | default("https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress") }}') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid rgba(0,0,0,0.4); position: relative; overflow: hidden; transition: 0.3s; cursor: pointer; }
+        .p-card { background-color: #4a2e1b !important; background-image: url('{{ settings.bg_card | default("https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&w=800&q=80") }}?v=2') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid rgba(0,0,0,0.4); position: relative; overflow: hidden; transition: 0.3s; cursor: pointer; }
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         
@@ -285,7 +286,7 @@
 
 {% if settings.show_lock_icon|default('1') == '1' %}
 <div class="text-center mb-5 pb-4">
-    <i class="bi bi-shield-lock" style="color: #ccc; cursor: pointer; font-size: 24px; opacity: 0.5;" onclick="new bootstrap.Modal(document.getElementById('vipModal')).show()"></i>
+    <i class="bi bi-shield-lock" style="color: #ccc; cursor: pointer; font-size: 24px; opacity: 0.5;" onclick="new bootstrap.Modal(document.getElementById('verificationModal')).show()"></i>
 </div>
 {% endif %}
 
@@ -353,7 +354,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="vipModal" tabindex="-1">
+<div class="modal fade" id="verificationModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content p-4 pb-4 rounded-4 border-0 shadow-lg text-center">
             <i class="bi bi-shield-lock-fill text-dark mb-3" style="font-size: 50px;"></i>
@@ -363,7 +364,7 @@
             <input type="tel" id="vipPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Номер телефона" value="{{ user.phone if user else '' }}">
             <input type="text" id="vipSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="Ссылка на профиль VK">
             
-            <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold shadow-sm fs-5" onclick="sendVipRequest()">Отправить</button>
+            <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold shadow-sm fs-5" onclick="sendVerificationRequest()">Отправить</button>
         </div>
     </div>
 </div>
@@ -383,7 +384,7 @@
             </div>
             
             <div id="dobError" class="text-danger small fw-bold mt-2" style="display:none;">Доступ разрешен только с 18 лет!</div>
-            <div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны гостям только для Самовывоза с оплатой на кассе. Для доставки нужна регистрация.</div>
+            <div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны только для Самовывоза с оплатой на кассе.</div>
         </div>
     </div>
 </div>
@@ -665,7 +666,7 @@
     let calcDebounceTimer = null; let currentAddressMode = 'new'; let currentRatingOrderId = null;
     let pendingAction = null; let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}') || 0;
 
-    // ПРАВИЛА COOKIE (БЕЗОТКАЗНОЕ ЗАКРЫТИЕ)
+    // ПРАВИЛА COOKIE
     if(!localStorage.getItem('cookies_accepted')) { 
         document.getElementById('cookieBanner').style.setProperty('display', 'flex', 'important'); 
     }
@@ -700,7 +701,6 @@
         } else { new bootstrap.Modal(document.getElementById('androidInstallModal')).show(); }
     }
 
-    // ЛОГИКА БЛЮРА 18+
     function updateProductVisibility() {
         const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
         document.querySelectorAll('.p-item').forEach(el => {
@@ -876,7 +876,7 @@
         } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); }
     }
 
-    async function sendVipRequest() { const phone = document.getElementById('vipPhone').value; const fio = document.getElementById('vipFio').value; const social = document.getElementById('vipSocial').value; if(!phone) return alert("Введите номер!"); await fetch('/api/user/vip_request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: phone, fio: fio, social: social})}); alert("Заявка отправлена!"); location.reload(); }
+    async function sendVerificationRequest() { const phone = document.getElementById('vipPhone').value; const fio = document.getElementById('vipFio').value; const social = document.getElementById('vipSocial').value; if(!phone) return alert("Введите номер!"); await fetch('/api/user/vip_request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: phone, fio: fio, social: social})}); alert("Заявка отправлена!"); location.reload(); }
     function openReviewDialog(prodId, prodName) { currentReviewProdId = prodId; document.getElementById('revProdName').innerText = prodName; document.getElementById('revText').value = ''; new bootstrap.Modal(document.getElementById('addReviewModal')).show(); }
     async function submitReview() { const rating = document.querySelector('input[name="rating"]:checked').value; const text = document.getElementById('revText').value; if(!text.trim()) return alert("Напишите пару слов!"); await fetch('/api/user/add_review', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: currentReviewProdId, rating: parseInt(rating), text: text})}); bootstrap.Modal.getInstance(document.getElementById('addReviewModal')).hide(); alert("Спасибо! Отзыв отправлен на модерацию."); }
     function repeatOrder(itemsStr) { const itemsObj = JSON.parse(itemsStr); for(let key in itemsObj) { const i = itemsObj[key]; if(cart[key]) cart[key].qty += i.qty; else cart[key] = i; } recalcTotals(); new bootstrap.Modal(document.getElementById('cartModal')).show(); prepareCart(); }
@@ -943,7 +943,29 @@
     async function sendUserSiteChat() { const i = document.getElementById('siteChatInput'); const t = i.value.trim(); if(!t) return; i.value = ''; await fetch('/api/chat/send_from_site', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text: t})}); fetchLiveChat(); }
     async function fetchLiveChat() { const r = await fetch('/api/chat/get_from_site'); const m = await r.json(); const b = document.getElementById('siteChatBox'); if(m.length > 0) { b.innerHTML = m.map(x => x.is_incoming === 1 ? `<div class="chat-bubble chat-user">${x.text}</div>` : `<div class="chat-bubble chat-bot" style="background:#e8f0fe;"><b>Николаич:</b><br>${x.text}</div>`).join(''); b.scrollTop = b.scrollHeight; } }
 
-    document.getElementById('loginModal').addEventListener('shown.bs.modal', function() { if('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) { const VKID = window.VKIDSDK; VKID.Config.init({ app: 54556739, redirectUrl: 'https://nikolaich.shop', responseMode: VKID.ConfigResponseMode.Callback }); new VKID.OAuthList().render({ container: document.getElementById('vkIdContainer'), oauthList: ['vkid'] }).on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, p => { VKID.Auth.exchangeCode(p.code, p.device_id).then(d => { fetch('/api/auth/vk', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({access_token: d.access_token}) }).then(() => location.reload()); }); }); } });
+    document.getElementById('loginModal').addEventListener('shown.bs.modal', function() { 
+        if('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) { 
+            const VKID = window.VKIDSDK; 
+            VKID.Config.init({ app: 54556739, redirectUrl: 'https://nikolaich.shop', responseMode: VKID.ConfigResponseMode.Callback }); 
+            new VKID.OAuthList().render({ container: document.getElementById('vkIdContainer'), oauthList: ['vkid'] }).on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, p => { 
+                VKID.Auth.exchangeCode(p.code, p.device_id).then(d => { 
+                    fetch('/api/auth/vk', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({access_token: d.access_token}) })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert("Ошибка авторизации ВК: " + data.error);
+                        } else {
+                            location.reload();
+                        }
+                    })
+                    .catch(err => {
+                        alert("Сетевая ошибка авторизации ВК.");
+                    });
+                }); 
+            }); 
+        } 
+    });
+    
     async function loginPhone() { const r = await fetch('/api/auth/shadow', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone: document.getElementById('loginPhone').value, password: document.getElementById('loginPass').value }) }); const d = await r.json(); if(d.error) alert(d.error); else location.reload(); }
     
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/static/sw.js').catch((err) => console.log('SW Error')); }); }

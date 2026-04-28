@@ -49,10 +49,7 @@ def init_db():
         c = conn.cursor()
         c.execute('CREATE TABLE IF NOT EXISTS settings (key_name TEXT PRIMARY KEY, value TEXT)')
         c.execute('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT, icon TEXT, sort_order INTEGER, is_hidden INTEGER DEFAULT 0)')
-        
-        # 💥 ВАЖНО: Добавлено поле variations в products
         c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1, stickers TEXT DEFAULT "[]", rating REAL DEFAULT 5.0, variations TEXT DEFAULT "")''')
-        
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, active INTEGER DEFAULT 1)')
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
@@ -64,16 +61,15 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS contests (id INTEGER PRIMARY KEY, title TEXT, description TEXT, img_url TEXT, min_sum REAL DEFAULT 1500, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 
-        # БРОНЕБОЙНАЯ МИГРАЦИЯ КОЛОНОК 
         for col in ['vk_id TEXT DEFAULT ""', 'balance REAL DEFAULT 0', 'is_sysadmin INTEGER DEFAULT 0', 'password TEXT DEFAULT ""', 'role TEXT DEFAULT "client"', 'comm_type TEXT DEFAULT "fixed"', 'comm_val REAL DEFAULT 0', 'tips_link TEXT DEFAULT ""', 'tips_qr TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
             except: pass
             
-        for col in ['delivery_time TEXT DEFAULT "Как можно скорее"', 'comment TEXT DEFAULT ""', 'courier_id INTEGER DEFAULT 0', 'is_paid_to_courier INTEGER DEFAULT 0', 'courier_rating INTEGER DEFAULT 0', 'courier_comment TEXT DEFAULT ""']:
+        # 💥 ВАЖНО: Добавили колонку is_paid_to_sysadmin для защиты от двойных начислений
+        for col in ['delivery_time TEXT DEFAULT "Как можно скорее"', 'comment TEXT DEFAULT ""', 'courier_id INTEGER DEFAULT 0', 'is_paid_to_courier INTEGER DEFAULT 0', 'is_paid_to_sysadmin INTEGER DEFAULT 0', 'courier_rating INTEGER DEFAULT 0', 'courier_comment TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE orders ADD COLUMN {col}')
             except: pass
 
-        # 💥 ВАЖНО: Миграция поля variations для старых баз
         for col in ['stickers TEXT DEFAULT "[]"', 'rating REAL DEFAULT 5.0', 'variations TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
             except: pass
@@ -194,7 +190,6 @@ def index():
         p['stickers'] = json.loads(p['stickers']) if p.get('stickers') else []
         p['is_fav'] = p['id'] in favs
         p['dyn_rating'] = rev_dict.get(p['id'], {}).get('avg', 5.0); p['rev_count'] = rev_dict.get(p['id'], {}).get('count', 0)
-        # Убеждаемся, что variations передается корректно, даже если это None
         p['variations'] = p.get('variations', '')
         
     banners = get_db_query("SELECT * FROM banners WHERE active=1")
@@ -286,11 +281,20 @@ def courier_action():
         order = conn.execute("SELECT * FROM orders WHERE id=? AND courier_id=?", (order_id, user['id'])).fetchone()
         if order:
             conn.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
-            if new_status == 'Выполнен' and order['is_paid_to_courier'] == 0:
-                payout = float(user['comm_val']) if user['comm_type'] == 'fixed' else (float(order['final_total']) * float(user['comm_val']) / 100)
-                conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, user['id']))
-                conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
-                award_tickets(conn, order_id, order['user_id'], order['final_total'])
+            if new_status == 'Выполнен':
+                # 1. Выплата Курьеру
+                if order['is_paid_to_courier'] == 0:
+                    payout = float(user['comm_val']) if user['comm_type'] == 'fixed' else (float(order['final_total']) * float(user['comm_val']) / 100)
+                    conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, user['id']))
+                    conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
+                    award_tickets(conn, order_id, order['user_id'], order['final_total'])
+                
+                # 2. Выплата Сисадмину (1% от суммы доставки)
+                if 'is_paid_to_sysadmin' in order.keys() and order['is_paid_to_sysadmin'] == 0 and order['delivery_type'] == 'courier':
+                    sysadmin_bonus = float(order['final_total']) * 0.01
+                    conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
+                    conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
+
     return jsonify({"status": "ok"})
 
 @app.route('/api/user/fav', methods=['POST'])
@@ -321,7 +325,6 @@ def calc_cart():
     
     has_18 = False
     for p_id in cart_items.keys():
-        # Извлекаем ID товара, отбрасывая вариант (например, из "12_Тархун" получаем "12")
         base_p_id = str(p_id).split('_')[0]
         prod_cat = get_db_query("SELECT c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         if prod_cat and prod_cat['is_hidden'] == 1: has_18 = True
@@ -512,10 +515,7 @@ def admin_crud(entity):
         with sqlite3.connect('shop.db') as conn:
             if entity == 'product':
                 img_json = json.dumps(data['images']); stickers_json = json.dumps(data.get('stickers', []))
-                
-                # 💥 ВАЖНО: Извлекаем variations из POST-запроса
                 variations = data.get('variations', '').strip()
-                
                 if data.get('id'): 
                     conn.execute("""
                         UPDATE products 
@@ -548,7 +548,6 @@ def admin_crud(entity):
                 if data.get('id'): conn.execute("UPDATE contests SET title=?, description=?, img_url=?, min_sum=?, active=? WHERE id=?", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO contests (title, description, img_url, min_sum, active) VALUES (?,?,?,?,?)", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active']))
             
-            # УМНОЕ ОБНОВЛЕНИЕ КЛИЕНТОВ
             elif entity == 'users':
                 u = get_db_query("SELECT * FROM users WHERE id=?", (data['id'],), fetch_one=True)
                 if u:
@@ -557,23 +556,35 @@ def admin_crud(entity):
                          data.get('age_verified', u.get('age_verified')), data.get('balance', u.get('balance')), data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
                          data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data['id']))
             
-            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ
+            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ (ЗДЕСЬ НАЧИСЛЯЕМ 1% СИСАДМИНУ)
             elif entity == 'orders':
                 order_id = data.get('id'); new_status = data.get('status')
                 cid_raw = data.get('courier_id')
                 new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
                 
-                old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id FROM orders WHERE id=?", (order_id,)).fetchone()
+                # Достаем все нужные поля: status [0], final_total [1], is_paid_to_courier [2], courier_id [3], user_id [4], delivery_type [5], is_paid_to_sysadmin [6]
+                old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id, delivery_type, is_paid_to_sysadmin FROM orders WHERE id=?", (order_id,)).fetchone()
+                
                 if old_order:
                     conn.execute("UPDATE orders SET status=?, courier_id=? WHERE id=?", (new_status, new_courier_id, order_id))
-                    if new_status == 'Выполнен' and old_order[2] == 0:
-                        if new_courier_id > 0:
-                            courier = conn.execute("SELECT comm_type, comm_val FROM users WHERE id=?", (new_courier_id,)).fetchone()
-                            if courier:
-                                payout = float(courier[1]) if courier[0] == 'fixed' else (float(old_order[1]) * float(courier[1]) / 100)
-                                conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, new_courier_id))
-                        conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
-                        award_tickets(conn, order_id, old_order[4], old_order[1])
+                    
+                    if new_status == 'Выполнен':
+                        # 1. Выплата Курьеру
+                        if old_order[2] == 0:
+                            if new_courier_id > 0:
+                                courier = conn.execute("SELECT comm_type, comm_val FROM users WHERE id=?", (new_courier_id,)).fetchone()
+                                if courier:
+                                    payout = float(courier[1]) if courier[0] == 'fixed' else (float(old_order[1]) * float(courier[1]) / 100)
+                                    conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, new_courier_id))
+                            conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
+                            award_tickets(conn, order_id, old_order[4], old_order[1])
+                            
+                        # 2. Выплата Сисадмину (1% от доставки, если еще не выплачено)
+                        if len(old_order) > 6 and old_order[6] == 0 and old_order[5] == 'courier':
+                            sysadmin_bonus = float(old_order[1]) * 0.01
+                            conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
+                            conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
+
         return jsonify({"status": "ok"})
 
 @app.route('/api/admin/order_chat/<int:order_id>', methods=['GET'])

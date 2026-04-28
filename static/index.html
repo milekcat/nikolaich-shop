@@ -139,7 +139,7 @@
         <div class="search-container">
             <div class="search-bar">
                 <i class="bi bi-search text-muted fs-5"></i>
-                <input type="text" id="searchInput" placeholder="Поиск вкусных продуктов..." oninput="searchProducts()">
+                <input type="text" id="searchInput" placeholder="Поиск вкусных продуктов..." oninput="searchProducts()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             </div>
         </div>
     </div>
@@ -193,13 +193,12 @@
                          data-id="{{ p.id }}" 
                          data-cat="{{ p.category_id }}" 
                          data-hidden="{{ 1 if p.is_hidden else 0 }}" 
-                         data-name="{{ p.name | replace('\"', '&quot;') | replace('\'', '&apos;') }}" 
+                         data-name="{{ p.name | e }}" 
                          data-price="{{ p.price }}" 
                          data-step="{{ p.step }}" 
                          data-unit="{{ p.unit }}" 
                          data-img="{{ p.images[0] if p.images else '' }}" 
-                         data-desc="{{ p.desc | replace('\"', '&quot;') | replace('\'', '&apos;') | replace('\n', ' ') if p.desc else '' }}">
-                         
+                         data-desc="{{ p.desc | e if p.desc else '' }}">
                         <div class="p-card" onclick="handleProductClick(this)">
                             <div class="p-stickers">
                                 {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
@@ -232,13 +231,12 @@
                  data-id="{{ p.id }}" 
                  data-cat="{{ p.category_id }}" 
                  data-hidden="{{ 1 if p.is_hidden else 0 }}" 
-                 data-name="{{ p.name | replace('\"', '&quot;') | replace('\'', '&apos;') }}" 
+                 data-name="{{ p.name | e }}" 
                  data-price="{{ p.price }}" 
                  data-step="{{ p.step }}" 
                  data-unit="{{ p.unit }}" 
                  data-img="{{ p.images[0] if p.images else '' }}" 
-                 data-desc="{{ p.desc | replace('\"', '&quot;') | replace('\'', '&apos;') | replace('\n', ' ') if p.desc else '' }}" style="display: block;">
-                 
+                 data-desc="{{ p.desc | e if p.desc else '' }}" style="display: block;">
                 <div class="p-card" onclick="handleProductClick(this)">
                     <div class="p-stickers">
                         {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
@@ -272,29 +270,30 @@
     </div>
 
     <div class="text-center mb-4">
-        <div class="d-flex justify-content-center gap-3 mb-2 opacity-75">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Mir-logo.SVG/1024px-Mir-logo.SVG.png" height="22" style="object-fit: contain;" alt="МИР">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/1024px-Visa_Inc._logo.svg.png" height="22" style="object-fit: contain;" alt="Visa">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png" height="22" style="object-fit: contain;" alt="Mastercard">
+        <div class="d-flex justify-content-center align-items-center gap-2 mb-2 opacity-75">
+            <span class="badge bg-success fs-6 rounded-pill px-3 py-1 shadow-sm">МИР</span>
+            <span class="badge bg-primary fs-6 rounded-pill px-3 py-1 shadow-sm">SberPay</span>
+            <span class="badge bg-dark fs-6 rounded-pill px-3 py-1 shadow-sm">СБП</span>
         </div>
-        <p class="small text-muted mb-0 fw-bold"><i class="bi bi-shield-check text-success"></i> Онлайн-платежи защищены и обрабатываются сервисом <b>PayKeeper</b>.</p>
+        <p class="small text-muted mb-0 fw-bold"><i class="bi bi-shield-check text-success"></i> Онлайн-платежи защищены и обрабатываются сервисом <b>АО "ПэйКипер" (PayKeeper)</b>.</p>
     </div>
 
     <div class="small text-muted mb-3 text-center" style="font-size: 11px; line-height: 1.6;">
-        <b class="text-dark">Индивидуальный предприниматель</b><br>
+        <b class="text-dark">Индивидуальный предприниматель Боровенский Кирилл Николаевич</b><br>
         ИНН: 760213025906 | ОГРНИП: 325762700026823<br>
-        <span class="text-secondary text-decoration-underline fw-bold mt-1 d-inline-block" style="cursor:pointer;" onclick="new bootstrap.Modal(document.getElementById('legalModal')).show()">Показать полные реквизиты</span><br>
+        <span class="text-secondary text-decoration-underline fw-bold mt-1 d-inline-block" style="cursor:pointer;" onclick="new bootstrap.Modal(document.getElementById('legalModal')).show()">Показать полные реквизиты и контакты</span><br>
         <span class="d-inline-block mt-2">{{ settings.footer_text }}</span>
     </div>
 
-    <div class="d-flex justify-content-center gap-3 small fw-bold mb-4">
+    <div class="d-flex justify-content-center flex-wrap gap-3 small fw-bold mb-4">
+        <span class="text-secondary" style="cursor:pointer; text-decoration:underline;" onclick="new bootstrap.Modal(document.getElementById('deliveryModal')).show()">Условия доставки и получения</span>
         <span class="text-secondary" style="cursor:pointer; text-decoration:underline;" onclick="new bootstrap.Modal(document.getElementById('ofertaModal')).show()">Публичная оферта</span>
         <span class="text-secondary" style="cursor:pointer; text-decoration:underline;" onclick="new bootstrap.Modal(document.getElementById('privacyModal')).show()">Политика конфиденциальности</span>
     </div>
 
     {% if settings.show_lock_icon|default('1') == '1' %}
     <div class="text-center mb-5 pb-4">
-        <i class="bi bi-shield-lock" style="color: #ccc; cursor: pointer; font-size: 24px; opacity: 0.5;" onclick="new bootstrap.Modal(document.getElementById('vipModal')).show()"></i>
+        <i class="bi bi-shield-lock" style="color: #ccc; cursor: pointer; font-size: 24px; opacity: 0.5;" onclick="new bootstrap.Modal(document.getElementById('verificationModal')).show()"></i>
     </div>
     {% endif %}
 </div>
@@ -312,6 +311,22 @@
     <button class="btn btn-sm btn-success fw-bold rounded-pill px-4" onclick="acceptCookies()">OK</button>
 </div>
 
+<div class="modal fade" id="deliveryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content p-4 rounded-4 border-0 shadow-lg">
+            <h4 class="fw-bold mb-4 text-center"><i class="bi bi-box-seam text-primary me-2"></i>Условия доставки и получения</h4>
+            
+            <div class="small text-muted lh-lg">
+                <p><b>1. Самовывоз из магазина:</b> Покупатель может самостоятельно забрать сформированный Заказ из пункта выдачи Продавца.</p>
+                <p><b>2. Транспортировка силами сторонних курьеров:</b> Продавец не является логистической компанией и не осуществляет доставку товаров. Покупатель при оформлении заказа вправе поручить Продавцу передать укомплектованный товар независимому курьеру (сервисам агрегаторов такси, Яндекс.Доставка, Максим, самозанятым гражданам). В этом случае ответственность за сохранность и сроки транспортировки несет лицо, фактически осуществляющее доставку в интересах Покупателя.</p>
+                <p><b>3. Товары категории 18+:</b> Реализация товаров с возрастными ограничениями дистанционным способом не осуществляется. Такие товары могут быть только зарезервированы на сайте и передаются исключительно путем самовывоза после строгой проверки документа, удостоверяющего личность и возраст Покупателя на кассе.</p>
+            </div>
+
+            <button class="btn btn-dark w-100 mt-3 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="legalModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content p-4 rounded-4 border-0 shadow-lg">
@@ -319,25 +334,25 @@
             
             <div class="row small text-muted lh-lg">
                 <div class="col-md-6 mb-3">
-                    <strong class="text-dark">Организация:</strong> Индивидуальный предприниматель<br>
+                    <strong class="text-dark">Организация:</strong> Индивидуальный предприниматель Боровенский Кирилл Николаевич<br>
                     <strong class="text-dark">ОГРНИП:</strong> 325762700026823<br>
                     <strong class="text-dark">ИНН:</strong> 760213025906<br>
-                    <strong class="text-dark">Дата регистрации:</strong> 7 мая 2025 г.<br>
-                    <strong class="text-dark">Спец. налоговый режим:</strong> УСН, ПСН<br>
-                    <strong class="text-dark">Статус:</strong> Микропредприятие (с 10.06.2025)
+                    <strong class="text-dark">Фактический адрес:</strong> г. Ярославль, 1-й Голубиный переулок, д. 12<br>
+                    <strong class="text-dark">Телефон:</strong> +7 (920) 149-49-59<br>
+                    <strong class="text-dark">Электронная почта:</strong> kirill_boro@bk.ru
                 </div>
                 <div class="col-md-6 mb-3">
                     <strong class="text-dark">Налоговый орган:</strong> Управление ФНС России по Ярославской области (постановка на учет 23.03.2026)<br>
-                    <strong class="text-dark">ОКПО:</strong> 2042174408<br>
-                    <strong class="text-dark">ОКАТО:</strong> 78401364000<br>
-                    <strong class="text-dark">ОКТМО:</strong> 78701000001<br>
-                    <strong class="text-dark">Рег. номер СФР:</strong> 1377770019 (Отделение СФР по Ярославской обл.)
+                    <strong class="text-dark">Дата регистрации:</strong> 7 мая 2025 г.<br>
+                    <strong class="text-dark">Спец. налоговый режим:</strong> УСН, ПСН<br>
+                    <strong class="text-dark">ОКПО:</strong> 2042174408 | <strong class="text-dark">ОКАТО:</strong> 78401364000<br>
+                    <strong class="text-dark">Рег. номер СФР:</strong> 1377770019 (по Ярославской обл.)
                 </div>
             </div>
 
             <div class="alert alert-light border small mt-2 shadow-sm">
                 <i class="bi bi-shield-check text-success fs-5 float-start me-3"></i> 
-                <b>Безопасность платежей:</b> Оплата банковскими картами осуществляется через платежный шлюз АО «ПэйКипер». Соединение с платежным шлюзом и передача информации осуществляется в защищенном режиме с использованием протокола шифрования SSL. Введенная информация не будет предоставлена третьим лицам за исключением случаев, предусмотренных законодательством РФ.
+                <b>Безопасность платежей:</b> Оплата банковскими картами осуществляется через платежный шлюз АО «ПэйКипер» (PayKeeper). Соединение с платежным шлюзом и передача информации осуществляется в защищенном режиме с использованием протокола шифрования SSL. Введенная информация не будет предоставлена третьим лицам за исключением случаев, предусмотренных законодательством РФ.
             </div>
 
             <button class="btn btn-dark w-100 mt-3 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button>
@@ -395,7 +410,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="vipModal" tabindex="-1">
+<div class="modal fade" id="verificationModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content p-4 pb-4 rounded-4 border-0 shadow-lg text-center">
             <i class="bi bi-shield-lock-fill text-dark mb-3" style="font-size: 50px;"></i>
@@ -696,7 +711,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // БРОНЕБОЙНОЕ ЧТЕНИЕ КОРЗИНЫ
     let cart = {};
     try { 
         const stored = localStorage.getItem('nikolaich_cart'); 
@@ -903,15 +917,33 @@
         const ph = document.getElementById('checkoutPhone').value; const soc = document.getElementById('checkoutSocial').value; const pt = document.getElementById('paymentType').value; const dt = document.getElementById('deliveryType').value; const d_time = document.getElementById('checkoutTime').value; const comm = document.getElementById('checkoutComment').value;
         if(!ph) return alert("Введите номер телефона!");
         let addr = ''; if(dt !== 'pickup' && !lastCalc.force_pickup_18) { addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; if(!addr) return alert("Укажите адрес доставки!"); }
-        const btn = document.getElementById('checkoutBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Оформление...';
-        const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc};
-        const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)});
-        const data = await res.json();
-        if(data.status === 'ok') {
-            cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals();
-            if(data.pay_data) { const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url; for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } } document.body.appendChild(f); f.submit(); } 
-            else { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); }
-        } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); }
+        
+        const btn = document.getElementById('checkoutBtn'); 
+        btn.disabled = true; 
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подключение к банку...';
+        
+        try {
+            const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc};
+            const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)});
+            const data = await res.json();
+            
+            if(data.status === 'ok') {
+                cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals();
+                if(data.pay_data && data.pay_data.url) { 
+                    window.location.href = data.pay_data.url;
+                } else if(data.pay_data) {
+                    const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url; for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } } document.body.appendChild(f); f.submit(); 
+                } else { 
+                    bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); 
+                }
+            } else { 
+                alert('Ошибка: ' + (data.error || 'Проверьте данные.')); 
+                calcCart(); 
+            }
+        } catch (error) {
+            alert('Сбой подключения к серверу банка. Пожалуйста, убедитесь, что ключи API банка настроены, или выберите другой способ оплаты.');
+            calcCart(); 
+        }
     }
 
     async function sendVerificationRequest() { const phone = document.getElementById('vipPhone').value; const fio = document.getElementById('vipFio').value; const social = document.getElementById('vipSocial').value; if(!phone) return alert("Введите номер!"); await fetch('/api/user/vip_request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: phone, fio: fio, social: social})}); alert("Заявка отправлена!"); location.reload(); }
@@ -981,7 +1013,6 @@
     async function sendUserSiteChat() { const i = document.getElementById('siteChatInput'); const t = i.value.trim(); if(!t) return; i.value = ''; await fetch('/api/chat/send_from_site', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text: t})}); fetchLiveChat(); }
     async function fetchLiveChat() { const r = await fetch('/api/chat/get_from_site'); const m = await r.json(); const b = document.getElementById('siteChatBox'); if(m.length > 0) { b.innerHTML = m.map(x => x.is_incoming === 1 ? `<div class="chat-bubble chat-user">${x.text}</div>` : `<div class="chat-bubble chat-bot" style="background:#e8f0fe;"><b>Николаич:</b><br>${x.text}</div>`).join(''); b.scrollTop = b.scrollHeight; } }
 
-    /* === СОВРЕМЕННЫЙ VK ID КОД === */
     document.getElementById('loginModal').addEventListener('shown.bs.modal', function() { 
         if('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) { 
             const VKID = window.VKIDSDK; 

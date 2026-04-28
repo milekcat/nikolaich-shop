@@ -49,7 +49,10 @@ def init_db():
         c = conn.cursor()
         c.execute('CREATE TABLE IF NOT EXISTS settings (key_name TEXT PRIMARY KEY, value TEXT)')
         c.execute('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT, icon TEXT, sort_order INTEGER, is_hidden INTEGER DEFAULT 0)')
-        c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1, stickers TEXT DEFAULT "[]", rating REAL DEFAULT 5.0)''')
+        
+        # 💥 ВАЖНО: Добавлено поле variations в products
+        c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1, stickers TEXT DEFAULT "[]", rating REAL DEFAULT 5.0, variations TEXT DEFAULT "")''')
+        
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, active INTEGER DEFAULT 1)')
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
@@ -61,7 +64,7 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS contests (id INTEGER PRIMARY KEY, title TEXT, description TEXT, img_url TEXT, min_sum REAL DEFAULT 1500, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 
-        # БРОНЕБОЙНАЯ МИГРАЦИЯ КОЛОНОК (Именно это чинит баг с сохранением)
+        # БРОНЕБОЙНАЯ МИГРАЦИЯ КОЛОНОК 
         for col in ['vk_id TEXT DEFAULT ""', 'balance REAL DEFAULT 0', 'is_sysadmin INTEGER DEFAULT 0', 'password TEXT DEFAULT ""', 'role TEXT DEFAULT "client"', 'comm_type TEXT DEFAULT "fixed"', 'comm_val REAL DEFAULT 0', 'tips_link TEXT DEFAULT ""', 'tips_qr TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
             except: pass
@@ -70,7 +73,8 @@ def init_db():
             try: c.execute(f'ALTER TABLE orders ADD COLUMN {col}')
             except: pass
 
-        for col in ['stickers TEXT DEFAULT "[]"', 'rating REAL DEFAULT 5.0']:
+        # 💥 ВАЖНО: Миграция поля variations для старых баз
+        for col in ['stickers TEXT DEFAULT "[]"', 'rating REAL DEFAULT 5.0', 'variations TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
             except: pass
 
@@ -190,6 +194,8 @@ def index():
         p['stickers'] = json.loads(p['stickers']) if p.get('stickers') else []
         p['is_fav'] = p['id'] in favs
         p['dyn_rating'] = rev_dict.get(p['id'], {}).get('avg', 5.0); p['rev_count'] = rev_dict.get(p['id'], {}).get('count', 0)
+        # Убеждаемся, что variations передается корректно, даже если это None
+        p['variations'] = p.get('variations', '')
         
     banners = get_db_query("SELECT * FROM banners WHERE active=1")
     blocks = get_db_query("SELECT * FROM homepage_blocks WHERE active=1 ORDER BY sort_order")
@@ -315,7 +321,9 @@ def calc_cart():
     
     has_18 = False
     for p_id in cart_items.keys():
-        prod_cat = get_db_query("SELECT c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id=?", (p_id,), fetch_one=True)
+        # Извлекаем ID товара, отбрасывая вариант (например, из "12_Тархун" получаем "12")
+        base_p_id = str(p_id).split('_')[0]
+        prod_cat = get_db_query("SELECT c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         if prod_cat and prod_cat['is_hidden'] == 1: has_18 = True
 
     base_total = float(data.get('items_total', 0))
@@ -384,7 +392,8 @@ def checkout():
     cart = data.get('cart', {})
     has_18 = False
     for p_id, item in cart.items():
-        db_prod = get_db_query("SELECT p.stock, p.name, c.is_hidden FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?", (p_id,), fetch_one=True)
+        base_p_id = str(p_id).split('_')[0]
+        db_prod = get_db_query("SELECT p.stock, p.name, c.is_hidden FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         if not db_prod or db_prod['stock'] < item['qty']: return jsonify({"error": f"Товара '{item['name']}' недостаточно (остаток: {db_prod['stock'] if db_prod else 0})."}), 400
         if db_prod['is_hidden'] == 1: has_18 = True
 
@@ -402,7 +411,9 @@ def checkout():
 
     with sqlite3.connect('shop.db') as conn:
         cur = conn.cursor()
-        for p_id, item in cart.items(): cur.execute("UPDATE products SET stock = stock - ? WHERE id=?", (item['qty'], p_id))
+        for p_id, item in cart.items(): 
+            base_p_id = str(p_id).split('_')[0]
+            cur.execute("UPDATE products SET stock = stock - ? WHERE id=?", (item['qty'], base_p_id))
         cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, status, address, delivery_time, comment) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", 
                     (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(cart), d_type, p_type, order_status, address, d_time, comment))
         order_id = cur.lastrowid
@@ -501,8 +512,22 @@ def admin_crud(entity):
         with sqlite3.connect('shop.db') as conn:
             if entity == 'product':
                 img_json = json.dumps(data['images']); stickers_json = json.dumps(data.get('stickers', []))
-                if data.get('id'): conn.execute("UPDATE products SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=?, stickers=? WHERE id=?", (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, data['id']))
-                else: conn.execute("INSERT INTO products (name, desc, price, stock, category_id, images, unit, step, old_price, stickers) VALUES (?,?,?,?,?,?,?,?,?,?)", (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json))
+                
+                # 💥 ВАЖНО: Извлекаем variations из POST-запроса
+                variations = data.get('variations', '').strip()
+                
+                if data.get('id'): 
+                    conn.execute("""
+                        UPDATE products 
+                        SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=?, stickers=?, variations=? 
+                        WHERE id=?
+                    """, (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, variations, data['id']))
+                else: 
+                    conn.execute("""
+                        INSERT INTO products 
+                        (name, desc, price, stock, category_id, images, unit, step, old_price, stickers, variations) 
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    """, (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, variations))
             elif entity == 'category':
                 if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=? WHERE id=?", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data['id']))
                 else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)", (data['name'], data['icon'], data['sort_order'], data['is_hidden']))

@@ -54,7 +54,7 @@
         <a class="nav-link text-info" onclick="showTab('analytics', this)"><i class="bi bi-graph-up-arrow me-2 fs-5"></i> Аналитика</a>
     </nav>
     <button class="btn btn-outline-danger mt-auto mb-2 fw-bold rounded-pill shadow-sm" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i> Выход</button>
-    <div class="small text-muted text-center fw-bold">ERP System v52.0 (Variations Fixed)</div>
+    <div class="small text-muted text-center fw-bold">ERP System v55.0 (Variations FULL)</div>
 </div>
 
 <div class="main-content">
@@ -1062,6 +1062,9 @@
             </div>
         `, 'Сохранить товар', async () => { 
             const stickersArr = document.getElementById('pStickers').value ? document.getElementById('pStickers').value.split(',').map(s => s.trim()).filter(s => s) : []; 
+            const varsInput = document.getElementById('pVariations');
+            const varsValue = varsInput ? varsInput.value.trim() : '';
+
             await apiCall('product', 'POST', { 
                 id: document.getElementById('pId').value, 
                 name: document.getElementById('pName').value, 
@@ -1074,7 +1077,7 @@
                 unit: document.getElementById('pUnit').value, 
                 step: document.getElementById('pStep').value, 
                 stickers: stickersArr,
-                variations: document.getElementById('pVariations').value.trim() 
+                variations: varsValue
             }); 
             loadWarehouse(); 
         }); 

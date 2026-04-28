@@ -54,7 +54,7 @@
         <a class="nav-link text-info" onclick="showTab('analytics', this)"><i class="bi bi-graph-up-arrow me-2 fs-5"></i> Аналитика</a>
     </nav>
     <button class="btn btn-outline-danger mt-auto mb-2 fw-bold rounded-pill shadow-sm" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i> Выход</button>
-    <div class="small text-muted text-center fw-bold">ERP System v51.0 (Full UI + Variations)</div>
+    <div class="small text-muted text-center fw-bold">ERP System v52.0 (Variations Fixed)</div>
 </div>
 
 <div class="main-content">
@@ -954,7 +954,7 @@
         categoriesList = data.categories;
         
         document.getElementById('tableProducts').innerHTML = data.products.map(p => {
-            let varsHtml = p.variations ? p.variations.split(',').map(v => `<span class="badge bg-light text-dark border me-1">${v.trim()}</span>`).join('') : '<span class="text-muted small">—</span>';
+            let varsHtml = (p.variations && String(p.variations) !== 'undefined' && String(p.variations).trim() !== '') ? p.variations.split(',').map(v => `<span class="badge bg-light text-dark border me-1">${v.trim()}</span>`).join('') : '<span class="text-muted small">—</span>';
             return `<tr>
             <td>
                 <div class="d-flex align-items-center">${p.images && p.images.length > 0 ? `<img src="${p.images[0]}" class="img-preview">` : ''}
@@ -1038,7 +1038,7 @@
                     
                     <div class="p-3 bg-success bg-opacity-10 border border-success rounded-3 mb-3">
                         <label class="small fw-bold text-success mb-1"><i class="bi bi-ui-radios-grid me-1"></i>Варианты (Вкусы, размеры)</label>
-                        <input type="text" id="pVariations" class="form-control border-success fw-bold" placeholder="Например: Тархун, Дюшес, Байкал" value="${p && p.variations ? p.variations : ''}">
+                        <input type="text" id="pVariations" class="form-control border-success fw-bold" placeholder="Например: Тархун, Дюшес, Байкал" value="${(p && p.variations && String(p.variations) !== 'undefined') ? p.variations : ''}">
                         <span class="hint-text text-success opacity-75 mt-1">Через запятую. Оставьте пустым, если это обычный товар. Клиент выберет вкус при клике.</span>
                     </div>
 

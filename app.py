@@ -88,7 +88,6 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS sysadmin_logs (id INTEGER PRIMARY KEY, amount REAL, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
-        # ЭТАП 5: Таблица для Акций (Счастливые часы, Подарки и т.д.)
         c.execute('''CREATE TABLE IF NOT EXISTS promotions (
             id INTEGER PRIMARY KEY, 
             title TEXT, 
@@ -101,7 +100,6 @@ def init_db():
             active INTEGER DEFAULT 1
         )''')
 
-        # Проверка и добавление новых колонок, если таблица была создана ранее без них
         for col in ['is_on_main INTEGER DEFAULT 0']:
             try: c.execute(f'ALTER TABLE categories ADD COLUMN {col}')
             except: pass
@@ -146,7 +144,6 @@ def award_tickets(conn, order_id, user_id, final_total):
                 t_num = f"{random.randint(100000, 999999)}"
                 conn.execute("INSERT INTO tickets (contest_id, user_id, order_id, ticket_number) VALUES (?,?,?,?)", (contest[0], user_id, order_id, t_num))
 
-# ================= ПЛАТЕЖНЫЕ ВЕБХУКИ =================
 @app.route('/api/paykeeper_webhook', methods=['POST'])
 def paykeeper_webhook():
     data = request.form
@@ -187,7 +184,6 @@ def vk_webhook():
                 conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], obj['text']))
     return 'ok'
 
-# ================= АВТОРИЗАЦИЯ =================
 @app.route('/api/auth/vk', methods=['POST'])
 def auth_vk():
     data = request.json
@@ -239,7 +235,6 @@ def auth_logout():
     session.clear()
     return jsonify({"status": "ok"})
 
-# ================= ВИТРИНА =================
 @app.route('/')
 def index():
     auth_val = session.get('user_identifier')
@@ -253,7 +248,6 @@ def index():
     favs = [f['product_id'] for f in get_db_query("SELECT product_id FROM favorites WHERE user_id=?", (user['id'],))] if user else []
     rev_dict = {r['product_id']: {'avg': round(r['avg_rating'], 1), 'count': r['c']} for r in get_db_query("SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as c FROM reviews WHERE is_approved=1 GROUP BY product_id")}
 
-    # ЭТАП 5: Применение "Счастливых часов" на лету
     current_time = datetime.datetime.now().strftime("%H:%M")
     promotions = get_db_query("SELECT * FROM promotions WHERE active=1 AND promo_type='happy_hours'")
     
@@ -265,7 +259,6 @@ def index():
         p['rev_count'] = rev_dict.get(p['id'], {}).get('count', 0)
         p['variations'] = p.get('variations', '')
         
-        # Проверяем Счастливые часы для этого товара
         for promo in promotions:
             if promo['time_start'] <= current_time <= promo['time_end']:
                 if promo['target_id'] == 0 or promo['target_id'] == p['category_id']:
@@ -335,9 +328,9 @@ def user_update():
     data = request.json
     
     addresses = json.loads(user['addresses']) if user['addresses'] else []
-    if data.get('new_address') and data['new_address'] not in addresses: 
+    if data.get('new_address') and data.get('new_address') not in addresses: 
         addresses.append(data['new_address'])
-    if data.get('remove_address') and data['remove_address'] in addresses: 
+    if data.get('remove_address') and data.get('remove_address') in addresses: 
         addresses.remove(data['remove_address'])
         
     with sqlite3.connect('shop.db') as conn:
@@ -351,18 +344,6 @@ def user_update():
         conn.execute(query, tuple(params))
         
     return jsonify({"status": "ok"})
-
-@app.route('/api/user/upload_qr', methods=['POST'])
-def upload_qr():
-    auth_val = session.get('user_identifier')
-    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if not user or user.get('role') != 'courier': return jsonify({'error': 'Unauthorized'}), 403
-    
-    if 'file' not in request.files: return jsonify({'error': 'No file part'})
-    file = request.files['file']
-    filename = secure_filename("qr_" + str(uuid.uuid4())[:8] + "_" + file.filename)
-    file.save(os.path.join(UPLOAD_FOLDER, filename))
-    return jsonify({'url': f'/{UPLOAD_FOLDER}/{filename}'})
 
 @app.route('/api/order/rate_delivery', methods=['POST'])
 def rate_delivery():
@@ -446,7 +427,6 @@ def add_review():
                      (data['product_id'], user['id'], data['rating'], data['text']))
     return jsonify({"status": "ok"})
 
-# ================= ОГРАНИЧЕНИЕ 18+ И КОРЗИНА =================
 @app.route('/api/cart/calc', methods=['POST'])
 def calc_cart():
     data = request.json
@@ -467,18 +447,15 @@ def calc_cart():
         orders_count = get_db_query("SELECT COUNT(*) as c FROM orders WHERE user_id=? AND status != 'Отменен'", (user['id'],), fetch_one=True)
         if orders_count and orders_count['c'] > 0: is_new_user = False
 
-    # ЭТАП 5: Проверяем акции
     promotions = get_db_query("SELECT * FROM promotions WHERE active=1")
     current_time = datetime.datetime.now().strftime("%H:%M")
 
-    # Считаем базовую корзину с учетом "Счастливых часов" и "1+1=3"
     for p_id_key, item in cart_items.items():
         base_p_id = str(p_id_key).split('_')[0]
         prod = get_db_query("SELECT p.*, c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         
         if prod:
             if prod['is_hidden'] == 1: has_18 = True
-            
             item_price = float(prod['price'])
             
             for promo in promotions:
@@ -493,7 +470,6 @@ def calc_cart():
                         
             base_total += (item_price * float(item['qty']))
 
-    # ЭТАП 5: Подарок за первый заказ
     gift_prod = None
     for promo in promotions:
         if promo['promo_type'] == 'gift' and is_new_user and base_total >= promo['min_sum']:
@@ -585,7 +561,6 @@ def checkout():
     cart = data.get('cart', {})
     calc = data.get('calc')
     
-    # Добавляем подарок в корзину для сохранения в БД
     if calc.get('gift'):
         g = calc['gift']
         cart[f"{g['id']}_gift"] = {"name": f"🎁 {g['name']}", "price": 0, "qty": g['step'], "unit": g['unit'], "img": json.loads(g['images'])[0] if g['images'] else ''}
@@ -653,7 +628,6 @@ def chat_get_site():
     if not user: return jsonify([])
     return jsonify(get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)))
 
-# ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): 
     if not session.get('is_admin'): return render_template('admin_login.html')
@@ -673,15 +647,6 @@ def admin_logout():
     session.pop('is_admin', None)
     return jsonify({"status": "ok"})
 
-@app.route('/api/upload', methods=['POST'])
-def upload_file():
-    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    if 'file' not in request.files: return jsonify({'error': 'No file part'})
-    file = request.files['file']
-    filename = secure_filename(str(uuid.uuid4())[:8] + "_" + file.filename)
-    file.save(os.path.join(UPLOAD_FOLDER, filename))
-    return jsonify({'url': f'/{UPLOAD_FOLDER}/{filename}'})
-
 @app.route('/api/admin/<entity>', methods=['GET', 'POST', 'DELETE'])
 def admin_crud(entity):
     if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
@@ -700,7 +665,7 @@ def admin_crud(entity):
         elif entity == 'settings': return jsonify({s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")})
         elif entity == 'homepage_blocks': return jsonify(get_db_query("SELECT * FROM homepage_blocks ORDER BY sort_order"))
         elif entity == 'promocodes': return jsonify(get_db_query("SELECT * FROM promocodes ORDER BY id DESC"))
-        elif entity == 'promotions': return jsonify(get_db_query("SELECT * FROM promotions ORDER BY id DESC")) # ЭТАП 5: Отдача акций
+        elif entity == 'promotions': return jsonify(get_db_query("SELECT * FROM promotions ORDER BY id DESC"))
         elif entity == 'reviews': return jsonify(get_db_query("SELECT r.*, u.full_name, u.phone, p.name as prod_name FROM reviews r JOIN users u ON r.user_id = u.id JOIN products p ON r.product_id = p.id ORDER BY r.id DESC"))
         elif entity == 'contests': return jsonify(get_db_query("SELECT * FROM contests ORDER BY id DESC"))
         elif entity == 'tickets': return jsonify(get_db_query("SELECT t.*, u.full_name, u.phone FROM tickets t JOIN users u ON t.user_id = u.id WHERE t.contest_id=? ORDER BY t.id DESC", (request.args.get('contest_id'),)))
@@ -709,31 +674,61 @@ def admin_crud(entity):
     data = request.json
     if request.method == 'DELETE':
         if entity == 'sysadmin_logs': return jsonify({"error": "Удаление логов финансовой истории запрещено на уровне БД."}), 403
-        with sqlite3.connect('shop.db') as conn: conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
+        
+        # Исправление бага с именами таблиц
+        table_map = {'product': 'products', 'category': 'categories'}
+        table_name = table_map.get(entity, entity)
+        
+        with sqlite3.connect('shop.db') as conn: 
+            conn.execute(f"DELETE FROM {table_name} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
     
     if request.method == 'POST':
         with sqlite3.connect('shop.db') as conn:
             if entity == 'product':
-                img_json = json.dumps(data['images'])
+                img_json = json.dumps(data.get('images', []))
                 stickers_json = json.dumps(data.get('stickers', []))
                 variations = data.get('variations', '').strip()
+                
+                # Защита от пустых строк
+                try: p_price = float(data.get('price') or 0)
+                except: p_price = 0.0
+                try: p_old = float(data.get('old_price') or 0)
+                except: p_old = 0.0
+                try: p_stock = int(data.get('stock') or 0)
+                except: p_stock = 0
+                try: p_step = float(data.get('step') or 1)
+                except: p_step = 1.0
+                try: p_cat = int(data.get('category_id') or 0)
+                except: p_cat = 0
+
                 if data.get('id'): 
                     conn.execute("""
                         UPDATE products 
                         SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=?, stickers=?, variations=? 
                         WHERE id=?
-                    """, (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, variations, data['id']))
+                    """, (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations, data['id']))
                 else: 
                     conn.execute("""
                         INSERT INTO products 
                         (name, desc, price, stock, category_id, images, unit, step, old_price, stickers, variations) 
                         VALUES (?,?,?,?,?,?,?,?,?,?,?)
-                    """, (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, variations))
+                    """, (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations))
             
             elif entity == 'category':
-                if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=?, is_on_main=? WHERE id=?", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data.get('is_on_main', 0), data['id']))
-                else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden, is_on_main) VALUES (?,?,?,?,?)", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data.get('is_on_main', 0)))
+                try: c_sort = int(data.get('sort_order') or 1)
+                except: c_sort = 1
+                try: c_hid = int(data.get('is_hidden') or 0)
+                except: c_hid = 0
+                try: c_main = int(data.get('is_on_main') or 0)
+                except: c_main = 0
+
+                if data.get('id'): 
+                    conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=?, is_on_main=? WHERE id=?", 
+                                 (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main, data['id']))
+                else: 
+                    conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden, is_on_main) VALUES (?,?,?,?,?)", 
+                                 (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main))
             
             elif entity == 'banners':
                 if data.get('id'): conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=?, link_url=? WHERE id=?", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', ''), data['id']))
@@ -747,7 +742,6 @@ def admin_crud(entity):
                 if data.get('id'): conn.execute("UPDATE promocodes SET code=?, discount_percent=?, discount_rub=?, min_sum=?, is_active=?, is_sysadmin_only=? WHERE id=?", (data['code'], data['discount_percent'], data['discount_rub'], data['min_sum'], data['is_active'], data['is_sysadmin_only'], data['id']))
                 else: conn.execute("INSERT INTO promocodes (code, discount_percent, discount_rub, min_sum, is_active, is_sysadmin_only) VALUES (?,?,?,?,?,?)", (data['code'], data['discount_percent'], data['discount_rub'], data['min_sum'], data['is_active'], data['is_sysadmin_only']))
             
-            # ЭТАП 5: Сохранение новых акций
             elif entity == 'promotions':
                 if data.get('id'): 
                     conn.execute("UPDATE promotions SET title=?, promo_type=?, target_id=?, discount_val=?, min_sum=?, time_start=?, time_end=?, active=? WHERE id=?", 

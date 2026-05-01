@@ -61,7 +61,6 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS contests (id INTEGER PRIMARY KEY, title TEXT, description TEXT, img_url TEXT, min_sum REAL DEFAULT 1500, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
-        # ЭТАП 1: Таблица логов сисадмина
         c.execute('''CREATE TABLE IF NOT EXISTS sysadmin_logs (id INTEGER PRIMARY KEY, amount REAL, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 
         for col in ['vk_id TEXT DEFAULT ""', 'balance REAL DEFAULT 0', 'is_sysadmin INTEGER DEFAULT 0', 'password TEXT DEFAULT ""', 'role TEXT DEFAULT "client"', 'comm_type TEXT DEFAULT "fixed"', 'comm_val REAL DEFAULT 0', 'tips_link TEXT DEFAULT ""', 'tips_qr TEXT DEFAULT ""']:
@@ -74,6 +73,15 @@ def init_db():
 
         for col in ['stickers TEXT DEFAULT "[]"', 'rating REAL DEFAULT 5.0', 'variations TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
+            except: pass
+
+        # ЭТАП 2: Новые колонки для меню и ссылок
+        for col in ['is_on_main INTEGER DEFAULT 0']:
+            try: c.execute(f'ALTER TABLE categories ADD COLUMN {col}')
+            except: pass
+            
+        for col in ['link_url TEXT DEFAULT ""']:
+            try: c.execute(f'ALTER TABLE banners ADD COLUMN {col}')
             except: pass
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
@@ -284,19 +292,15 @@ def courier_action():
         if order:
             conn.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
             if new_status == 'Выполнен':
-                # 1. Выплата Курьеру
                 if order['is_paid_to_courier'] == 0:
                     payout = float(user['comm_val']) if user['comm_type'] == 'fixed' else (float(order['final_total']) * float(user['comm_val']) / 100)
                     conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, user['id']))
                     conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
                     award_tickets(conn, order_id, order['user_id'], order['final_total'])
-                
-                # 2. Выплата Сисадмину (1% от суммы любого выполненного заказа)
                 if 'is_paid_to_sysadmin' in order.keys() and order['is_paid_to_sysadmin'] == 0:
                     sysadmin_bonus = float(order['final_total']) * 0.01
                     conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
                     conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
-                    # ЭТАП 1: Логирование начисления баланса
                     conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (sysadmin_bonus, f"Начисление 1% за заказ #{order_id} (Выполнен)"))
 
     return jsonify({"status": "ok"})
@@ -424,8 +428,6 @@ def checkout():
         cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, status, address, delivery_time, comment) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", 
                     (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(cart), d_type, p_type, order_status, address, d_time, comment))
         order_id = cur.lastrowid
-        
-        # ЭТАП 1: Логирование списания баланса при покупке
         if sysadmin_pay > 0: 
             conn.execute("UPDATE users SET balance = balance - ? WHERE id=?", (sysadmin_pay, user['id']))
             conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (-sysadmin_pay, f"Оплата заказа #{order_id} промокодом Сисадмина"))
@@ -507,10 +509,7 @@ def admin_crud(entity):
         elif entity == 'reviews': return jsonify(get_db_query("SELECT r.*, u.full_name, u.phone, p.name as prod_name FROM reviews r JOIN users u ON r.user_id = u.id JOIN products p ON r.product_id = p.id ORDER BY r.id DESC"))
         elif entity == 'contests': return jsonify(get_db_query("SELECT * FROM contests ORDER BY id DESC"))
         elif entity == 'tickets': return jsonify(get_db_query("SELECT t.*, u.full_name, u.phone FROM tickets t JOIN users u ON t.user_id = u.id WHERE t.contest_id=? ORDER BY t.id DESC", (request.args.get('contest_id'),)))
-        
-        # ЭТАП 1: Вывод логов баланса
         elif entity == 'sysadmin_logs': return jsonify(get_db_query("SELECT * FROM sysadmin_logs ORDER BY id DESC"))
-        
         elif entity == 'analytics':
             sales = get_db_query("SELECT DATE(date) as d, SUM(final_total) as t FROM orders WHERE status != 'Отменен' AND status != 'Новый' GROUP BY DATE(date) ORDER BY d DESC LIMIT 7")
             item_counts = {}
@@ -520,10 +519,7 @@ def admin_crud(entity):
         
     data = request.json
     if request.method == 'DELETE':
-        # ЭТАП 1: Защита логов от удаления (физически блокируем на бэкенде)
-        if entity == 'sysadmin_logs':
-            return jsonify({"error": "Удаление логов финансовой истории запрещено на уровне БД."}), 403
-            
+        if entity == 'sysadmin_logs': return jsonify({"error": "Удаление логов финансовой истории запрещено на уровне БД."}), 403
         with sqlite3.connect('shop.db') as conn: conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
     
@@ -544,12 +540,17 @@ def admin_crud(entity):
                         (name, desc, price, stock, category_id, images, unit, step, old_price, stickers, variations) 
                         VALUES (?,?,?,?,?,?,?,?,?,?,?)
                     """, (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, variations))
+            
+            # ЭТАП 2: Сохранение настроек меню (is_on_main)
             elif entity == 'category':
-                if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=? WHERE id=?", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data['id']))
-                else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden) VALUES (?,?,?,?)", (data['name'], data['icon'], data['sort_order'], data['is_hidden']))
+                if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=?, is_on_main=? WHERE id=?", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data.get('is_on_main', 0), data['id']))
+                else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden, is_on_main) VALUES (?,?,?,?,?)", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data.get('is_on_main', 0)))
+            
+            # ЭТАП 2: Сохранение внешних ссылок для баннеров
             elif entity == 'banners':
-                if data.get('id'): conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=? WHERE id=?", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data['id']))
-                else: conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat) VALUES (?,?,?,?,?)", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat']))
+                if data.get('id'): conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=?, link_url=? WHERE id=?", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', ''), data['id']))
+                else: conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat, link_url) VALUES (?,?,?,?,?,?)", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', '')))
+            
             elif entity == 'homepage_blocks':
                 if data.get('id'): conn.execute("UPDATE homepage_blocks SET title=?, block_type=?, category_id=?, sort_order=?, active=? WHERE id=?", (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO homepage_blocks (title, block_type, category_id, sort_order, active) VALUES (?,?,?,?,?)", (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active']))
@@ -563,7 +564,6 @@ def admin_crud(entity):
             elif entity == 'contests':
                 if data.get('id'): conn.execute("UPDATE contests SET title=?, description=?, img_url=?, min_sum=?, active=? WHERE id=?", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO contests (title, description, img_url, min_sum, active) VALUES (?,?,?,?,?)", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active']))
-            
             elif entity == 'users':
                 u = get_db_query("SELECT * FROM users WHERE id=?", (data['id'],), fetch_one=True)
                 if u:
@@ -571,20 +571,15 @@ def admin_crud(entity):
                         (data.get('full_name', u.get('full_name')), data.get('phone', u.get('phone')), data.get('social_link', u.get('social_link')), data.get('addresses', u.get('addresses')), 
                          data.get('age_verified', u.get('age_verified')), data.get('balance', u.get('balance')), data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
                          data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data['id']))
-            
-            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ (ЗДЕСЬ НАЧИСЛЯЕМ 1% СИСАДМИНУ СО ВСЕХ ЗАКАЗОВ)
             elif entity == 'orders':
                 order_id = data.get('id'); new_status = data.get('status')
                 cid_raw = data.get('courier_id')
                 new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
                 
                 old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id, delivery_type, is_paid_to_sysadmin FROM orders WHERE id=?", (order_id,)).fetchone()
-                
                 if old_order:
                     conn.execute("UPDATE orders SET status=?, courier_id=? WHERE id=?", (new_status, new_courier_id, order_id))
-                    
                     if new_status == 'Выполнен':
-                        # 1. Выплата Курьеру
                         if old_order[2] == 0:
                             if new_courier_id > 0:
                                 courier = conn.execute("SELECT comm_type, comm_val FROM users WHERE id=?", (new_courier_id,)).fetchone()
@@ -594,12 +589,10 @@ def admin_crud(entity):
                             conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
                             award_tickets(conn, order_id, old_order[4], old_order[1])
                             
-                        # 2. Выплата Сисадмину (1% со ВСЕХ заказов, если еще не выплачено)
                         if len(old_order) > 6 and old_order[6] == 0:
                             sysadmin_bonus = float(old_order[1]) * 0.01
                             conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
                             conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
-                            # ЭТАП 1: Логирование начисления
                             conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (sysadmin_bonus, f"Начисление 1% за заказ #{order_id} (Выполнен)"))
 
         return jsonify({"status": "ok"})

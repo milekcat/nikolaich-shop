@@ -10,7 +10,6 @@
     <style>
         body { background: #f4f5f7; display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
         
-        /* Боковое меню (Десктоп) */
         .sidebar { width: 280px; background: #fff; border-right: 1px solid #e5e5ea; padding: 25px; display: flex; flex-direction: column; overflow-y: auto; z-index: 2000;}
         .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; background: #f4f5f7; }
         .card-ui { background: #fff; border-radius: 20px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 24px; border: 1px solid #f0f0f0; }
@@ -34,34 +33,28 @@
         
         .hint-text { font-size: 11px; color: #8e8e93; margin-top: 4px; display: block; }
         
-        /* Рулетка */
         .roulette-box { background: #1d1d1f; color: #fff; border-radius: 24px; padding: 40px; text-align: center; position: relative; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); border: 4px solid #f1c40f;}
         .roulette-number { font-size: 80px; font-weight: 900; letter-spacing: 10px; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.5); font-variant-numeric: tabular-nums; }
         .roulette-winner { animation: pulseWinner 1s infinite alternate; }
         @keyframes pulseWinner { 0% { transform: scale(1); text-shadow: 0 0 20px rgba(241, 196, 15, 0.5); } 100% { transform: scale(1.1); text-shadow: 0 0 40px rgba(241, 196, 15, 1); color: #fff; } }
 
-        /* МОБИЛЬНАЯ АДАПТАЦИЯ (ЭТАП 3) */
         @media (max-width: 768px) {
-            /* Нижнее навигационное меню (Вместо бокового) */
             .sidebar { position: fixed; bottom: 0; left: 0; width: 100%; height: 75px; flex-direction: row; padding: 0 5px; border-right: none; border-top: 1px solid #e5e5ea; background: #fff; padding-bottom: calc(env(safe-area-inset-bottom) + 5px); justify-content: space-around; align-items: center;}
             .sidebar h4, .sidebar .text-muted, .sidebar .btn-outline-danger { display: none !important; }
-            .sidebar .nav { flex-direction: row !important; width: 100%; justify-content: space-between; }
-            .nav-link { flex: 1; text-align: center; font-size: 10px; padding: 5px; margin: 0; border-radius: 8px; display: flex; flex-direction: column; align-items: center;}
-            .nav-link i { font-size: 22px !important; margin: 0 0 2px 0 !important; }
+            .sidebar .nav { flex-direction: row !important; width: 100%; justify-content: space-between; overflow-x: auto;}
+            .nav-link { flex: 0 0 auto; text-align: center; font-size: 10px; padding: 5px 10px; margin: 0; border-radius: 8px; display: flex; flex-direction: column; align-items: center;}
+            .nav-link i { font-size: 20px !important; margin: 0 0 2px 0 !important; }
             
             .main-content { padding: 15px; padding-bottom: 100px; }
             .card-ui { padding: 15px; }
 
-            /* Превращаем таблицы в карточки */
             .table-responsive table { border: 0; }
             .table-responsive thead { display: none; }
             .table-responsive tr { display: block; border: 1px solid #eee; border-radius: 16px; margin-bottom: 15px; background: #fff; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
             .table-responsive td { display: block; text-align: left; font-size: 14px; border-bottom: 1px dashed #f0f0f0; padding: 10px 0; }
             .table-responsive td:last-child { border-bottom: 0; }
-            /* Выводим заголовки полей (data-label генерируется в JS) */
             .table-responsive td::before { content: attr(data-label); font-weight: 700; color: #8e8e93; display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; }
             
-            /* Плавающая кнопка сохранить в модалках */
             .modal-content { border-radius: 20px 20px 0 0 !important; }
             .modal-dialog { margin: 0; align-items: flex-end; min-height: 100%; }
         }
@@ -77,11 +70,11 @@
         <a class="nav-link active" onclick="showTab('orders', this)"><i class="bi bi-cart3 me-2 fs-5"></i> Заказы</a>
         <a class="nav-link" onclick="showTab('crm', this)"><i class="bi bi-people me-2 fs-5"></i> CRM</a>
         <a class="nav-link text-primary fw-bold" onclick="showTab('sysadmin_logs', this)"><i class="bi bi-shield-lock-fill me-2 fs-5"></i> Финансы</a>
-        <a class="nav-link text-warning fw-bold" onclick="showTab('contests', this)" style="display:none;"><i class="bi bi-gift-fill me-2 fs-5"></i> Конкурсы</a>
-        <a class="nav-link" onclick="showTab('reviews', this)" style="display:none;"><i class="bi bi-star-fill me-2 fs-5 text-warning"></i> Отзывы</a>
+        <!-- ЭТАП 5: Кнопка Хаба Акций -->
+        <a class="nav-link text-danger fw-bold" onclick="showTab('promotions_hub', this)"><i class="bi bi-tags-fill me-2 fs-5"></i> Акции</a>
+        <a class="nav-link text-warning fw-bold" onclick="showTab('contests', this)"><i class="bi bi-gift-fill me-2 fs-5"></i> Лотерея</a>
         <a class="nav-link" onclick="showTab('warehouse', this)"><i class="bi bi-box-seam me-2 fs-5"></i> Склад</a>
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Сайт</a>
-        <a class="nav-link text-info" onclick="showTab('analytics', this)" style="display:none;"><i class="bi bi-graph-up-arrow me-2 fs-5"></i> Стата</a>
     </nav>
     <button class="btn btn-outline-danger mt-auto mb-2 fw-bold rounded-pill shadow-sm" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i> Выход</button>
     <div class="small text-muted text-center fw-bold">ERP System v55.0 (Mobile)</div>
@@ -104,6 +97,30 @@
                         </tr>
                     </thead>
                     <tbody id="tableOrders"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭТАП 5: Раздел Хаба Акций -->
+    <div id="promotions_hub" class="tab" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0 text-danger"><i class="bi bi-tags-fill me-2"></i>Хаб Акций</h3>
+            <button class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm" onclick="openPromotionModal()"><i class="bi bi-plus-lg me-1"></i> Создать механику</button>
+        </div>
+        <div class="card-ui p-0 overflow-hidden border-0">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Название / Тип</th>
+                            <th>Условия (Время / Сумма)</th>
+                            <th>Выгода</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablePromotions"></tbody>
                 </table>
             </div>
         </div>
@@ -343,12 +360,10 @@
                         <h5 class="fw-bold mb-4">Основные настройки</h5>
                         <label class="small fw-bold text-muted mb-1">Название магазина (Логотип)</label>
                         <input type="text" id="setShopName" class="form-control bg-light border mb-3 p-2">
-                        
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
                         <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
-                        
                         <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для ручного перевода)</label>
-                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк, Николаич)"></textarea>
+                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк)"></textarea>
                         
                         <div class="p-3 border border-success rounded-4 bg-success bg-opacity-10 mb-4">
                             <h5 class="fw-bold mb-3 text-success"><i class="bi bi-credit-card-fill me-2"></i>Эквайринг (PayKeeper)</h5>
@@ -358,7 +373,7 @@
                             <input type="password" id="setPkSecret" class="form-control bg-white border border-success mb-2 p-2">
                         </div>
 
-                        <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы (Закон РФ)</h5>
+                        <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
                         <label class="small fw-bold text-muted mb-1">Текст Публичной Оферты</label>
                         <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="4"></textarea>
                         <label class="small fw-bold text-muted mb-1">Политика конфиденциальности</label>
@@ -432,7 +447,6 @@
                 </div>
                 <div id="modalBody"></div>
             </div>
-            <!-- ЭТАП 3: Плавающая кнопка сохранить для телефонов -->
             <div class="position-sticky bottom-0 bg-white p-4" style="z-index: 1055; border-top: 1px solid #f0f0f0; border-radius: 0 0 24px 24px;">
                 <button class="btn btn-success w-100 py-3 fw-bold rounded-4 shadow-sm" id="modalBtn">Сохранить</button>
             </div>
@@ -513,6 +527,7 @@
     let currentProductImages = []; 
     let currentActiveOrder = null; 
     let activeCouriers = [];
+    let productsList = []; // Нужно для акций с товарами
     let lastOrdersCount = 0;
     
     setInterval(async () => {
@@ -539,7 +554,8 @@
         if(id === 'analytics') loadAnalytics();
         if(id === 'reviews') loadReviews();
         if(id === 'contests') loadContests();
-        if(id === 'sysadmin_logs') loadSysadminLogs(); 
+        if(id === 'sysadmin_logs') loadSysadminLogs();
+        if(id === 'promotions_hub') loadPromotions(); // ЭТАП 5: Вызов акций
     }
 
     function toggleSub(showId, hideIds, btn) {
@@ -574,6 +590,127 @@
     }
     
     async function logoutAdmin() { await fetch('/api/admin/logout', {method: 'POST'}); window.location.reload(); }
+
+    /* ЭТАП 5: ЛОГИКА ХАБА АКЦИЙ */
+    async function loadPromotions() {
+        const data = await apiCall('promotions');
+        const wh = await apiCall('warehouse');
+        if(wh) { categoriesList = wh.categories; productsList = wh.products; }
+        
+        if(!data) return;
+        document.getElementById('tablePromotions').innerHTML = data.map(p => {
+            let typeName = ""; let conditions = ""; let benefit = "";
+            if (p.promo_type === 'happy_hours') { 
+                typeName = '<span class="badge bg-primary">Счастливые часы</span>'; 
+                conditions = `⏰ ${p.time_start} - ${p.time_end}`;
+                benefit = `<span class="text-success fw-bold">-${p.discount_val}%</span>`;
+            } else if (p.promo_type === 'gift') { 
+                typeName = '<span class="badge bg-success">Подарок новичку</span>'; 
+                conditions = `Сумма от ${p.min_sum} ₽`;
+                benefit = `🎁 Товар ID: ${p.target_id}`;
+            } else if (p.promo_type === '1plus1') { 
+                typeName = '<span class="badge bg-warning text-dark">1+1=3 (Третий в подарок)</span>'; 
+                conditions = `Категория ID: ${p.target_id || 'Все'}`;
+                benefit = `🎁 Бесплатно 1 шт.`;
+            }
+            
+            return `<tr>
+                <td data-label="Название / Тип"><div class="fw-bold fs-6">${p.title}</div>${typeName}</td>
+                <td data-label="Условия">${conditions}</td>
+                <td data-label="Выгода">${benefit}</td>
+                <td data-label="Статус">${p.active ? '<span class="badge bg-success">Активна</span>' : '<span class="badge bg-secondary">Выкл</span>'}</td>
+                <td data-label="Действия">
+                    <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openPromotionModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick="deleteEntity('promotions', ${p.id}, loadPromotions)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openPromotionModal(p = null) {
+        const catOptions = `<option value="0">--- Ко всему каталогу ---</option>` + categoriesList.map(c => `<option value="${c.id}" ${p && p.target_id==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+        const prodOptions = productsList.map(pr => `<option value="${pr.id}" ${p && p.target_id==pr.id ? 'selected' : ''}>${pr.name}</option>`).join('');
+        
+        openModal(p ? 'Редактировать механику' : 'Новая механика', `
+            <input type="hidden" id="promoId" value="${p ? p.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Название (Для вас)</label>
+            <input type="text" id="promoTitle" class="form-control bg-light border mb-3 p-2 fw-bold" value="${p ? p.title : ''}" placeholder="Например: Вечерняя выпечка">
+            
+            <label class="small fw-bold text-muted mb-1">Тип механики</label>
+            <select id="promoType" class="form-select bg-light border p-2 fw-bold mb-3" onchange="togglePromoFields()">
+                <option value="happy_hours" ${p && p.promo_type=='happy_hours' ? 'selected' : ''}>⏰ Счастливые часы (Скидка в % по времени)</option>
+                <option value="gift" ${p && p.promo_type=='gift' ? 'selected' : ''}>🎁 Подарок новичкам (Товар бесплатно от суммы)</option>
+                <option value="1plus1" ${p && p.promo_type=='1plus1' ? 'selected' : ''}>🛒 1+1=3 (Третий товар бесплатно)</option>
+            </select>
+            
+            <div id="promoFields_happy_hours" style="display: ${!p || p.promo_type=='happy_hours' ? 'block' : 'none'};">
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Время С (ЧЧ:ММ)</label><input type="time" id="promoTimeStart" class="form-control bg-light border p-2" value="${p ? p.time_start : '20:00'}"></div>
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Время ДО (ЧЧ:ММ)</label><input type="time" id="promoTimeEnd" class="form-control bg-light border p-2" value="${p ? p.time_end : '22:00'}"></div>
+                </div>
+                <label class="small fw-bold text-muted mb-1">К какой категории применять?</label>
+                <select id="promoCatTarget" class="form-select bg-light border mb-3 p-2">${catOptions}</select>
+                <label class="small fw-bold text-muted mb-1">Скидка (%)</label>
+                <input type="number" id="promoDiscount" class="form-control bg-light border mb-3 p-2 fw-bold text-success" value="${p ? p.discount_val : '15'}">
+            </div>
+            
+            <div id="promoFields_gift" style="display: ${p && p.promo_type=='gift' ? 'block' : 'none'};">
+                <div class="alert alert-success border-0 small py-2 mb-3"><i class="bi bi-info-circle-fill me-1"></i> Работает только для клиентов, у которых 0 завершенных заказов.</div>
+                <label class="small fw-bold text-muted mb-1">Минимальная сумма чека для подарка (₽)</label>
+                <input type="number" id="promoMinSum" class="form-control bg-light border mb-3 p-2 fw-bold" value="${p ? p.min_sum : '1000'}">
+                <label class="small fw-bold text-muted mb-1">Какой товар подарить?</label>
+                <select id="promoProdTarget" class="form-select bg-light border mb-3 p-2">${prodOptions}</select>
+            </div>
+            
+            <div id="promoFields_1plus1" style="display: ${p && p.promo_type=='1plus1' ? 'block' : 'none'};">
+                <div class="alert alert-warning border-0 small py-2 mb-3"><i class="bi bi-info-circle-fill me-1"></i> Если клиент добавляет 3 одинаковых товара из категории ниже, система отнимет цену одного из них.</div>
+                <label class="small fw-bold text-muted mb-1">Для какой категории работает?</label>
+                <select id="promoCat1plus1" class="form-select bg-light border mb-3 p-2">${catOptions}</select>
+            </div>
+
+            <label class="small fw-bold text-muted mb-1">Статус акции</label>
+            <select id="promoActive" class="form-select bg-light border p-2">
+                <option value="1" ${p && p.active==1 ? 'selected' : ''}>Включена</option>
+                <option value="0" ${p && p.active==0 ? 'selected' : ''}>Выключена</option>
+            </select>
+        `, 'Сохранить', async () => { 
+            const type = document.getElementById('promoType').value;
+            let target_id = 0, discount_val = 0, min_sum = 0, time_start = "", time_end = "";
+            
+            if (type === 'happy_hours') {
+                target_id = document.getElementById('promoCatTarget').value;
+                discount_val = document.getElementById('promoDiscount').value;
+                time_start = document.getElementById('promoTimeStart').value;
+                time_end = document.getElementById('promoTimeEnd').value;
+            } else if (type === 'gift') {
+                target_id = document.getElementById('promoProdTarget').value;
+                min_sum = document.getElementById('promoMinSum').value;
+            } else if (type === '1plus1') {
+                target_id = document.getElementById('promoCat1plus1').value;
+            }
+
+            await apiCall('promotions', 'POST', { 
+                id: document.getElementById('promoId').value, 
+                title: document.getElementById('promoTitle').value, 
+                promo_type: type, 
+                target_id: target_id,
+                discount_val: discount_val,
+                min_sum: min_sum,
+                time_start: time_start,
+                time_end: time_end,
+                active: document.getElementById('promoActive').value
+            }); 
+            loadPromotions(); 
+        }); 
+    }
+
+    window.togglePromoFields = function() {
+        const type = document.getElementById('promoType').value;
+        document.getElementById('promoFields_happy_hours').style.display = type === 'happy_hours' ? 'block' : 'none';
+        document.getElementById('promoFields_gift').style.display = type === 'gift' ? 'block' : 'none';
+        document.getElementById('promoFields_1plus1').style.display = type === '1plus1' ? 'block' : 'none';
+    }
+
 
     /* ЛОГИ СИСАДМИНА */
     async function loadSysadminLogs() {
@@ -627,7 +764,7 @@
     
     async function changeOrderStatus(orderId, status, courierId) { await apiCall('orders', 'POST', {id: orderId, status: status, courier_id: courierId}); loadOrders(); }
     
-    async function openOrderManage(orderId) { /* логика чата заказа (не меняем) */
+    async function openOrderManage(orderId) { 
         currentActiveOrder = orderId; 
         const res = await apiCall('order_chat/' + orderId); 
         if(!res || res.error) return alert("Ошибка загрузки заказа");
@@ -787,7 +924,6 @@
                     <label class="small fw-bold text-muted mb-1">Описание</label>
                     <textarea id="pDesc" class="form-control bg-light border mb-3 p-2" rows="2">${p ? p.desc : ''}</textarea>
                     
-                    <!-- ЭТАП 3: ФОТОГРАФИИ С КАМЕРЫ (capture="environment") -->
                     <div class="p-3 bg-white border border-primary rounded-4 shadow-sm mb-3">
                         <label class="small fw-bold text-primary mb-2"><i class="bi bi-camera-fill me-1"></i>Загрузить фото (Галерея или Камера)</label>
                         <input type="file" id="pFileUpload" class="form-control bg-light border mb-2 p-2 fw-bold text-primary" multiple accept="image/*" capture="environment" onchange="uploadPhotos()">
@@ -802,7 +938,7 @@
                     
                     <div class="p-3 bg-success bg-opacity-10 border border-success rounded-3 mb-3">
                         <label class="small fw-bold text-success mb-1"><i class="bi bi-ui-radios-grid me-1"></i>Варианты (Вкусы, размеры)</label>
-                        <input type="text" id="pVariations" class="form-control border-success fw-bold" placeholder="Тархун, Дюшес, Байкал" value="${(p && p.variations && String(p.variations) !== 'undefined') ? p.variations : ''}">
+                        <input type="text" id="pVariations" class="form-control border-success fw-bold" placeholder="Например: Тархун, Дюшес, Байкал" value="${(p && p.variations && String(p.variations) !== 'undefined') ? p.variations : ''}">
                     </div>
 
                     <div class="row g-2 mb-3">
@@ -835,12 +971,11 @@
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Эмодзи иконка</label><input type="text" id="cIcon" class="form-control bg-light border p-2" value="${c ? c.icon : '🛒'}"></div>
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Порядок вывода</label><input type="number" id="cSort" class="form-control bg-light border p-2" value="${c ? c.sort_order : '1'}"></div>
             </div>
-            <!-- ЭТАП 2: Подготовка для главной страницы -->
             <div class="p-3 bg-light border rounded-4 mb-3">
                 <label class="small fw-bold text-muted mb-1">Вывод категории (UI)</label>
                 <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" id="cOnMain" disabled>
-                    <label class="form-check-label fw-bold small" for="cOnMain">Вывести на главную плиткой (В разработке)</label>
+                    <input class="form-check-input" type="checkbox" id="cOnMain" ${c && c.is_on_main == 1 ? 'checked' : ''}>
+                    <label class="form-check-label fw-bold small" for="cOnMain">Вывести на главную плиткой</label>
                 </div>
             </div>
             <label class="small fw-bold text-muted mb-1">Ограничение доступа (18+)</label>
@@ -849,7 +984,7 @@
                 <option value="1" ${c && c.is_hidden==1 ? 'selected' : ''}>VIP 18+ (Только самовывоз для гостей)</option>
             </select>
         `, 'Сохранить', async () => { 
-            await apiCall('category', 'POST', { id: document.getElementById('cId').value, name: document.getElementById('cName').value, icon: document.getElementById('cIcon').value, sort_order: document.getElementById('cSort').value, is_hidden: document.getElementById('cHidden').value }); 
+            await apiCall('category', 'POST', { id: document.getElementById('cId').value, name: document.getElementById('cName').value, icon: document.getElementById('cIcon').value, sort_order: document.getElementById('cSort').value, is_hidden: document.getElementById('cHidden').value, is_on_main: document.getElementById('cOnMain').checked ? 1 : 0 }); 
             loadWarehouse(); 
         }); 
     }
@@ -857,7 +992,6 @@
     async function loadSettings() {
         const settings = await apiCall('settings');
         if(settings) { 
-            /* ... (настройки без изменений) ... */
             document.getElementById('setShopName').value = settings.shop_name || ''; 
             document.getElementById('setFooterText').value = settings.footer_text || ''; 
             document.getElementById('setPackageCost').value = settings.package_cost || '29'; 
@@ -874,7 +1008,7 @@
             document.getElementById('setPkServer').value = settings.pk_server || '';
             document.getElementById('setPkSecret').value = settings.pk_secret || ''; 
         }
-        const wh = await apiCall('warehouse'); if(wh) categoriesList = wh.categories;
+        const wh = await apiCall('warehouse'); if(wh) { categoriesList = wh.categories; productsList = wh.products; }
         const banners = await apiCall('banners'); if(banners) document.getElementById('tableBanners').innerHTML = banners.map(b => `<tr><td data-label="Текст">${b.title}</td><td data-label="Цвет фона"><div style="width:24px; height:24px; background:${b.bg_color}; border-radius:6px; border:1px solid #ddd;"></div></td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBannerModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("banners", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
         const blocks = await apiCall('homepage_blocks'); if(blocks) document.getElementById('tableBlocks').innerHTML = blocks.map(b => `<tr><td data-label="Заголовок">${b.title}</td><td data-label="Тип">${b.block_type === 'sale' ? '<span class="badge bg-danger">Акции</span>' : '<span class="badge bg-primary">Категория</span>'}</td><td data-label="Сортировка">${b.sort_order}</td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBlockModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("homepage_blocks", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
         const promos = await apiCall('promocodes'); if(promos) document.getElementById('tablePromos').innerHTML = promos.map(p => `<tr><td data-label="Код"><div class="fw-bold text-danger">${p.code}</div>${p.is_sysadmin_only ? '<span class="badge bg-dark small">Сисадмин</span>' : ''}</td><td data-label="Скидка">${p.discount_percent}% / ${p.discount_rub} ₽</td><td data-label="Условия">От ${p.min_sum} ₽<br>${p.is_active ? '<span class="text-success small fw-bold">Вкл</span>' : '<span class="text-danger small fw-bold">Выкл</span>'}</td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openPromoModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("promocodes", ${p.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
@@ -912,12 +1046,14 @@
                 <input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
                 <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label>
                 <input type="text" id="bUrl" class="form-control bg-light border mb-3 p-2" value="${b ? b.img_url : ''}">
+                <label class="small fw-bold text-muted mb-1">Внешняя ссылка (VK и т.д.)</label>
+                <input type="text" id="bLinkUrl" class="form-control bg-light border mb-3 p-2 text-primary fw-bold" placeholder="https://vk.com/..." value="${b ? b.link_url || '' : ''}">
                 <div class="row g-2 mb-3">
                     <div class="col-6"><label class="small fw-bold text-muted mb-1">Цвет плашки</label><input type="color" id="bColor" class="form-control bg-light border w-100 p-1" value="${b ? b.bg_color : '#ffffff'}"></div>
                     <div class="col-6"><label class="small fw-bold text-muted mb-1">Куда ведет клик</label><select id="bLink" class="form-select bg-light border p-2 fw-bold">${catOptions}</select></div>
                 </div>
             </div>
-        `, 'Опубликовать', async () => { await apiCall('banners', 'POST', { id: document.getElementById('bId').value, title: document.getElementById('bTitle').value, subtitle: document.getElementById('bSub').value, img_url: document.getElementById('bUrl').value, bg_color: document.getElementById('bColor').value, link_cat: document.getElementById('bLink').value }); loadSettings(); }); 
+        `, 'Опубликовать', async () => { await apiCall('banners', 'POST', { id: document.getElementById('bId').value, title: document.getElementById('bTitle').value, subtitle: document.getElementById('bSub').value, img_url: document.getElementById('bUrl').value, link_url: document.getElementById('bLinkUrl').value, bg_color: document.getElementById('bColor').value, link_cat: document.getElementById('bLink').value }); loadSettings(); }); 
     }
     
     function openPromoModal(p = null) { 

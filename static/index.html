@@ -565,7 +565,7 @@
                 <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 звезд">★</label>
                 <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 звезды">★</label>
                 <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 звезды">★</label>
-                <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2্সে"><label for="star2" title="2 звезды">★</label>
+                <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 звезды">★</label>
                 <input type="radio" id="star1" name="rating" value="1" checked><label for="star1" title="1 звезда">★</label>
             </div>
             <textarea id="revText" class="form-control bg-light border-0 rounded-4 p-3 mb-3" rows="3" placeholder="Что вам понравилось?"></textarea>
@@ -598,7 +598,10 @@
                 <i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.
             </div>
 
-            <div id="cartItemsList" class="mb-4"></div>
+            <!-- ЭТАП 1: Добавлены прозрачные строки чека (Пакет, Наценка, Скидки) -->
+            <div id="cartItemsList" class="mb-2"></div>
+            <div id="cartAdditionalInfo" class="mb-4 small text-muted"></div>
+            
             <h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div>
             
             <div class="checkout-box">
@@ -647,9 +650,9 @@
             </div>
             <div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div>
             
-            <div class="d-flex justify-content-between mb-1 text-muted"><span>Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
             <div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
-            <div class="d-flex justify-content-between mb-4 text-muted"><span>Скидка / Баланс</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div>
+            <div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div>
             
             <label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label>
             <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
@@ -882,6 +885,7 @@
         } else { box.parentElement.style.display = 'none'; }
     }
 
+    /* ЭТАП 1: Прозрачное отображение чека в корзине */
     async function prepareCart() {
         const html = [];
         for(let id in cart) {
@@ -890,6 +894,7 @@
             html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${img}<div class="fw-bold lh-1" style="font-size:13px;">${i.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width:40px; text-align:center;">${i.qty} ${i.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width:25%;">${is.toFixed(0)} ₽</div></div>`);
         }
         document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>';
+        
         try { const res = await fetch('/api/user/cabinet'); const data = await res.json(); if(!data.error && data.user) { let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {} if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); } } } catch(e){}
         await loadUpsell(); await calcCart();
     }
@@ -905,8 +910,16 @@
         else { warnBox.style.display = 'none'; delSelect.disabled = false; paySelect.disabled = false; document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block'; if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; } }
         
         const ps = document.getElementById('promoStatus'); ps.innerText = lastCalc.promo_status || ''; ps.className = lastCalc.promo_status && lastCalc.promo_status.includes('Скидка') ? "mt-2 small fw-bold text-success" : "mt-2 small fw-bold text-danger";
+        
+        /* ЭТАП 1: Вывод дополнительных позиций в корзине */
+        let addInfoHtml = `<div class="d-flex justify-content-between mb-1"><span>Упаковка пакета:</span><span>${lastCalc.package_cost} ₽</span></div>`;
+        if (lastCalc.discount > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-success fw-bold"><span>Скидка по промокоду:</span><span>- ${lastCalc.discount} ₽</span></div>`;
+        if (lastCalc.sysadmin_pay > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-primary fw-bold"><span>Оплата балансом IT:</span><span>- ${lastCalc.sysadmin_pay.toFixed(0)} ₽</span></div>`;
+        document.getElementById('cartAdditionalInfo').innerHTML = addInfoHtml;
+        
         document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽';
-        const td = (lastCalc.discount || 0) + (lastCalc.sysadmin_pay || 0); document.getElementById('tDiscount').innerText = td > 0 ? '- ' + td.toFixed(0) + ' ₽' : '0 ₽';
+        document.getElementById('tDiscount').innerText = lastCalc.final_total.toFixed(0) + ' ₽';
+        
         const btn = document.getElementById('checkoutBtn'); const mo = lastCalc.min_order || 0;
         if(lastCalc.items_total < mo) { btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary'); btn.innerHTML = `Добавьте ещё на ${mo - lastCalc.items_total} ₽`; } 
         else { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; }
@@ -976,11 +989,17 @@
             const stC = {'Новый':'secondary', 'Оплачен':'primary', 'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success', 'Отменен':'danger'};
             if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Вы еще ничего не заказывали.</div>'; } 
             else {
+                /* ЭТАП 1: Прозрачный чек в ЛК с разбивкой */
                 document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => {
                     const itemsList = Object.keys(o.items).map(k => {
                         const i = o.items[k];
                         return `<div class="receipt-line align-items-center"><span>${i.name}</span><div class="text-end"><span class="fw-bold d-block">${i.qty}${i.unit}</span><button class="btn btn-sm btn-link p-0 text-warning text-decoration-none fw-bold" onclick="openReviewDialog(${k}, '${i.name}')"><i class="bi bi-star-fill"></i> Оценить</button></div></div>`;
                     }).join('');
+                    
+                    let transparentCheck = `<div class="receipt-line small mt-2"><span>Упаковка пакета</span><span>${o.package_cost} ₽</span></div>`;
+                    if (o.delivery_cost > 0) transparentCheck += `<div class="receipt-line small"><span>Логистика</span><span>${o.delivery_cost} ₽</span></div>`;
+                    if (o.bonuses_spent > 0) transparentCheck += `<div class="receipt-line small text-primary fw-bold"><span>Оплата балансом (IT)</span><span>- ${o.bonuses_spent} ₽</span></div>`;
+                    
                     const jsonStr = JSON.stringify(o.items).replace(/"/g, '&quot;');
                     let btnRepeat = `<button class="btn btn-sm btn-primary mt-3 w-100 fw-bold rounded-pill shadow-sm" onclick="repeatOrder('${jsonStr}')"><i class="bi bi-arrow-clockwise me-1"></i> Повторить заказ</button>`;
                     
@@ -989,7 +1008,7 @@
                         if (!o.courier_rating || o.courier_rating === 0) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-star-fill me-1"></i> Оценить доставку и курьера</button>`; } 
                         else if (o.c_tips || o.c_tips_qr) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-cup-hot-fill me-1"></i> Чаевые курьеру</button>`; }
                     }
-                    return `<div class="order-receipt"><div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold m-0">Чек #${o.id}</h5><span class="badge bg-${stC[o.status]||'dark'}">${o.status}</span></div><div class="small text-muted mb-3">${o.date}</div><div class="receipt-divider"></div>${itemsList}<div class="receipt-divider"></div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted mt-2">Комплектация: ${o.delivery_type==='pickup'?'Самовывоз':'Логистика'}<br>Время: ${o.delivery_time}</div><div class="fw-bold fs-4 text-success">${o.final_total} ₽</div></div>${btnRepeat}${tipBtn}</div>`;
+                    return `<div class="order-receipt"><div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold m-0">Чек #${o.id}</h5><span class="badge bg-${stC[o.status]||'dark'}">${o.status}</span></div><div class="small text-muted mb-3">${o.date}</div><div class="receipt-divider"></div>${itemsList}<div class="receipt-divider"></div>${transparentCheck}<div class="receipt-divider"></div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted mt-2">Комплектация: ${o.delivery_type==='pickup'?'Самовывоз':'Логистика'}<br>Время: ${o.delivery_time}</div><div class="fw-bold fs-4 text-success">${o.final_total} ₽</div></div>${btnRepeat}${tipBtn}</div>`;
                 }).join('');
             }
         }

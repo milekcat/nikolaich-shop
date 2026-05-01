@@ -75,7 +75,6 @@ def init_db():
             try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
             except: pass
 
-        # ЭТАП 2: Новые колонки для меню и ссылок
         for col in ['is_on_main INTEGER DEFAULT 0']:
             try: c.execute(f'ALTER TABLE categories ADD COLUMN {col}')
             except: pass
@@ -226,6 +225,7 @@ def request_vip():
             session.permanent = True; session['user_identifier'] = phone; session['auth_type'] = 'phone'
     return jsonify({"status": "ok"})
 
+# ЭТАП 4: Изменения в кабинете для Курьера (Биржа заказов)
 @app.route('/api/user/cabinet', methods=['GET'])
 def user_cabinet():
     auth_val = session.get('user_identifier')
@@ -235,11 +235,22 @@ def user_cabinet():
     
     tickets = get_db_query("SELECT t.ticket_number, c.title FROM tickets t JOIN contests c ON t.contest_id = c.id WHERE t.user_id=? ORDER BY t.id DESC", (user['id'],))
     
-    if user.get('role') == 'courier': orders = get_db_query("SELECT o.*, u.full_name as client_name, u.phone as client_phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.courier_id=? AND o.status != 'Отменен' ORDER BY o.id DESC LIMIT 30", (user['id'],))
-    else: orders = get_db_query("SELECT o.*, c.tips_link as c_tips, c.tips_qr as c_tips_qr, c.full_name as c_name FROM orders o LEFT JOIN users c ON o.courier_id = c.id WHERE o.user_id=? ORDER BY o.id DESC", (user['id'],))
+    available_orders = []
+    my_orders = []
+    
+    if user.get('role') == 'courier': 
+        # Мои заказы (В пути, Выполнены)
+        my_orders = get_db_query("SELECT o.*, u.full_name as client_name, u.phone as client_phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.courier_id=? AND o.status != 'Отменен' ORDER BY o.id DESC LIMIT 30", (user['id'],))
+        # Свободные заказы на бирже (Собран и не назначен)
+        available_orders = get_db_query("SELECT o.*, u.full_name as client_name, u.phone as client_phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.status='Собран' AND (o.courier_id=0 OR o.courier_id IS NULL) AND o.delivery_type='courier' ORDER BY o.id DESC")
+        for o in my_orders: o['items'] = json.loads(o['items'])
+        for o in available_orders: o['items'] = json.loads(o['items'])
+        orders = my_orders
+    else: 
+        orders = get_db_query("SELECT o.*, c.tips_link as c_tips, c.tips_qr as c_tips_qr, c.full_name as c_name FROM orders o LEFT JOIN users c ON o.courier_id = c.id WHERE o.user_id=? ORDER BY o.id DESC", (user['id'],))
+        for o in orders: o['items'] = json.loads(o['items'])
         
-    for o in orders: o['items'] = json.loads(o['items'])
-    return jsonify({"user": user, "orders": orders, "tickets": tickets})
+    return jsonify({"user": user, "orders": orders, "available_orders": available_orders, "my_orders": my_orders, "tickets": tickets})
 
 @app.route('/api/user/update', methods=['POST'])
 def user_update():
@@ -278,25 +289,47 @@ def rate_delivery():
     with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE orders SET courier_rating=?, courier_comment=? WHERE id=? AND user_id=?", (data['rating'], data['comment'], data['order_id'], user['id']))
     return jsonify({"status": "ok"})
 
+# ЭТАП 4: Логика "Взять заказ" для Курьера
 @app.route('/api/courier/action', methods=['POST'])
 def courier_action():
     auth_val = session.get('user_identifier')
     user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
     if not user or user.get('role') != 'courier': return jsonify({"error": "access denied"}), 403
+    
     order_id = request.json.get('order_id')
+    action = request.json.get('action') # 'take' или 'status'
     new_status = request.json.get('status')
     
     with sqlite3.connect('shop.db') as conn:
         conn.row_factory = sqlite3.Row
-        order = conn.execute("SELECT * FROM orders WHERE id=? AND courier_id=?", (order_id, user['id'])).fetchone()
-        if order:
+        order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+        if not order: return jsonify({"error": "Order not found"}), 404
+        
+        client = conn.execute("SELECT * FROM users WHERE id=?", (order['user_id'],)).fetchone()
+
+        if action == 'take':
+            if order['status'] != 'Собран' or order['courier_id'] not in [0, None]:
+                return jsonify({"error": "Извините, этот заказ уже забрал другой курьер или он не готов."}), 400
+            
+            # Привязываем заказ к курьеру и меняем статус
+            conn.execute("UPDATE orders SET status='В пути', courier_id=? WHERE id=?", (user['id'], order_id))
+            
+            # Автоматическое уведомление клиенту в ВК
+            if client and client['social_link']:
+                courier_info = f"Курьер: {user['full_name'] or 'Наш сотрудник'}\nТелефон: {user['phone']}"
+                send_vk_message(client['id'], client['social_link'], f"🚚 Ваш заказ #{order_id} передан курьеру и уже в пути к вам!\n\n{courier_info}")
+                
+        elif action == 'status':
+            if order['courier_id'] != user['id']: return jsonify({"error": "Не ваш заказ"}), 403
             conn.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
+            
             if new_status == 'Выполнен':
                 if order['is_paid_to_courier'] == 0:
                     payout = float(user['comm_val']) if user['comm_type'] == 'fixed' else (float(order['final_total']) * float(user['comm_val']) / 100)
                     conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, user['id']))
                     conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
                     award_tickets(conn, order_id, order['user_id'], order['final_total'])
+                    
                 if 'is_paid_to_sysadmin' in order.keys() and order['is_paid_to_sysadmin'] == 0:
                     sysadmin_bonus = float(order['final_total']) * 0.01
                     conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
@@ -541,12 +574,10 @@ def admin_crud(entity):
                         VALUES (?,?,?,?,?,?,?,?,?,?,?)
                     """, (data['name'], data['desc'], data['price'], data['stock'], data['category_id'], img_json, data['unit'], data['step'], data.get('old_price', 0), stickers_json, variations))
             
-            # ЭТАП 2: Сохранение настроек меню (is_on_main)
             elif entity == 'category':
                 if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=?, is_on_main=? WHERE id=?", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data.get('is_on_main', 0), data['id']))
                 else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden, is_on_main) VALUES (?,?,?,?,?)", (data['name'], data['icon'], data['sort_order'], data['is_hidden'], data.get('is_on_main', 0)))
             
-            # ЭТАП 2: Сохранение внешних ссылок для баннеров
             elif entity == 'banners':
                 if data.get('id'): conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=?, link_url=? WHERE id=?", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', ''), data['id']))
                 else: conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat, link_url) VALUES (?,?,?,?,?,?)", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', '')))

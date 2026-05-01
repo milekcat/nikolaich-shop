@@ -21,9 +21,27 @@
     
     <style>
         :root { --accent: #00b853; --text: #1d1d1f; }
-        body { background: {{ settings.bg_main | default('#fdfbf7') }}; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
+        body { background: {{ settings.bg_main | default('#fdfbf7') }}; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; overflow-x: hidden;}
         ::-webkit-scrollbar { display: none; }
         
+        .burger-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1040; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .burger-overlay.active { opacity: 1; pointer-events: auto; }
+        .burger-menu { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: #fff; z-index: 1050; transform: translateX(-100%); transition: 0.3s ease-in-out; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.1); }
+        .burger-menu.active { transform: translateX(0); }
+        .burger-header { background: #2c3e50; background-image: url('{{ settings.bg_header | default("") }}'); background-size: cover; background-position: center; color: #fff; padding: 25px 20px; text-align: left; position: relative; }
+        .burger-header::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); }
+        .burger-header > * { position: relative; z-index: 2; }
+        .burger-links { padding: 10px 0; overflow-y: auto; flex-grow: 1; }
+        .burger-item { padding: 15px 20px; display: block; color: var(--text); text-decoration: none; font-weight: 600; border-bottom: 1px solid #f0f0f0; transition: 0.2s; cursor: pointer;}
+        .burger-item:hover { background: #f9f9f9; }
+        .burger-item i { margin-right: 12px; color: var(--accent); font-size: 20px; vertical-align: bottom;}
+
+        .main-cats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; padding: 20px 20px 0 20px; }
+        .cat-tile { background: #fff; border-radius: 16px; padding: 15px 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #eee; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 105px;}
+        .cat-tile:active { transform: scale(0.95); }
+        .cat-tile-icon { font-size: 32px; line-height: 1; margin-bottom: 8px; }
+        .cat-tile-name { font-size: 12px; font-weight: 800; line-height: 1.2; color: #333; }
+
         .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('{{ settings.bg_header | default("https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&w=1920&h=400&q=80") }}'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 15px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -74,11 +92,6 @@
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .btn-add.added { background: var(--accent); color: #fff; }
         
-        .d-none-18 { display: none !important; }
-        
-        @keyframes cartPop { 0% { transform: scale(1); } 50% { transform: scale(1.08); background-color: #00d65f; } 100% { transform: scale(1); background-color: var(--accent); } }
-        .cart-bounce { animation: cartPop 0.4s ease; }
-        
         .floating-cart { position: fixed; bottom: 20px; left: 20px; right: 80px; background: var(--accent); color: #fff; border-radius: 20px; padding: 18px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 2000; cursor: pointer; }
         .floating-chat-btn { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: #007aff; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 10px 25px rgba(0, 122, 255, 0.4); z-index: 2000; cursor: pointer; transition: 0.2s; }
         
@@ -86,32 +99,26 @@
         .upsell-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
         .upsell-card { min-width: 140px; background: #fff; border-radius: 16px; padding: 10px; border: 1px solid #eee; text-align: center; }
         .upsell-card img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; margin-bottom: 8px; }
-        
         .cab-nav { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; }
         .cab-nav-item { padding: 10px 20px; border-radius: 20px; font-weight: 700; color: #8e8e93; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .cab-nav-item.active { background: #1d1d1f; color: #fff; }
         .cab-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 20px; }
-        
         .order-receipt { background: #fff; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; margin-bottom: 20px; position: relative; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
         .order-receipt::before, .order-receipt::after { content:''; position:absolute; top: 60px; width: 24px; height: 24px; background: #f4f5f7; border-radius: 50%; z-index: 1;}
         .order-receipt::before { left: -12px; border-right: 1px dashed #ccc; }
         .order-receipt::after { right: -12px; border-left: 1px dashed #ccc; }
         .receipt-line { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px; color: #444; }
         .receipt-divider { border-bottom: 2px dotted #eee; margin: 15px 0; }
-        
         .site-chat-container { display: flex; flex-direction: column; height: 60vh; background: #f4f5f7; border-radius: 16px; overflow: hidden; }
         .site-chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.4; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .chat-bot { align-self: flex-start; background: #fff; color: #000; border-bottom-left-radius: 4px; border: 1px solid #eee;}
         .chat-user { align-self: flex-end; background: #007aff; color: #fff; border-bottom-right-radius: 4px; }
         .chat-btn { background: #e8f0fe; color: #007aff; border: none; padding: 8px 15px; border-radius: 20px; font-weight: 600; font-size: 13px; margin-top: 5px; cursor: pointer; text-align: left; display: block; width: fit-content; transition: 0.2s;}
-        
         .star-rating, .star-rating-dr { direction: rtl; display: inline-flex; font-size: 35px; justify-content: center;}
         .star-rating input, .star-rating-dr input { display: none; }
         .star-rating label, .star-rating-dr label { color: #ddd; cursor: pointer; padding: 0 5px; transition: 0.2s; }
         .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #ffc107; }
         .star-rating-dr label:hover, .star-rating-dr label:hover ~ label, .star-rating-dr input:checked ~ label { color: #00b853; }
-        
         .ticket-item { background: linear-gradient(135deg, #f1c40f, #f39c12); color: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(241, 196, 15, 0.4); border: 2px dashed rgba(255,255,255,0.5); }
         .ticket-num { font-size: 24px; font-weight: 900; letter-spacing: 2px; }
     </style>
@@ -124,13 +131,43 @@
 </div>
 {% endif %}
 
+<div class="burger-overlay" id="burgerOverlay" onclick="toggleBurger()"></div>
+<div class="burger-menu" id="burgerMenu">
+    <div class="burger-header">
+        <h4 class="fw-bold m-0 tracking-tight"><i class="bi bi-shop me-1 text-success"></i> {{ settings.shop_name }}</h4>
+        {% if user %}
+        <div class="small mt-2 fw-bold opacity-75">Привет, {{ user.full_name or user.phone }}</div>
+        <div class="fw-bold mt-1 text-success fs-5">Баланс: {{ user.balance or 0 }} ₽</div>
+        {% endif %}
+    </div>
+    <div class="burger-links">
+        <a class="burger-item" onclick="toggleBurger(); filterCat('all', null, 0)"><i class="bi bi-grid-fill"></i> Весь каталог</a>
+        {% for c in categories %}
+            <a class="burger-item" onclick="toggleBurger(); filterCat({{ c.id }}, null, {{ 1 if c.is_hidden else 0 }})">
+                <span class="fs-5 me-2">{{ c.icon }}</span> {{ c.name }} {% if c.is_hidden == 1 %}<span class="badge bg-danger ms-2">18+</span>{% endif %}
+            </a>
+        {% endfor %}
+        <div class="bg-light p-2 text-center small fw-bold text-muted mt-3 mb-2">СЕРВИС</div>
+        {% if user %}
+        <a class="burger-item" onclick="toggleBurger(); openCabinet()"><i class="bi bi-person-circle"></i> Мой профиль и заказы</a>
+        {% else %}
+        <a class="burger-item text-primary" onclick="toggleBurger(); new bootstrap.Modal(document.getElementById('loginModal')).show()"><i class="bi bi-box-arrow-in-right"></i> Войти в систему</a>
+        {% endif %}
+        <a class="burger-item" onclick="toggleBurger(); new bootstrap.Modal(document.getElementById('deliveryModal')).show()"><i class="bi bi-box-seam"></i> Доставка и оплата</a>
+        <a class="burger-item text-success" onclick="toggleBurger(); openChat()"><i class="bi bi-chat-dots-fill"></i> Связаться с нами</a>
+    </div>
+</div>
+
 <div class="sticky-top-area">
     <div class="header-overlay">
         <div class="header-top">
-            <h3 class="fw-bold m-0 tracking-tight text-white"><i class="bi bi-shop me-1 text-success"></i> {{ settings.shop_name }}</h3>
+            <div class="d-flex align-items-center">
+                <i class="bi bi-list text-white fs-1 me-3" style="cursor:pointer; line-height: 1;" onclick="toggleBurger()"></i>
+                <h3 class="fw-bold m-0 tracking-tight text-white"><i class="bi bi-shop me-1 text-success"></i> {{ settings.shop_name }}</h3>
+            </div>
             {% if user %}
                 <div class="badge bg-light text-success fw-bold p-2 px-3 fs-6 rounded-pill border shadow-sm" style="cursor:pointer;" onclick="openCabinet()">
-                    <i class="bi bi-person-fill"></i> Профиль
+                    <i class="bi bi-person-fill"></i>
                 </div>
             {% else %}
                 <i class="bi bi-person-circle fs-2 text-white" data-bs-toggle="modal" data-bs-target="#loginModal"></i>
@@ -143,7 +180,7 @@
             </div>
         </div>
     </div>
-    <div class="cat-scroll-wrapper">
+    <div class="cat-scroll-wrapper" id="catScrollHeader">
         <div class="cat-scroll">
             <div class="cat-pill active" onclick="filterCat('all', this, 0)">Весь каталог</div>
             {% for c in categories %}
@@ -172,7 +209,29 @@
 {% if banners %}
 <div class="banner-track" id="bannerCarousel">
     {% for b in banners %}
-        <div class="banner-card" onclick="filterCat({{ b.link_cat }}, null, 0)"><img src="{{ b.img_url }}"></div>
+        {% if b.link_url %}
+            <div class="banner-card" onclick="window.open('{{ b.link_url }}', '_blank')">
+        {% else %}
+            <div class="banner-card" onclick="filterCat({{ b.link_cat }}, null, 0)">
+        {% endif %}
+            <img src="{{ b.img_url }}">
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% set has_main_cats = false %}
+{% for c in categories if c.is_on_main == 1 %}
+    {% set has_main_cats = true %}
+{% endfor %}
+
+{% if has_main_cats %}
+<div class="main-cats-grid" id="mainCatsGrid">
+    {% for c in categories if c.is_on_main == 1 %}
+    <div class="cat-tile" onclick="filterCat({{ c.id }}, null, {{ 1 if c.is_hidden else 0 }})">
+        <div class="cat-tile-icon">{{ c.icon }}</div>
+        <div class="cat-tile-name">{{ c.name }}</div>
+    </div>
     {% endfor %}
 </div>
 {% endif %}
@@ -190,15 +249,9 @@
                 {% for p in products %}
                     {% if (block.block_type == 'sale' and p.old_price > 0) or (block.block_type == 'category' and p.category_id == block.category_id) %}
                     <div class="col-6 col-md-4 col-lg-3 p-item" 
-                         data-id="{{ p.id }}" 
-                         data-cat="{{ p.category_id }}" 
-                         data-hidden="{{ 1 if p.is_hidden else 0 }}" 
-                         data-name="{{ p.name | e }}" 
-                         data-price="{{ p.price }}" 
-                         data-step="{{ p.step }}" 
-                         data-unit="{{ p.unit }}" 
-                         data-img="{{ p.images[0] if p.images else '' }}" 
-                         data-desc="{{ p.desc | e if p.desc else '' }}">
+                         data-id="{{ p.id }}" data-cat="{{ p.category_id }}" data-hidden="{{ 1 if p.is_hidden else 0 }}" 
+                         data-name="{{ p.name | e }}" data-price="{{ p.price }}" data-step="{{ p.step }}" 
+                         data-unit="{{ p.unit }}" data-img="{{ p.images[0] if p.images else '' }}" data-desc="{{ p.desc | e if p.desc else '' }}">
                         <div class="p-card" onclick="handleProductClick(this)">
                             <div class="p-stickers">
                                 {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
@@ -228,15 +281,9 @@
         <div class="row g-3" id="grid-filter">
             {% for p in products %}
             <div class="col-6 col-md-4 col-lg-3 p-item filter-item" 
-                 data-id="{{ p.id }}" 
-                 data-cat="{{ p.category_id }}" 
-                 data-hidden="{{ 1 if p.is_hidden else 0 }}" 
-                 data-name="{{ p.name | e }}" 
-                 data-price="{{ p.price }}" 
-                 data-step="{{ p.step }}" 
-                 data-unit="{{ p.unit }}" 
-                 data-img="{{ p.images[0] if p.images else '' }}" 
-                 data-desc="{{ p.desc | e if p.desc else '' }}" style="display: block;">
+                 data-id="{{ p.id }}" data-cat="{{ p.category_id }}" data-hidden="{{ 1 if p.is_hidden else 0 }}" 
+                 data-name="{{ p.name | e }}" data-price="{{ p.price }}" data-step="{{ p.step }}" 
+                 data-unit="{{ p.unit }}" data-img="{{ p.images[0] if p.images else '' }}" data-desc="{{ p.desc | e if p.desc else '' }}" style="display: block;">
                 <div class="p-card" onclick="handleProductClick(this)">
                     <div class="p-stickers">
                         {% if p.is_hidden == 1 %}<span class="badge bg-danger text-white shadow-sm mb-1"><i class="bi bi-shield-lock-fill"></i> 18+</span>{% endif %}
@@ -259,7 +306,6 @@
 </div>
 
 <div class="container mt-5 pt-4 pb-4">
-    
     <div class="bg-white p-3 p-md-4 rounded-4 shadow-sm mb-4 mx-auto" style="max-width: 800px; border: 2px solid #e8f0fe;">
         <h5 class="fw-bold mb-2 text-primary text-center"><i class="bi bi-vk"></i> Служба поддержки и сообщество</h5>
         <p class="text-center small text-muted mb-3">Подписывайтесь, чтобы следить за акциями, задавать вопросы и оставлять отзывы! Мы всегда на связи.</p>
@@ -271,9 +317,7 @@
 
     <div class="text-center mb-4">
         <div class="d-flex justify-content-center align-items-center gap-2 mb-2 opacity-75">
-            <span class="badge bg-success fs-6 rounded-pill px-3 py-1 shadow-sm">МИР</span>
-            <span class="badge bg-primary fs-6 rounded-pill px-3 py-1 shadow-sm">SberPay</span>
-            <span class="badge bg-dark fs-6 rounded-pill px-3 py-1 shadow-sm">СБП</span>
+            <span class="badge bg-success fs-6 rounded-pill px-3 py-1 shadow-sm">МИР</span><span class="badge bg-primary fs-6 rounded-pill px-3 py-1 shadow-sm">SberPay</span><span class="badge bg-dark fs-6 rounded-pill px-3 py-1 shadow-sm">СБП</span>
         </div>
         <p class="small text-muted mb-0 fw-bold"><i class="bi bi-shield-check text-success"></i> Онлайн-платежи защищены и обрабатываются сервисом <b>АО "ПэйКипер" (PayKeeper)</b>.</p>
     </div>
@@ -297,153 +341,27 @@
     </div>
     {% endif %}
 </div>
+
 <div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()">
     <span id="cartCount">0 товаров</span>
     <span id="cartSum">0 ₽</span>
 </div>
 
-<div class="floating-chat-btn" onclick="openChat()">
-    <i class="bi bi-chat-dots-fill"></i>
-</div>
+<div class="floating-chat-btn" onclick="openChat()"><i class="bi bi-chat-dots-fill"></i></div>
 
 <div id="cookieBanner" class="position-fixed bottom-0 start-0 w-100 bg-dark text-white p-3 d-flex justify-content-between align-items-center shadow-lg" style="z-index: 3000; display: none;">
     <div class="small me-3 opacity-75">Мы используем файлы cookie. Продолжая, вы соглашаетесь с <span class="text-info text-decoration-underline" style="cursor:pointer;" onclick="new bootstrap.Modal(document.getElementById('privacyModal')).show()">Политикой конфиденциальности</span>.</div>
     <button class="btn btn-sm btn-success fw-bold rounded-pill px-4" onclick="acceptCookies()">OK</button>
 </div>
 
-<div class="modal fade" id="deliveryModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg">
-            <h4 class="fw-bold mb-4 text-center"><i class="bi bi-box-seam text-primary me-2"></i>Условия доставки и получения</h4>
-            
-            <div class="small text-muted lh-lg">
-                <p><b>1. Самовывоз из магазина:</b> Покупатель может самостоятельно забрать сформированный Заказ из пункта выдачи Продавца.</p>
-                <p><b>2. Транспортировка силами сторонних курьеров:</b> Продавец не является логистической компанией и не осуществляет доставку товаров. Покупатель при оформлении заказа вправе поручить Продавцу передать укомплектованный товар независимому курьеру (сервисам агрегаторов такси, Яндекс.Доставка, Максим, самозанятым гражданам). В этом случае ответственность за сохранность и сроки транспортировки несет лицо, фактически осуществляющее доставку в интересах Покупателя.</p>
-                <p><b>3. Товары категории 18+:</b> Реализация товаров с возрастными ограничениями дистанционным способом не осуществляется. Такие товары могут быть только зарезервированы на сайте и передаются исключительно путем самовывоза после строгой проверки документа, удостоверяющего личность и возраст Покупателя на кассе.</p>
-            </div>
-
-            <button class="btn btn-dark w-100 mt-3 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="legalModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg">
-            <h4 class="fw-bold mb-4 text-center"><i class="bi bi-file-earmark-text text-primary me-2"></i>Юридическая информация</h4>
-            
-            <div class="row small text-muted lh-lg">
-                <div class="col-md-6 mb-3">
-                    <strong class="text-dark">Организация:</strong> Индивидуальный предприниматель Боровенский Кирилл Николаевич<br>
-                    <strong class="text-dark">ОГРНИП:</strong> 325762700026823<br>
-                    <strong class="text-dark">ИНН:</strong> 760213025906<br>
-                    <strong class="text-dark">Фактический адрес:</strong> г. Ярославль, 1-й Голубятный переулок, д. 12<br>
-                    <strong class="text-dark">Телефон:</strong> +7 (920) 149-49-59<br>
-                    <strong class="text-dark">Электронная почта:</strong> kirill_boro@bk.ru
-                </div>
-                <div class="col-md-6 mb-3">
-                    <strong class="text-dark">Налоговый орган:</strong> Управление ФНС России по Ярославской области (постановка на учет 23.03.2026)<br>
-                    <strong class="text-dark">Дата регистрации:</strong> 7 мая 2025 г.<br>
-                    <strong class="text-dark">Спец. налоговый режим:</strong> УСН, ПСН<br>
-                    <strong class="text-dark">ОКПО:</strong> 2042174408 | <strong class="text-dark">ОКАТО:</strong> 78401364000<br>
-                    <strong class="text-dark">Рег. номер СФР:</strong> 1377770019 (по Ярославской обл.)
-                </div>
-            </div>
-
-            <div class="alert alert-light border small mt-2 shadow-sm">
-                <i class="bi bi-shield-check text-success fs-5 float-start me-3"></i> 
-                <b>Безопасность платежей:</b> Оплата банковскими картами осуществляется через платежный шлюз АО «ПэйКипер» (PayKeeper). Соединение с платежным шлюзом и передача информации осуществляется в защищенном режиме с использованием протокола шифрования SSL. Введенная информация не будет предоставлена третьим лицам за исключением случаев, предусмотренных законодательством РФ.
-            </div>
-
-            <button class="btn btn-dark w-100 mt-3 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="ofertaModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg">
-            <h4 class="fw-bold mb-3">Публичная оферта</h4>
-            <div class="small text-muted overflow-auto" style="white-space: pre-wrap; max-height: 60vh;">{{ settings.oferta_text | default('Текст оферты не задан.') }}</div>
-            <button class="btn btn-dark w-100 mt-4 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="privacyModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg">
-            <h4 class="fw-bold mb-3">Политика конфиденциальности</h4>
-            <div class="small text-muted overflow-auto" style="white-space: pre-wrap; max-height: 60vh;">{{ settings.privacy_text | default('Текст политики конфиденциальности не задан.') }}</div>
-            <button class="btn btn-dark w-100 mt-4 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="androidInstallModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
-            <i class="bi bi-android2 fs-1 text-success mb-3"></i>
-            <h4 class="fw-bold mb-3">Установка на телефон</h4>
-            <p class="text-muted small mb-3">Чтобы добавить магазин на ваш экран:</p>
-            <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
-                <li>Нажмите на три точки <i class="bi bi-three-dots-vertical border rounded px-1"></i> в браузере.</li>
-                <li>Выберите <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b>.</li>
-            </ol>
-            <button class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="iosInstallModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
-            <i class="bi bi-apple fs-1 mb-3"></i>
-            <h4 class="fw-bold mb-3">Установка на iPhone</h4>
-            <p class="text-muted small mb-3">Чтобы добавить магазин на ваш экран:</p>
-            <ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;">
-                <li>Нажмите кнопку <i class="bi bi-box-arrow-up border rounded px-1 text-primary" style="font-size: 16px;"></i> <b>Поделиться</b> в нижней панели браузера.</li>
-                <li>В появившемся меню выберите <i class="bi bi-plus-square border rounded px-1 text-dark" style="font-size: 16px;"></i> <b>На экран «Домой»</b>.</li>
-            </ol>
-            <button class="btn btn-dark w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="verificationModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 pb-4 rounded-4 border-0 shadow-lg text-center">
-            <i class="bi bi-shield-lock-fill text-dark mb-3" style="font-size: 50px;"></i>
-            <h4 class="fw-bold mb-4">Регистрация</h4>
-            
-            <input type="text" id="vipFio" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Ваши Фамилия и Имя">
-            <input type="tel" id="vipPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Номер телефона" value="{{ user.phone if user else '' }}">
-            <input type="text" id="vipSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="Ссылка на профиль VK">
-            
-            <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold shadow-sm fs-5" onclick="sendVerificationRequest()">Отправить</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="ageVerificationModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center" style="background: #1d1d1f; color: #fff;">
-            <i class="bi bi-exclamation-octagon text-danger mb-3" style="font-size: 60px;"></i>
-            <h4 class="fw-bold mb-2">Внимание: Контент 18+</h4>
-            <p class="text-white-50 small mb-3">Данный раздел содержит продукцию для взрослых. Для доступа введите дату вашего рождения:</p>
-            
-            <input type="date" id="dobInput" class="form-control bg-dark text-white border-secondary mb-3 text-center fw-bold fs-5">
-            
-            <div class="d-flex gap-2">
-                <button class="btn btn-outline-light w-50 fw-bold rounded-pill" onclick="cancelAge()">Отмена</button>
-                <button class="btn btn-danger w-50 fw-bold rounded-pill" onclick="confirmAgeDOB()">Подтвердить</button>
-            </div>
-            
-            <div id="dobError" class="text-danger small fw-bold mt-2" style="display:none;">Доступ разрешен только с 18 лет!</div>
-            <div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны только для Самовывоза.</div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="deliveryModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content p-4 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center"><i class="bi bi-box-seam text-primary me-2"></i>Условия доставки и получения</h4><div class="small text-muted lh-lg"><p><b>1. Самовывоз из магазина:</b> Покупатель может самостоятельно забрать сформированный Заказ из пункта выдачи Продавца.</p><p><b>2. Транспортировка силами сторонних курьеров:</b> Продавец не является логистической компанией и не осуществляет доставку товаров. Покупатель при оформлении заказа вправе поручить Продавцу передать укомплектованный товар независимому курьеру. В этом случае ответственность за сохранность и сроки транспортировки несет лицо, фактически осуществляющее доставку в интересах Покупателя.</p><p><b>3. Товары категории 18+:</b> Реализация товаров с возрастными ограничениями дистанционным способом не осуществляется. Такие товары могут быть только зарезервированы на сайте и передаются исключительно путем самовывоза после строгой проверки документа, удостоверяющего личность и возраст Покупателя на кассе.</p></div><button class="btn btn-dark w-100 mt-3 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button></div></div></div>
+<div class="modal fade" id="legalModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content p-4 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center"><i class="bi bi-file-earmark-text text-primary me-2"></i>Юридическая информация</h4><div class="row small text-muted lh-lg"><div class="col-md-6 mb-3"><strong class="text-dark">Организация:</strong> Индивидуальный предприниматель Боровенский Кирилл Николаевич<br><strong class="text-dark">ОГРНИП:</strong> 325762700026823<br><strong class="text-dark">ИНН:</strong> 760213025906<br><strong class="text-dark">Фактический адрес:</strong> г. Ярославль, 1-й Голубятный переулок, д. 12<br><strong class="text-dark">Телефон:</strong> +7 (920) 149-49-59<br><strong class="text-dark">Электронная почта:</strong> kirill_boro@bk.ru</div><div class="col-md-6 mb-3"><strong class="text-dark">Налоговый орган:</strong> Управление ФНС России по Ярославской области (постановка на учет 23.03.2026)<br><strong class="text-dark">Дата регистрации:</strong> 7 мая 2025 г.<br><strong class="text-dark">Спец. налоговый режим:</strong> УСН, ПСН<br><strong class="text-dark">ОКПО:</strong> 2042174408 | <strong class="text-dark">ОКАТО:</strong> 78401364000<br><strong class="text-dark">Рег. номер СФР:</strong> 1377770019</div></div><div class="alert alert-light border small mt-2 shadow-sm"><i class="bi bi-shield-check text-success fs-5 float-start me-3"></i> <b>Безопасность платежей:</b> Оплата банковскими картами осуществляется через платежный шлюз АО «ПэйКипер» (PayKeeper). Соединение с платежным шлюзом и передача информации осуществляется в защищенном режиме с использованием протокола шифрования SSL. Введенная информация не будет предоставлена третьим лицам за исключением случаев, предусмотренных законодательством РФ.</div><button class="btn btn-dark w-100 mt-3 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button></div></div></div>
+<div class="modal fade" id="ofertaModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-3">Публичная оферта</h4><div class="small text-muted overflow-auto" style="white-space: pre-wrap; max-height: 60vh;">{{ settings.oferta_text | default('Текст оферты не задан.') }}</div><button class="btn btn-dark w-100 mt-4 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button></div></div></div>
+<div class="modal fade" id="privacyModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-3">Политика конфиденциальности</h4><div class="small text-muted overflow-auto" style="white-space: pre-wrap; max-height: 60vh;">{{ settings.privacy_text | default('Текст политики конфиденциальности не задан.') }}</div><button class="btn btn-dark w-100 mt-4 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button></div></div></div>
+<div class="modal fade" id="androidInstallModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><i class="bi bi-android2 fs-1 text-success mb-3"></i><h4 class="fw-bold mb-3">Установка на телефон</h4><p class="text-muted small mb-3">Чтобы добавить магазин на ваш экран:</p><ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;"><li>Нажмите на три точки <i class="bi bi-three-dots-vertical border rounded px-1"></i> в браузере.</li><li>Выберите <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b>.</li></ol><button class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button></div></div></div>
+<div class="modal fade" id="iosInstallModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><i class="bi bi-apple fs-1 mb-3"></i><h4 class="fw-bold mb-3">Установка на iPhone</h4><p class="text-muted small mb-3">Чтобы добавить магазин на ваш экран:</p><ol class="text-start small fw-bold text-muted mb-4" style="line-height: 1.8;"><li>Нажмите кнопку <i class="bi bi-box-arrow-up border rounded px-1 text-primary" style="font-size: 16px;"></i> <b>Поделиться</b> в нижней панели браузера.</li><li>В появившемся меню выберите <i class="bi bi-plus-square border rounded px-1 text-dark" style="font-size: 16px;"></i> <b>На экран «Домой»</b>.</li></ol><button class="btn btn-dark w-100 fw-bold rounded-pill shadow-sm" data-bs-dismiss="modal">Понятно</button></div></div></div>
+<div class="modal fade" id="verificationModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-4 rounded-4 border-0 shadow-lg text-center"><i class="bi bi-shield-lock-fill text-dark mb-3" style="font-size: 50px;"></i><h4 class="fw-bold mb-4">Регистрация</h4><input type="text" id="vipFio" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Ваши Фамилия и Имя"><input type="tel" id="vipPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Номер телефона" value="{{ user.phone if user else '' }}"><input type="text" id="vipSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="Ссылка на профиль VK"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold shadow-sm fs-5" onclick="sendVerificationRequest()">Отправить</button></div></div></div>
+<div class="modal fade" id="ageVerificationModal" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center" style="background: #1d1d1f; color: #fff;"><i class="bi bi-exclamation-octagon text-danger mb-3" style="font-size: 60px;"></i><h4 class="fw-bold mb-2">Внимание: Контент 18+</h4><p class="text-white-50 small mb-3">Данный раздел содержит продукцию для взрослых. Для доступа введите дату вашего рождения:</p><input type="date" id="dobInput" class="form-control bg-dark text-white border-secondary mb-3 text-center fw-bold fs-5"><div class="d-flex gap-2"><button class="btn btn-outline-light w-50 fw-bold rounded-pill" onclick="cancelAge()">Отмена</button><button class="btn btn-danger w-50 fw-bold rounded-pill" onclick="confirmAgeDOB()">Подтвердить</button></div><div id="dobError" class="text-danger small fw-bold mt-2" style="display:none;">Доступ разрешен только с 18 лет!</div><div class="small text-warning mt-4 fw-bold lh-sm"><i class="bi bi-info-circle-fill"></i> Товары 18+ доступны только для Самовывоза.</div></div></div></div>
 
 <div class="modal fade" id="cabinetModal" tabindex="-1">
     <div class="modal-dialog modal-fullscreen-md-down modal-lg">
@@ -459,563 +377,154 @@
                     <div class="cab-nav-item" id="cabTabProfile" onclick="switchCabTab('cab_profile', this)">Мои данные</div>
                     <div class="cab-nav-item" id="cabTabSecurity" onclick="switchCabTab('cab_security', this)">Безопасность</div>
                 </div>
-                
                 <div id="cab_orders" class="cab-tab-content"><div id="cabinetOrders"></div></div>
-                
-                <div id="cab_tickets" class="cab-tab-content" style="display:none;">
-                    <div class="cab-card border-warning">
-                        <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-ticket-perforated-fill me-2"></i>Ваши билеты на розыгрыш</h5>
-                        <div id="cabinetTicketsList"></div>
-                    </div>
-                </div>
-                
-                <div id="cab_profile" class="cab-tab-content" style="display:none;">
-                    <div class="cab-card">
-                        <h5 class="fw-bold mb-4">Личная информация</h5>
-                        <label class="small text-muted fw-bold mb-1">Ваше Имя</label>
-                        <input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold">
-                        <label class="small text-muted fw-bold mb-1">Номер телефона</label>
-                        <input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-4 p-3 fw-bold">
-                        
-                        <div id="cabAddrBlock">
-                            <h5 class="fw-bold mb-3">Сохраненные адреса</h5>
-                            <div id="cabAddressesList" class="d-flex flex-column gap-2 mb-3"></div>
-                            <div class="input-group mb-4">
-                                <input type="text" id="cabNewAddress" class="form-control bg-light border-0 p-3 fw-bold" placeholder="Добавить новый адрес">
-                                <button class="btn btn-dark fw-bold px-4" onclick="addAddress()">+</button>
-                            </div>
-                        </div>
-
-                        <div id="cabTipsBlock" style="display:none;">
-                            <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-cup-hot-fill"></i> Настройка чаевых</h5>
-                            <div class="accordion mb-4" id="tipsAccordion">
-                              <div class="accordion-item border-0 bg-white rounded-3 shadow-sm mb-2" style="border: 1px solid #ffe69c !important;">
-                                <h2 class="accordion-header">
-                                  <button class="accordion-button collapsed fw-bold rounded-3 text-dark bg-warning bg-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTips">
-                                    Как создать ссылку/QR? (Инструкция)
-                                  </button>
-                                </h2>
-                                <div id="collapseTips" class="accordion-collapse collapse" data-bs-parent="#tipsAccordion">
-                                  <div class="accordion-body small text-muted">
-                                    <b>Вариант 1 (Т-Банк / Сбербанк):</b> В приложении своего банка нажмите "Пополнить" или "Запросить деньги" -> скопируйте ссылку или сохраните QR-код.<br><br>
-                                    <b>Вариант 2 (CloudTips):</b> Зарегистрируйтесь на сайте <i>cloudtips.ru</i> как физлицо (по номеру телефона), привяжите любую вашу карту и скопируйте личную ссылку и QR-код.
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <label class="small text-muted fw-bold mb-1">Ваша ссылка на перевод (СБП/CloudTips)</label>
-                            <input type="text" id="cabTipsLink" class="form-control bg-light border border-warning rounded-3 mb-3 p-3 fw-bold" placeholder="https://pay.cloudtips.ru/...">
-                            <label class="small text-muted fw-bold mb-1">QR-код для перевода (картинка)</label>
-                            <input type="hidden" id="cabTipsQr">
-                            <input type="file" id="cabTipsQrFile" class="form-control bg-light border border-warning rounded-3 mb-2 p-2" accept="image/*" onchange="uploadCourQr(this)">
-                            <img id="courQrPreview" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm">
-                        </div>
-                        
-                        <button class="btn btn-success w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Сохранить изменения</button>
-                    </div>
-                </div>
-                
-                <div id="cab_security" class="cab-tab-content" style="display:none;">
-                    <div class="cab-card border-danger">
-                        <h5 class="fw-bold mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Защита профиля</h5>
-                        <p class="small text-muted mb-3">Установите пароль на вход по номеру.</p>
-                        <input type="password" id="cabPass" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold" placeholder="Придумайте пароль">
-                        <button class="btn btn-danger w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Установить пароль</button>
-                    </div>
-                    <button class="btn btn-outline-dark w-100 fw-bold rounded-4 py-3 mt-4" onclick="logout()">Выйти из аккаунта</button>
-                </div>
+                <div id="cab_tickets" class="cab-tab-content" style="display:none;"><div class="cab-card border-warning"><h5 class="fw-bold mb-3 text-warning"><i class="bi bi-ticket-perforated-fill me-2"></i>Ваши билеты на розыгрыш</h5><div id="cabinetTicketsList"></div></div></div>
+                <div id="cab_profile" class="cab-tab-content" style="display:none;"><div class="cab-card"><h5 class="fw-bold mb-4">Личная информация</h5><label class="small text-muted fw-bold mb-1">Ваше Имя</label><input type="text" id="cabName" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold"><label class="small text-muted fw-bold mb-1">Номер телефона</label><input type="tel" id="cabPhone" class="form-control bg-light border-0 rounded-3 mb-4 p-3 fw-bold"><div id="cabAddrBlock"><h5 class="fw-bold mb-3">Сохраненные адреса</h5><div id="cabAddressesList" class="d-flex flex-column gap-2 mb-3"></div><div class="input-group mb-4"><input type="text" id="cabNewAddress" class="form-control bg-light border-0 p-3 fw-bold" placeholder="Добавить новый адрес"><button class="btn btn-dark fw-bold px-4" onclick="addAddress()">+</button></div></div><div id="cabTipsBlock" style="display:none;"><h5 class="fw-bold mb-3 text-warning"><i class="bi bi-cup-hot-fill"></i> Настройка чаевых</h5><div class="accordion mb-4" id="tipsAccordion"><div class="accordion-item border-0 bg-white rounded-3 shadow-sm mb-2" style="border: 1px solid #ffe69c !important;"><h2 class="accordion-header"><button class="accordion-button collapsed fw-bold rounded-3 text-dark bg-warning bg-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTips">Как создать ссылку/QR? (Инструкция)</button></h2><div id="collapseTips" class="accordion-collapse collapse" data-bs-parent="#tipsAccordion"><div class="accordion-body small text-muted"><b>Вариант 1 (Т-Банк / Сбербанк):</b> В приложении своего банка нажмите "Пополнить" или "Запросить деньги" -> скопируйте ссылку или сохраните QR-код.<br><br><b>Вариант 2 (CloudTips):</b> Зарегистрируйтесь на сайте <i>cloudtips.ru</i> как физлицо (по номеру телефона), привяжите любую вашу карту и скопируйте личную ссылку и QR-код.</div></div></div></div><label class="small text-muted fw-bold mb-1">Ваша ссылка на перевод (СБП/CloudTips)</label><input type="text" id="cabTipsLink" class="form-control bg-light border border-warning rounded-3 mb-3 p-3 fw-bold" placeholder="https://pay.cloudtips.ru/..."><label class="small text-muted fw-bold mb-1">QR-код для перевода (картинка)</label><input type="hidden" id="cabTipsQr"><input type="file" id="cabTipsQrFile" class="form-control bg-light border border-warning rounded-3 mb-2 p-2" accept="image/*" onchange="uploadCourQr(this)"><img id="courQrPreview" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm"></div><button class="btn btn-success w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Сохранить изменения</button></div></div>
+                <div id="cab_security" class="cab-tab-content" style="display:none;"><div class="cab-card border-danger"><h5 class="fw-bold mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Защита профиля</h5><p class="small text-muted mb-3">Установите пароль на вход по номеру.</p><input type="password" id="cabPass" class="form-control bg-light border-0 rounded-3 mb-3 p-3 fw-bold" placeholder="Придумайте пароль"><button class="btn btn-danger w-100 fw-bold rounded-4 py-3 shadow-sm" onclick="updateProfile()">Установить пароль</button></div><button class="btn btn-outline-dark w-100 fw-bold rounded-4 py-3 mt-4" onclick="logout()">Выйти из аккаунта</button></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="deliveryRatingModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
-            <h5 class="fw-bold mb-2">Оцените доставку</h5>
-            <p class="small text-muted fw-bold mb-3">Был ли курьер (<span id="drCourName"></span>) вежлив? Всё ли понравилось?</p>
-            <div class="star-rating-dr mb-3 w-100">
-                <input type="radio" id="dr_star5" name="dr_rating" value="5" checked><label for="dr_star5" title="5 звезд">★</label>
-                <input type="radio" id="dr_star4" name="dr_rating" value="4"><label for="dr_star4" title="4 звезды">★</label>
-                <input type="radio" id="dr_star3" name="dr_rating" value="3"><label for="dr_star3" title="3 звезды">★</label>
-                <input type="radio" id="dr_star2" name="dr_rating" value="2"><label for="dr_star2" title="2 звезды">★</label>
-                <input type="radio" id="dr_star1" name="dr_rating" value="1"><label for="dr_star1" title="1 звезда">★</label>
-            </div>
-            <textarea id="drComment" class="form-control bg-light border-0 rounded-4 p-3 mb-4" rows="2" placeholder="Ваши впечатления о доставке"></textarea>
-            
-            <div id="drTipsContainer" style="display:none;" class="mb-4 text-start">
-                <button id="drShowTipsBtn" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm py-2" onclick="document.getElementById('drTipsDetails').style.display='block'; this.style.display='none';"><i class="bi bi-cup-hot-fill me-1"></i>Хотите оставить чаевые?</button>
-                <div id="drTipsDetails" style="display:none;" class="p-3 bg-success bg-opacity-10 rounded-4 border border-success text-center">
-                    <p class="small text-success fw-bold mb-3" style="line-height: 1.3;">Это личные реквизиты курьера. Средства поступят напрямую на его счет.</p>
-                    <img id="drTipsQr" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm">
-                    <a id="drTipsLink" href="" target="_blank" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" style="display:none;">Перевести по ссылке</a>
-                </div>
-            </div>
-            <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="submitDeliveryRating()">Отправить оценку</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="addReviewModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center">
-            <h5 class="fw-bold mb-1">Оцените товар</h5>
-            <div class="small text-muted fw-bold mb-3" id="revProdName"></div>
-            <div class="star-rating mb-3">
-                <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 звезд">★</label>
-                <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 звезды">★</label>
-                <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 звезды">★</label>
-                <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 звезды">★</label>
-                <input type="radio" id="star1" name="rating" value="1" checked><label for="star1" title="1 звезда">★</label>
-            </div>
-            <textarea id="revText" class="form-control bg-light border-0 rounded-4 p-3 mb-3" rows="3" placeholder="Что вам понравилось?"></textarea>
-            <button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitReview()">Отправить отзыв</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="productDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 pb-5 rounded-4">
-            <button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 rounded-circle shadow-sm" data-bs-dismiss="modal" style="z-index: 10;"></button>
-            <img id="pdImg" src="" class="w-100 rounded-4 mb-3 shadow-sm" style="height:280px; object-fit:cover; display:none;">
-            <h3 class="fw-bold mb-1" id="pdName"></h3>
-            <h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4>
-            <p class="text-muted small mb-4" id="pdDesc"></p>
-            <button class="btn w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-4" id="pdAddBtn"></button>
-            <h5 class="fw-bold mb-3"><i class="bi bi-chat-left-text text-primary me-2"></i>Отзывы покупателей</h5>
-            <div id="pdReviewsList" class="d-flex flex-column gap-3"></div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="cartModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content p-4 pb-5" style="min-height: 85vh;">
-            <div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            
-            <div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;">
-                <i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.
-            </div>
-
-            <!-- ЭТАП 1: Добавлены прозрачные строки чека (Пакет, Наценка, Скидки) -->
-            <div id="cartItemsList" class="mb-2"></div>
-            <div id="cartAdditionalInfo" class="mb-4 small text-muted"></div>
-            
-            <h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div>
-            
-            <div class="checkout-box">
-                <h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6>
-                <select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()">
-                    <option value="pickup">Самовывоз (Магазин)</option>
-                    <option value="courier">Доставка курьером</option>
-                    <option value="taxi">Отправка Яндекс.Доставкой</option>
-                </select>
-                <select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime">
-                    <option value="Как можно скорее">🕒 Как можно скорее</option>
-                    <option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option>
-                    <option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option>
-                </select>
-                <div id="addressBox" style="display:none;">
-                    <label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label>
-                    <div class="d-flex gap-2 mb-2">
-                        <button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button>
-                        <button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button>
-                    </div>
-                    <select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select>
-                    <div id="newAddrWrap" class="input-group mb-2">
-                        <input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира">
-                        <button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="checkout-box">
-                <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6>
-                <select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()">
-                    <option value="online" class="text-success fw-bold">Картой онлайн (Безопасно)</option>
-                    <option value="cash" id="optCash">Наличными при получении</option>
-                    <option value="transfer">Перевод (Реквизиты в чате)</option>
-                </select>
-            </div>
-            
-            <div class="checkout-box">
-                <h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6>
-                <textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea>
-            </div>
-            
-            <div class="d-flex gap-2 mb-4">
-                <input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод">
-                <button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button>
-            </div>
-            <div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div>
-            
-            <div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div>
-            <div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div>
-            <div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div>
-            
-            <label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label>
-            <input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()">
-            
-            <div id="vkLinkBlock">
-                <label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label>
-                <input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}">
-            </div>
-            
-            <button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="chatModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Чат с магазином</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="site-chat-container">
-                <div class="site-chat-messages" id="siteChatBox"></div>
-                <div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;">
-                    <input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()">
-                    <button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="loginModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg">
-            <h4 class="fw-bold mb-4 text-center">Вход в систему</h4>
-            
-            <div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div>
-            
-            <div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div>
-            <input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00">
-            <input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)">
-            <button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-4 text-center">
-            <i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i>
-            <h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3>
-            <a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="location.reload()"><i class="bi bi-send-fill me-2"></i> Написать боту в VK</a>
-            <button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.reload()">Закрыть</button>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="deliveryRatingModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-2">Оцените доставку</h5><p class="small text-muted fw-bold mb-3">Был ли курьер (<span id="drCourName"></span>) вежлив? Всё ли понравилось?</p><div class="star-rating-dr mb-3 w-100"><input type="radio" id="dr_star5" name="dr_rating" value="5" checked><label for="dr_star5" title="5 звезд">★</label><input type="radio" id="dr_star4" name="dr_rating" value="4"><label for="dr_star4" title="4 звезды">★</label><input type="radio" id="dr_star3" name="dr_rating" value="3"><label for="dr_star3" title="3 звезды">★</label><input type="radio" id="dr_star2" name="dr_rating" value="2"><label for="dr_star2" title="2 звезды">★</label><input type="radio" id="dr_star1" name="dr_rating" value="1"><label for="dr_star1" title="1 звезда">★</label></div><textarea id="drComment" class="form-control bg-light border-0 rounded-4 p-3 mb-4" rows="2" placeholder="Ваши впечатления о доставке"></textarea><div id="drTipsContainer" style="display:none;" class="mb-4 text-start"><button id="drShowTipsBtn" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm py-2" onclick="document.getElementById('drTipsDetails').style.display='block'; this.style.display='none';"><i class="bi bi-cup-hot-fill me-1"></i>Хотите оставить чаевые?</button><div id="drTipsDetails" style="display:none;" class="p-3 bg-success bg-opacity-10 rounded-4 border border-success text-center"><p class="small text-success fw-bold mb-3" style="line-height: 1.3;">Это личные реквизиты курьера. Средства поступят напрямую на его счет.</p><img id="drTipsQr" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm"><a id="drTipsLink" href="" target="_blank" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" style="display:none;">Перевести по ссылке</a></div></div><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="submitDeliveryRating()">Отправить оценку</button></div></div></div>
+<div class="modal fade" id="addReviewModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-1">Оцените товар</h5><div class="small text-muted fw-bold mb-3" id="revProdName"></div><div class="star-rating mb-3"><input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 звезд">★</label><input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 звезды">★</label><input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 звезды">★</label><input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 звезды">★</label><input type="radio" id="star1" name="rating" value="1" checked><label for="star1" title="1 звезда">★</label></div><textarea id="revText" class="form-control bg-light border-0 rounded-4 p-3 mb-3" rows="3" placeholder="Что вам понравилось?"></textarea><button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitReview()">Отправить отзыв</button></div></div></div>
+<div class="modal fade" id="productDetailModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4"><button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 rounded-circle shadow-sm" data-bs-dismiss="modal" style="z-index: 10;"></button><img id="pdImg" src="" class="w-100 rounded-4 mb-3 shadow-sm" style="height:280px; object-fit:cover; display:none;"><h3 class="fw-bold mb-1" id="pdName"></h3><h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4><p class="text-muted small mb-4" id="pdDesc"></p><button class="btn w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-4" id="pdAddBtn"></button><h5 class="fw-bold mb-3"><i class="bi bi-chat-left-text text-primary me-2"></i>Отзывы покупателей</h5><div id="pdReviewsList" class="d-flex flex-column gap-3"></div></div></div></div>
+<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6><select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()"><option value="pickup">Самовывоз (Магазин)</option><option value="courier">Доставка курьером</option><option value="taxi">Отправка Яндекс.Доставкой</option></select><select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime"><option value="Как можно скорее">🕒 Как можно скорее</option><option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option><option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option></select><div id="addressBox" style="display:none;"><label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label><div class="d-flex gap-2 mb-2"><button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button><button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button></div><select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select><div id="newAddrWrap" class="input-group mb-2"><input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира"><button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button></div></div></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (Безопасно)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
+<div class="modal fade" id="chatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden"><div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center"><h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Чат с магазином</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="site-chat-container"><div class="site-chat-messages" id="siteChatBox"></div><div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;"><input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()"><button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button></div></div></div></div></div>
+<div class="modal fade" id="loginModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center">Вход в систему</h4><div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div><div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div><input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00"><input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button></div></div></div>
+<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 text-center"><i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i><h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3><a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="location.reload()"><i class="bi bi-send-fill me-2"></i> Написать боту в VK</a><button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.reload()">Закрыть</button></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    function toggleBurger() { document.getElementById('burgerMenu').classList.toggle('active'); document.getElementById('burgerOverlay').classList.toggle('active'); }
+
     let cart = {};
-    try { 
-        const stored = localStorage.getItem('nikolaich_cart'); 
-        if (stored && stored !== 'undefined') { cart = JSON.parse(stored); } 
-    } catch (e) { 
-        localStorage.removeItem('nikolaich_cart'); cart = {}; 
-    }
+    try { const stored = localStorage.getItem('nikolaich_cart'); if (stored && stored !== 'undefined') { cart = JSON.parse(stored); } } catch (e) { localStorage.removeItem('nikolaich_cart'); cart = {}; }
 
     let itemsTotal = 0; let lastCalc = null; let userAddresses = []; let currentReviewProdId = null;
     let calcDebounceTimer = null; let currentAddressMode = 'new'; let currentRatingOrderId = null;
     let pendingAction = null; let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}') || 0;
 
-    if(!localStorage.getItem('cookies_accepted')) { 
-        document.getElementById('cookieBanner').style.setProperty('display', 'flex', 'important'); 
-    }
-    window.acceptCookies = function() { 
-        localStorage.setItem('cookies_accepted', 'true'); 
-        const cb = document.getElementById('cookieBanner');
-        cb.style.display = 'none'; 
-        cb.style.setProperty('display', 'none', 'important');
-    }
+    if(!localStorage.getItem('cookies_accepted')) { document.getElementById('cookieBanner').style.setProperty('display', 'flex', 'important'); }
+    window.acceptCookies = function() { localStorage.setItem('cookies_accepted', 'true'); const cb = document.getElementById('cookieBanner'); cb.style.display = 'none'; cb.style.setProperty('display', 'none', 'important'); }
 
-    let deferredPrompt;
-    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+    let deferredPrompt; const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
     const showPwa = '{{ settings.show_pwa_banner | default("1") }}';
-    if (!isStandalone && showPwa === '1') { 
-        document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); 
-    }
+    if (!isStandalone && showPwa === '1') { document.getElementById('pwaInstallBanner').style.setProperty('display', 'flex', 'important'); }
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
-    function handleInstallClick() {
-        const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; }
-                deferredPrompt = null;
-            });
-        } else if (isIos) { new bootstrap.Modal(document.getElementById('iosInstallModal')).show();
-        } else { new bootstrap.Modal(document.getElementById('androidInstallModal')).show(); }
-    }
-
-    function updateProductVisibility() {
-        const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true';
-        document.querySelectorAll('.p-item').forEach(el => {
-            const pHidden = parseInt(el.dataset.hidden || '0', 10);
-            if (pHidden === 1 && !isConfirmed) { el.classList.add('locked-18'); } else { el.classList.remove('locked-18'); }
-        });
-    }
+    function handleInstallClick() { const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase()); if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; } deferredPrompt = null; }); } else if (isIos) { new bootstrap.Modal(document.getElementById('iosInstallModal')).show(); } else { new bootstrap.Modal(document.getElementById('androidInstallModal')).show(); } }
+    function updateProductVisibility() { const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true'; document.querySelectorAll('.p-item').forEach(el => { const pHidden = parseInt(el.dataset.hidden || '0', 10); if (pHidden === 1 && !isConfirmed) { el.classList.add('locked-18'); } else { el.classList.remove('locked-18'); } }); }
 
     document.addEventListener("DOMContentLoaded", () => { updateProductVisibility(); recalcTotals(); });
-
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
     
     function searchProducts() { 
         const query = document.getElementById('searchInput').value.toLowerCase(); 
         document.getElementById('mainContentBlocks').style.display = query ? 'none' : 'block'; 
         document.getElementById('filteredProductsBlock').style.display = query ? 'block' : 'none'; 
-        document.getElementById('bannerCarousel').style.display = query ? 'none' : 'flex'; 
+        const banners = document.getElementById('bannerCarousel'); if (banners) banners.style.display = query ? 'none' : 'flex';
+        const mainCats = document.getElementById('mainCatsGrid'); if (mainCats) mainCats.style.display = query ? 'none' : 'grid';
         document.getElementById('sortButtons').style.setProperty('display', query ? 'flex' : 'none', 'important'); 
-        if(query) { 
-            document.getElementById('filterTitle').innerText = 'Результаты поиска'; 
-            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.toLowerCase().includes(query) ? 'block' : 'none'; }); 
-            updateProductVisibility(); 
-        } else { updateProductVisibility(); }
+        if(query) { document.getElementById('filterTitle').innerText = 'Результаты поиска'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.name.toLowerCase().includes(query) ? 'block' : 'none'; }); updateProductVisibility(); } else { updateProductVisibility(); }
     }
 
-    function filterCat(catId, btnEl, isHidden) { 
-        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
-            pendingAction = () => executeFilterCat(catId, btnEl);
-            document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
-            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return;
-        }
-        executeFilterCat(catId, btnEl);
-    }
-    
+    function filterCat(catId, btnEl, isHidden) { if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) { pendingAction = () => executeFilterCat(catId, btnEl); document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = ''; new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return; } executeFilterCat(catId, btnEl); }
     function executeFilterCat(catId, btnEl) {
-        if(btnEl) { document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active')); btnEl.classList.add('active'); } 
-        document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; 
-        document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; 
-        document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); 
-        if (catId !== 'all') { 
-            document.getElementById('filterTitle').innerText = 'Категория'; 
-            document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }); 
-            updateProductVisibility();
-        } else { updateProductVisibility(); }
+        if(btnEl) { document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active')); btnEl.classList.add('active'); } else { document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active')); }
+        document.getElementById('mainContentBlocks').style.display = catId === 'all' ? 'block' : 'none'; document.getElementById('filteredProductsBlock').style.display = catId === 'all' ? 'none' : 'block'; document.getElementById('sortButtons').style.setProperty('display', catId === 'all' ? 'none' : 'flex', 'important'); 
+        const mainCats = document.getElementById('mainCatsGrid'); if (mainCats) mainCats.style.display = catId === 'all' ? 'grid' : 'none';
+        const banners = document.getElementById('bannerCarousel'); if (banners) banners.style.display = catId === 'all' ? 'flex' : 'none';
+        if (catId !== 'all') { document.getElementById('filterTitle').innerText = 'Категория'; document.querySelectorAll('.filter-item').forEach(el => { el.style.display = el.dataset.cat == catId ? 'block' : 'none'; }); updateProductVisibility(); document.getElementById('filteredProductsBlock').scrollIntoView({ behavior: 'smooth' }); } else { updateProductVisibility(); }
     }
 
     function cancelAge() { bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide(); pendingAction = null; }
-    
-    function confirmAgeDOB() {
-        const dobVal = document.getElementById('dobInput').value;
-        if(!dobVal) return alert("Пожалуйста, выберите дату вашего рождения!");
-        const dob = new Date(dobVal); const today = new Date(); let age = today.getFullYear() - dob.getFullYear();
-        const m = today.getMonth() - dob.getMonth(); if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
-        if (age >= 18) {
-            sessionStorage.setItem('age_confirmed', 'true'); updateProductVisibility();
-            bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide();
-            if (pendingAction) { pendingAction(); pendingAction = null; }
-        } else { document.getElementById('dobError').style.display = 'block'; }
-    }
+    function confirmAgeDOB() { const dobVal = document.getElementById('dobInput').value; if(!dobVal) return alert("Пожалуйста, выберите дату вашего рождения!"); const dob = new Date(dobVal); const today = new Date(); let age = today.getFullYear() - dob.getFullYear(); const m = today.getMonth() - dob.getMonth(); if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; } if (age >= 18) { sessionStorage.setItem('age_confirmed', 'true'); updateProductVisibility(); bootstrap.Modal.getInstance(document.getElementById('ageVerificationModal')).hide(); if (pendingAction) { pendingAction(); pendingAction = null; } } else { document.getElementById('dobError').style.display = 'block'; } }
 
-    function handleProductClick(el) {
-        const parent = el.closest('.p-item');
-        const id = parent.dataset.id; const name = parent.dataset.name; const desc = parent.dataset.desc; const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0', 10);
-        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
-            pendingAction = () => openProductView(id, name, img, desc, price, step, unit, isHidden);
-            document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
-            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return;
-        }
-        openProductView(id, name, img, desc, price, step, unit, isHidden);
-    }
+    function handleProductClick(el) { const parent = el.closest('.p-item'); const id = parent.dataset.id; const name = parent.dataset.name; const desc = parent.dataset.desc; const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0', 10); if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) { pendingAction = () => openProductView(id, name, img, desc, price, step, unit, isHidden); document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = ''; new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return; } openProductView(id, name, img, desc, price, step, unit, isHidden); }
+    function handleAddClick(btn) { const parent = btn.closest('.p-item'); const id = parent.dataset.id; const name = parent.dataset.name; const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0', 10); if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) { pendingAction = () => add(btn, id, price, name, step, unit, img, isHidden); document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = ''; new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return; } add(btn, id, price, name, step, unit, img, isHidden); }
 
-    function handleAddClick(btn) {
-        const parent = btn.closest('.p-item');
-        const id = parent.dataset.id; const name = parent.dataset.name; const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0', 10);
-        if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) {
-            pendingAction = () => add(btn, id, price, name, step, unit, img, isHidden);
-            document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = '';
-            new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return;
-        }
-        add(btn, id, price, name, step, unit, img, isHidden);
-    }
-
-    async function openProductView(id, name, img, desc, price, step, unit, isHidden) {
-        document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; 
-        if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } 
-        const addBtn = document.getElementById('pdAddBtn'); 
-        addBtn.onclick = () => { add(null, id, price, name, step, unit, img, isHidden); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; 
-        addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; 
-        if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } 
-        const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); 
-        if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } 
-        new bootstrap.Modal(document.getElementById('productDetailModal')).show(); 
-    }
-    
-    function add(btn, id, price, name, step, unit, img, isHidden) { 
-        if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden}; } 
-        cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); 
-        if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } 
-        const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); 
-    }
-    
+    async function openProductView(id, name, img, desc, price, step, unit, isHidden) { document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } const addBtn = document.getElementById('pdAddBtn'); addBtn.onclick = () => { add(null, id, price, name, step, unit, img, isHidden); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } new bootstrap.Modal(document.getElementById('productDetailModal')).show(); }
+    function add(btn, id, price, name, step, unit, img, isHidden) { if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden}; } cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); }
     function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
     
-    function recalcTotals() { 
-        itemsTotal = 0; let count = 0; 
-        for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } 
-        localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); 
-        document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; 
-        document.getElementById('cartCount').innerText = count + ' позиций'; 
-        document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; 
-        if(calcDebounceTimer) clearTimeout(calcDebounceTimer); 
-        calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); 
-    }
-
+    function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { itemsTotal += cart[id].price * cart[id].qty; count++; } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
     function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
+    async function loadUpsell() { const cartNames = Object.values(cart).map(i => i.name); const res = await fetch('/api/ai/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})}); const prods = await res.json(); const box = document.getElementById('upsellBox'); if(prods.length > 0) { box.innerHTML = prods.map(p => { let imgHtml = p.images && p.images.length > 0 ? `<img src="${p.images[0]}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`; const hdn = p.is_hidden || 0; const safeName = p.name.replace(/'/g,""); return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${p.images&&p.images.length>0?p.images[0]:''}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`; }).join(''); box.parentElement.style.display = 'block'; } else { box.parentElement.style.display = 'none'; } }
 
-    async function loadUpsell() {
-        const cartNames = Object.values(cart).map(i => i.name);
-        const res = await fetch('/api/ai/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})});
-        const prods = await res.json(); const box = document.getElementById('upsellBox');
-        if(prods.length > 0) {
-            box.innerHTML = prods.map(p => {
-                let imgHtml = p.images && p.images.length > 0 ? `<img src="${p.images[0]}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`;
-                const hdn = p.is_hidden || 0; const safeName = p.name.replace(/'/g,"");
-                return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${p.images&&p.images.length>0?p.images[0]:''}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`;
-            }).join(''); box.parentElement.style.display = 'block';
-        } else { box.parentElement.style.display = 'none'; }
+    async function prepareCart() { const html = []; for(let id in cart) { const i = cart[id]; const is = i.price * i.qty; let img = i.img ? `<img src="${i.img}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;margin-right:12px;">` : ''; html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${img}<div class="fw-bold lh-1" style="font-size:13px;">${i.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width:40px; text-align:center;">${i.qty} ${i.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width:25%;">${is.toFixed(0)} ₽</div></div>`); } document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>'; try { const res = await fetch('/api/user/cabinet'); const data = await res.json(); if(!data.error && data.user) { let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {} if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); } } } catch(e){} await loadUpsell(); await calcCart(); }
+    async function calcCart() { if(Object.keys(cart).length === 0) return; let dt = document.getElementById('deliveryType').value; let pt = document.getElementById('paymentType').value; const oc = document.getElementById('optCash'); const pc = document.getElementById('promoCode').value; const ph = document.getElementById('checkoutPhone').value; const res = await fetch('/api/cart/calc', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items_total: itemsTotal, delivery_type: dt, promo_code: pc, phone: ph, cart: cart})}); lastCalc = await res.json(); const warnBox = document.getElementById('cart18Warning'); const delSelect = document.getElementById('deliveryType'); const paySelect = document.getElementById('paymentType'); if(lastCalc.force_pickup_18) { warnBox.style.display = 'block'; dt = 'pickup'; pt = 'cash'; delSelect.value = 'pickup'; delSelect.disabled = true; paySelect.value = 'cash'; paySelect.disabled = true; document.getElementById('addressBox').style.display = 'none'; } else { warnBox.style.display = 'none'; delSelect.disabled = false; paySelect.disabled = false; document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block'; if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; } } const ps = document.getElementById('promoStatus'); ps.innerText = lastCalc.promo_status || ''; ps.className = lastCalc.promo_status && lastCalc.promo_status.includes('Скидка') ? "mt-2 small fw-bold text-success" : "mt-2 small fw-bold text-danger"; let addInfoHtml = `<div class="d-flex justify-content-between mb-1"><span>Упаковка пакета:</span><span>${lastCalc.package_cost} ₽</span></div>`; if (lastCalc.discount > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-success fw-bold"><span>Скидка по промокоду:</span><span>- ${lastCalc.discount} ₽</span></div>`; if (lastCalc.sysadmin_pay > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-primary fw-bold"><span>Оплата балансом IT:</span><span>- ${lastCalc.sysadmin_pay.toFixed(0)} ₽</span></div>`; document.getElementById('cartAdditionalInfo').innerHTML = addInfoHtml; document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; document.getElementById('tDiscount').innerText = lastCalc.final_total.toFixed(0) + ' ₽'; const btn = document.getElementById('checkoutBtn'); const mo = lastCalc.min_order || 0; if(lastCalc.items_total < mo) { btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary'); btn.innerHTML = `Добавьте ещё на ${mo - lastCalc.items_total} ₽`; } else { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; } }
+    async function sendOrder() { if(Object.keys(cart).length === 0) return; const ph = document.getElementById('checkoutPhone').value; const soc = document.getElementById('checkoutSocial').value; const pt = document.getElementById('paymentType').value; const dt = document.getElementById('deliveryType').value; const d_time = document.getElementById('checkoutTime').value; const comm = document.getElementById('checkoutComment').value; if(!ph) return alert("Введите номер телефона!"); let addr = ''; if(dt !== 'pickup' && !lastCalc.force_pickup_18) { addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; if(!addr) return alert("Укажите адрес доставки!"); } const btn = document.getElementById('checkoutBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подключение к банку...'; try { const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc}; const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)}); const data = await res.json(); if(data.status === 'ok') { cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals(); if(data.pay_data && data.pay_data.url) { window.location.href = data.pay_data.url; } else if(data.pay_data) { const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url; for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } } document.body.appendChild(f); f.submit(); } else { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); } } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); } } catch (error) { alert('Сбой подключения к серверу банка.'); calcCart(); } }
+
+    /* ЭТАП 4: БИРЖА КУРЬЕРОВ (Обновление ЛК) */
+    async function setCourStatus(orderId, status) { 
+        if(!confirm(`Точно перевести заказ #${orderId} в статус "${status}"?`)) return; 
+        await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, action: 'status', status: status})}); 
+        refreshCabinetData(); 
+    }
+    
+    async function takeCourOrder(orderId) {
+        if(!confirm(`Взять заказ #${orderId} в работу?`)) return;
+        const res = await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, action: 'take'})});
+        const data = await res.json();
+        if(data.error) alert(data.error);
+        refreshCabinetData();
     }
 
-    /* ЭТАП 1: Прозрачное отображение чека в корзине */
-    async function prepareCart() {
-        const html = [];
-        for(let id in cart) {
-            const i = cart[id]; const is = i.price * i.qty;
-            let img = i.img ? `<img src="${i.img}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;margin-right:12px;">` : '';
-            html.push(`<div class="d-flex justify-content-between border-bottom py-3 align-items-center"><div class="d-flex align-items-center" style="width:45%;">${img}<div class="fw-bold lh-1" style="font-size:13px;">${i.name}</div></div><div class="d-flex align-items-center bg-light border rounded-pill px-1 shadow-sm"><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, -1)">-</button><div class="fw-bold mx-1" style="font-size:13px; min-width:40px; text-align:center;">${i.qty} ${i.unit}</div><button class="btn btn-sm text-dark px-2 fw-bold fs-5" onclick="updateCartItem(${id}, 1)">+</button></div><div class="fw-bold text-end" style="width:25%;">${is.toFixed(0)} ₽</div></div>`);
-        }
-        document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>';
-        
-        try { const res = await fetch('/api/user/cabinet'); const data = await res.json(); if(!data.error && data.user) { let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {} if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); } } } catch(e){}
-        await loadUpsell(); await calcCart();
-    }
-
-    async function calcCart() {
-        if(Object.keys(cart).length === 0) return;
-        let dt = document.getElementById('deliveryType').value; let pt = document.getElementById('paymentType').value; const oc = document.getElementById('optCash'); const pc = document.getElementById('promoCode').value; const ph = document.getElementById('checkoutPhone').value;
-        const res = await fetch('/api/cart/calc', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items_total: itemsTotal, delivery_type: dt, promo_code: pc, phone: ph, cart: cart})});
-        lastCalc = await res.json();
-        
-        const warnBox = document.getElementById('cart18Warning'); const delSelect = document.getElementById('deliveryType'); const paySelect = document.getElementById('paymentType');
-        if(lastCalc.force_pickup_18) { warnBox.style.display = 'block'; dt = 'pickup'; pt = 'cash'; delSelect.value = 'pickup'; delSelect.disabled = true; paySelect.value = 'cash'; paySelect.disabled = true; document.getElementById('addressBox').style.display = 'none'; } 
-        else { warnBox.style.display = 'none'; delSelect.disabled = false; paySelect.disabled = false; document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block'; if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; } }
-        
-        const ps = document.getElementById('promoStatus'); ps.innerText = lastCalc.promo_status || ''; ps.className = lastCalc.promo_status && lastCalc.promo_status.includes('Скидка') ? "mt-2 small fw-bold text-success" : "mt-2 small fw-bold text-danger";
-        
-        /* ЭТАП 1: Вывод дополнительных позиций в корзине */
-        let addInfoHtml = `<div class="d-flex justify-content-between mb-1"><span>Упаковка пакета:</span><span>${lastCalc.package_cost} ₽</span></div>`;
-        if (lastCalc.discount > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-success fw-bold"><span>Скидка по промокоду:</span><span>- ${lastCalc.discount} ₽</span></div>`;
-        if (lastCalc.sysadmin_pay > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-primary fw-bold"><span>Оплата балансом IT:</span><span>- ${lastCalc.sysadmin_pay.toFixed(0)} ₽</span></div>`;
-        document.getElementById('cartAdditionalInfo').innerHTML = addInfoHtml;
-        
-        document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽';
-        document.getElementById('tDiscount').innerText = lastCalc.final_total.toFixed(0) + ' ₽';
-        
-        const btn = document.getElementById('checkoutBtn'); const mo = lastCalc.min_order || 0;
-        if(lastCalc.items_total < mo) { btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary'); btn.innerHTML = `Добавьте ещё на ${mo - lastCalc.items_total} ₽`; } 
-        else { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; }
-    }
-
-    async function sendOrder() {
-        if(Object.keys(cart).length === 0) return;
-        const ph = document.getElementById('checkoutPhone').value; const soc = document.getElementById('checkoutSocial').value; const pt = document.getElementById('paymentType').value; const dt = document.getElementById('deliveryType').value; const d_time = document.getElementById('checkoutTime').value; const comm = document.getElementById('checkoutComment').value;
-        if(!ph) return alert("Введите номер телефона!");
-        let addr = ''; if(dt !== 'pickup' && !lastCalc.force_pickup_18) { addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; if(!addr) return alert("Укажите адрес доставки!"); }
-        
-        const btn = document.getElementById('checkoutBtn'); 
-        btn.disabled = true; 
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подключение к банку...';
-        
-        try {
-            const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc};
-            const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)});
-            const data = await res.json();
-            
-            if(data.status === 'ok') {
-                cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals();
-                if(data.pay_data && data.pay_data.url) { 
-                    window.location.href = data.pay_data.url;
-                } else if(data.pay_data) {
-                    const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url; for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } } document.body.appendChild(f); f.submit(); 
-                } else { 
-                    bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); 
-                }
-            } else { 
-                alert('Ошибка: ' + (data.error || 'Проверьте данные.')); 
-                calcCart(); 
-            }
-        } catch (error) {
-            alert('Сбой подключения к серверу банка. Пожалуйста, убедитесь, что ключи API банка настроены, или выберите другой способ оплаты.');
-            calcCart(); 
-        }
-    }
-
-    async function sendVerificationRequest() { const phone = document.getElementById('vipPhone').value; const fio = document.getElementById('vipFio').value; const social = document.getElementById('vipSocial').value; if(!phone) return alert("Введите номер!"); await fetch('/api/user/vip_request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone: phone, fio: fio, social: social})}); alert("Заявка отправлена!"); location.reload(); }
-    function openReviewDialog(prodId, prodName) { currentReviewProdId = prodId; document.getElementById('revProdName').innerText = prodName; document.getElementById('revText').value = ''; new bootstrap.Modal(document.getElementById('addReviewModal')).show(); }
-    async function submitReview() { const rating = document.querySelector('input[name="rating"]:checked').value; const text = document.getElementById('revText').value; if(!text.trim()) return alert("Напишите пару слов!"); await fetch('/api/user/add_review', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: currentReviewProdId, rating: parseInt(rating), text: text})}); bootstrap.Modal.getInstance(document.getElementById('addReviewModal')).hide(); alert("Спасибо! Отзыв отправлен на модерацию."); }
-    function repeatOrder(itemsStr) { const itemsObj = JSON.parse(itemsStr); for(let key in itemsObj) { const i = itemsObj[key]; if(cart[key]) cart[key].qty += i.qty; else cart[key] = i; } recalcTotals(); new bootstrap.Modal(document.getElementById('cartModal')).show(); prepareCart(); }
     function switchCabTab(tabId, btn) { document.querySelectorAll('.cab-nav-item').forEach(el => el.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.cab-tab-content').forEach(el => el.style.display = 'none'); document.getElementById(tabId).style.display = 'block'; }
 
-    async function refreshCabinetData() {
-        const res = await fetch('/api/user/cabinet'); const data = await res.json();
-        if(data.error) return new bootstrap.Modal(document.getElementById('loginModal')).show();
+    async function refreshCabinetData() { 
+        const res = await fetch('/api/user/cabinet'); 
+        const data = await res.json(); 
+        if(data.error) return new bootstrap.Modal(document.getElementById('loginModal')).show(); 
         
-        document.getElementById('cabName').value = data.user.full_name || ''; document.getElementById('cabPhone').value = data.user.phone || '';
-        if (data.user.role === 'courier') {
-            document.getElementById('cabMainTitle').innerHTML = '<i class="bi bi-box-seam text-warning me-2"></i>Пульт Курьера'; document.getElementById('cabTabOrders').innerText = 'Мои доставки'; document.getElementById('cabTabTickets').style.display = 'none'; document.getElementById('cabAddrBlock').style.display = 'none'; document.getElementById('cabTipsBlock').style.display = 'block'; document.getElementById('cabTipsLink').value = data.user.tips_link || ''; document.getElementById('cabTipsQr').value = data.user.tips_qr || ''; if(data.user.tips_qr) { document.getElementById('courQrPreview').src = data.user.tips_qr; document.getElementById('courQrPreview').style.display = 'block'; }
-            if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Нет активных заказов для доставки.</div>'; } 
+        document.getElementById('cabName').value = data.user.full_name || ''; 
+        document.getElementById('cabPhone').value = data.user.phone || ''; 
+        
+        if (data.user.role === 'courier') { 
+            document.getElementById('cabMainTitle').innerHTML = '<i class="bi bi-box-seam text-warning me-2"></i>Пульт Курьера'; 
+            document.getElementById('cabTabOrders').innerText = 'Биржа / Доставки'; 
+            document.getElementById('cabTabTickets').style.display = 'none'; 
+            document.getElementById('cabAddrBlock').style.display = 'none'; 
+            document.getElementById('cabTipsBlock').style.display = 'block'; 
+            document.getElementById('cabTipsLink').value = data.user.tips_link || ''; 
+            document.getElementById('cabTipsQr').value = data.user.tips_qr || ''; 
+            if(data.user.tips_qr) { document.getElementById('courQrPreview').src = data.user.tips_qr; document.getElementById('courQrPreview').style.display = 'block'; } 
+            
+            const stC = {'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success'}; 
+            
+            let html = '<ul class="nav nav-pills mb-3 mt-2 border-bottom pb-3" id="courPills" role="tablist"><li class="nav-item" role="presentation"><button class="nav-link active fw-bold border" data-bs-toggle="pill" data-bs-target="#pills-avail">Свободные <span class="badge bg-danger ms-1">' + data.available_orders.length + '</span></button></li><li class="nav-item ms-2" role="presentation"><button class="nav-link fw-bold border" data-bs-toggle="pill" data-bs-target="#pills-my">Мои в работе (' + data.my_orders.length + ')</button></li></ul><div class="tab-content">';
+            
+            // Вкладка: Свободные заказы
+            html += '<div class="tab-pane fade show active" id="pills-avail">';
+            if(data.available_orders.length === 0) { html += '<div class="text-muted text-center mt-5">Свободных заказов пока нет.</div>'; }
             else {
-                const stC = {'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success'};
-                document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => {
+                html += data.available_orders.map(o => {
+                    return `<div class="order-receipt border-warning shadow-sm"><div class="d-flex justify-content-between mb-3"><h4 class="fw-bold m-0">#${o.id}</h4><span class="badge bg-warning text-dark px-3 py-2">Свободен</span></div><div class="mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> <b>Куда:</b> ${o.address}</div><div class="mb-3"><i class="bi bi-cash-stack text-success me-1"></i> <b>Сумма чека:</b> <span class="text-success fw-bold fs-5">${o.final_total} ₽</span></div><button class="btn btn-dark w-100 fw-bold mt-2 py-3 rounded-pill shadow-sm" onclick="takeCourOrder(${o.id})"><i class="bi bi-hand-index-thumb me-2"></i> Взять заказ</button></div>`;
+                }).join('');
+            }
+            html += '</div>';
+
+            // Вкладка: Мои доставки
+            html += '<div class="tab-pane fade" id="pills-my">';
+            if(data.my_orders.length === 0) { html += '<div class="text-muted text-center mt-5">Вы еще не взяли ни одного заказа.</div>'; }
+            else {
+                html += data.my_orders.map(o => {
                     let btns = '';
                     if(o.status === 'Собран') btns = `<button class="btn btn-primary w-100 fw-bold mt-2 py-3 rounded-pill shadow-sm" onclick="setCourStatus(${o.id}, 'В пути')"><i class="bi bi-truck me-2"></i> Забрал, везу</button>`;
                     if(o.status === 'В пути') btns = `<button class="btn btn-success w-100 fw-bold mt-2 py-3 rounded-pill shadow-sm" onclick="setCourStatus(${o.id}, 'Выполнен')"><i class="bi bi-check-circle-fill me-2"></i> Отдал клиенту</button>`;
                     return `<div class="order-receipt border-primary shadow-sm"><div class="d-flex justify-content-between mb-3"><h4 class="fw-bold m-0">#${o.id}</h4><span class="badge bg-${stC[o.status]||'dark'} px-3 py-2">${o.status}</span></div><div class="mb-2"><i class="bi bi-person-fill text-muted me-1"></i> <b>Клиент:</b> ${o.client_name || 'Без имени'} <a href="tel:${o.client_phone}" class="fw-bold text-decoration-none ms-1">📞 ${o.client_phone}</a></div><div class="mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> <b>Куда:</b> ${o.address}</div><div class="mb-3"><i class="bi bi-cash-stack text-success me-1"></i> <b>Сумма чека:</b> <span class="text-success fw-bold fs-5">${o.payment_type=='online'?'ОПЛАЧЕНО ОНЛАЙН':o.final_total + ' ₽'}</span></div>${o.comment ? `<div class="text-danger small mt-1 bg-danger bg-opacity-10 p-2 rounded"><b>Комментарий:</b> ${o.comment}</div>` : ''}<a href="https://yandex.ru/maps/?rtext=~${encodeURIComponent(o.address)}" target="_blank" class="btn btn-warning w-100 fw-bold mt-3 mb-1 py-2 rounded-pill"><i class="bi bi-map-fill me-1"></i> Проложить маршрут</a>${btns}</div>`;
                 }).join('');
             }
-        } else {
-            document.getElementById('cabAddrBlock').style.display = 'block'; document.getElementById('cabTipsBlock').style.display = 'none'; document.getElementById('cabTabTickets').style.display = 'block';
-            userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : []; document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span></div>`).join('');
-            if(data.tickets && data.tickets.length > 0) { document.getElementById('cabinetTicketsList').innerHTML = data.tickets.map(t => `<div class="ticket-item"><div class="small fw-bold opacity-75">${t.title}</div><div class="ticket-num">${t.ticket_number}</div></div>`).join(''); } else { document.getElementById('cabinetTicketsList').innerHTML = '<div class="text-muted small">У вас пока нет билетов. Сделайте заказ!</div>'; }
-            const stC = {'Новый':'secondary', 'Оплачен':'primary', 'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success', 'Отменен':'danger'};
-            if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Вы еще ничего не заказывали.</div>'; } 
-            else {
-                /* ЭТАП 1: Прозрачный чек в ЛК с разбивкой */
-                document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => {
-                    const itemsList = Object.keys(o.items).map(k => {
-                        const i = o.items[k];
-                        return `<div class="receipt-line align-items-center"><span>${i.name}</span><div class="text-end"><span class="fw-bold d-block">${i.qty}${i.unit}</span><button class="btn btn-sm btn-link p-0 text-warning text-decoration-none fw-bold" onclick="openReviewDialog(${k}, '${i.name}')"><i class="bi bi-star-fill"></i> Оценить</button></div></div>`;
-                    }).join('');
-                    
-                    let transparentCheck = `<div class="receipt-line small mt-2"><span>Упаковка пакета</span><span>${o.package_cost} ₽</span></div>`;
-                    if (o.delivery_cost > 0) transparentCheck += `<div class="receipt-line small"><span>Логистика</span><span>${o.delivery_cost} ₽</span></div>`;
-                    if (o.bonuses_spent > 0) transparentCheck += `<div class="receipt-line small text-primary fw-bold"><span>Оплата балансом (IT)</span><span>- ${o.bonuses_spent} ₽</span></div>`;
-                    
-                    const jsonStr = JSON.stringify(o.items).replace(/"/g, '&quot;');
-                    let btnRepeat = `<button class="btn btn-sm btn-primary mt-3 w-100 fw-bold rounded-pill shadow-sm" onclick="repeatOrder('${jsonStr}')"><i class="bi bi-arrow-clockwise me-1"></i> Повторить заказ</button>`;
-                    
-                    let tipBtn = '';
-                    if (o.status === 'Выполнен') {
-                        if (!o.courier_rating || o.courier_rating === 0) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-star-fill me-1"></i> Оценить доставку и курьера</button>`; } 
-                        else if (o.c_tips || o.c_tips_qr) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-cup-hot-fill me-1"></i> Чаевые курьеру</button>`; }
-                    }
-                    return `<div class="order-receipt"><div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold m-0">Чек #${o.id}</h5><span class="badge bg-${stC[o.status]||'dark'}">${o.status}</span></div><div class="small text-muted mb-3">${o.date}</div><div class="receipt-divider"></div>${itemsList}<div class="receipt-divider"></div>${transparentCheck}<div class="receipt-divider"></div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted mt-2">Комплектация: ${o.delivery_type==='pickup'?'Самовывоз':'Логистика'}<br>Время: ${o.delivery_time}</div><div class="fw-bold fs-4 text-success">${o.final_total} ₽</div></div>${btnRepeat}${tipBtn}</div>`;
-                }).join('');
-            }
-        }
+            html += '</div></div>';
+
+            document.getElementById('cabinetOrders').innerHTML = html;
+        } else { 
+            document.getElementById('cabAddrBlock').style.display = 'block'; document.getElementById('cabTipsBlock').style.display = 'none'; document.getElementById('cabTabTickets').style.display = 'block'; userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : []; document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span></div>`).join(''); if(data.tickets && data.tickets.length > 0) { document.getElementById('cabinetTicketsList').innerHTML = data.tickets.map(t => `<div class="ticket-item"><div class="small fw-bold opacity-75">${t.title}</div><div class="ticket-num">${t.ticket_number}</div></div>`).join(''); } else { document.getElementById('cabinetTicketsList').innerHTML = '<div class="text-muted small">У вас пока нет билетов. Сделайте заказ!</div>'; } const stC = {'Новый':'secondary', 'Оплачен':'primary', 'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success', 'Отменен':'danger'}; if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Вы еще ничего не заказывали.</div>'; } else { document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => { const itemsList = Object.keys(o.items).map(k => { const i = o.items[k]; return `<div class="receipt-line align-items-center"><span>${i.name}</span><div class="text-end"><span class="fw-bold d-block">${i.qty}${i.unit}</span><button class="btn btn-sm btn-link p-0 text-warning text-decoration-none fw-bold" onclick="openReviewDialog(${k}, '${i.name}')"><i class="bi bi-star-fill"></i> Оценить</button></div></div>`; }).join(''); let transparentCheck = `<div class="receipt-line small mt-2"><span>Упаковка пакета</span><span>${o.package_cost} ₽</span></div>`; if (o.delivery_cost > 0) transparentCheck += `<div class="receipt-line small"><span>Логистика</span><span>${o.delivery_cost} ₽</span></div>`; if (o.bonuses_spent > 0) transparentCheck += `<div class="receipt-line small text-primary fw-bold"><span>Оплата балансом (IT)</span><span>- ${o.bonuses_spent} ₽</span></div>`; const jsonStr = JSON.stringify(o.items).replace(/"/g, '&quot;'); let btnRepeat = `<button class="btn btn-sm btn-primary mt-3 w-100 fw-bold rounded-pill shadow-sm" onclick="repeatOrder('${jsonStr}')"><i class="bi bi-arrow-clockwise me-1"></i> Повторить заказ</button>`; let tipBtn = ''; if (o.status === 'Выполнен') { if (!o.courier_rating || o.courier_rating === 0) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-star-fill me-1"></i> Оценить доставку</button>`; } else if (o.c_tips || o.c_tips_qr) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-cup-hot-fill me-1"></i> Чаевые курьеру</button>`; } } return `<div class="order-receipt"><div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold m-0">Чек #${o.id}</h5><span class="badge bg-${stC[o.status]||'dark'}">${o.status}</span></div><div class="small text-muted mb-3">${o.date}</div><div class="receipt-divider"></div>${itemsList}<div class="receipt-divider"></div>${transparentCheck}<div class="receipt-divider"></div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted mt-2">Комплектация: ${o.delivery_type==='pickup'?'Самовывоз':'Логистика'}<br>Время: ${o.delivery_time}</div><div class="fw-bold fs-4 text-success">${o.final_total} ₽</div></div>${btnRepeat}${tipBtn}</div>`; }).join(''); } } 
     }
 
     function openCabinet() { refreshCabinetData().then(() => new bootstrap.Modal(document.getElementById('cabinetModal')).show()); }
-    async function setCourStatus(orderId, status) { if(!confirm(`Точно перевести заказ #${orderId} в статус "${status}"?`)) return; await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, status: status})}); refreshCabinetData(); }
     async function uploadCourQr(input) { if(!input.files || input.files.length === 0) return; const formData = new FormData(); formData.append('file', input.files[0]); try { const res = await fetch('/api/user/upload_qr', {method: 'POST', body: formData}); const data = await res.json(); if(data.url) { document.getElementById('cabTipsQr').value = data.url; document.getElementById('courQrPreview').src = data.url; document.getElementById('courQrPreview').style.display = 'block'; } } catch(e) { alert("Ошибка загрузки QR-кода."); } }
     async function addAddress() { const addr = document.getElementById('cabNewAddress').value.trim(); if(!addr) return; await fetch('/api/user/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({new_address: addr})}); document.getElementById('cabNewAddress').value = ''; refreshCabinetData(); }
     async function updateProfile() { const payload = { full_name: document.getElementById('cabName').value, phone: document.getElementById('cabPhone').value, tips_link: document.getElementById('cabTipsLink').value, tips_qr: document.getElementById('cabTipsQr').value, password: document.getElementById('cabPass').value }; await fetch('/api/user/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}); alert("Данные сохранены!"); refreshCabinetData(); }
@@ -1037,20 +546,7 @@
             const VKID = window.VKIDSDK; 
             VKID.Config.init({ app: 54556739, redirectUrl: 'https://nikolaich.shop', responseMode: VKID.ConfigResponseMode.Callback }); 
             new VKID.OAuthList().render({ container: document.getElementById('vkIdContainer'), oauthList: ['vkid'] }).on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, p => { 
-                VKID.Auth.exchangeCode(p.code, p.device_id).then(d => { 
-                    fetch('/api/auth/vk', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({access_token: d.access_token}) })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.error) {
-                            alert("Ошибка авторизации ВК (Сервер): " + data.error);
-                        } else {
-                            location.reload();
-                        }
-                    })
-                    .catch(err => {
-                        alert("Сетевая ошибка авторизации ВК.");
-                    });
-                }); 
+                VKID.Auth.exchangeCode(p.code, p.device_id).then(d => { fetch('/api/auth/vk', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({access_token: d.access_token}) }).then(res => res.json()).then(data => { if (data.error) { alert("Ошибка: " + data.error); } else { location.reload(); } }); }); 
             }); 
         } 
     });

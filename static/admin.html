@@ -70,7 +70,6 @@
         <a class="nav-link active" onclick="showTab('orders', this)"><i class="bi bi-cart3 me-2 fs-5"></i> Заказы</a>
         <a class="nav-link" onclick="showTab('crm', this)"><i class="bi bi-people me-2 fs-5"></i> CRM</a>
         <a class="nav-link text-primary fw-bold" onclick="showTab('sysadmin_logs', this)"><i class="bi bi-shield-lock-fill me-2 fs-5"></i> Финансы</a>
-        <!-- ЭТАП 5: Кнопка Хаба Акций -->
         <a class="nav-link text-danger fw-bold" onclick="showTab('promotions_hub', this)"><i class="bi bi-tags-fill me-2 fs-5"></i> Акции</a>
         <a class="nav-link text-warning fw-bold" onclick="showTab('contests', this)"><i class="bi bi-gift-fill me-2 fs-5"></i> Лотерея</a>
         <a class="nav-link" onclick="showTab('warehouse', this)"><i class="bi bi-box-seam me-2 fs-5"></i> Склад</a>
@@ -102,7 +101,6 @@
         </div>
     </div>
 
-    <!-- ЭТАП 5: Раздел Хаба Акций -->
     <div id="promotions_hub" class="tab" style="display:none">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold m-0 text-danger"><i class="bi bi-tags-fill me-2"></i>Хаб Акций</h3>
@@ -527,7 +525,7 @@
     let currentProductImages = []; 
     let currentActiveOrder = null; 
     let activeCouriers = [];
-    let productsList = []; // Нужно для акций с товарами
+    let productsList = []; 
     let lastOrdersCount = 0;
     
     setInterval(async () => {
@@ -555,7 +553,7 @@
         if(id === 'reviews') loadReviews();
         if(id === 'contests') loadContests();
         if(id === 'sysadmin_logs') loadSysadminLogs();
-        if(id === 'promotions_hub') loadPromotions(); // ЭТАП 5: Вызов акций
+        if(id === 'promotions_hub') loadPromotions(); 
     }
 
     function toggleSub(showId, hideIds, btn) {
@@ -591,7 +589,7 @@
     
     async function logoutAdmin() { await fetch('/api/admin/logout', {method: 'POST'}); window.location.reload(); }
 
-    /* ЭТАП 5: ЛОГИКА ХАБА АКЦИЙ */
+    /* ХАБ АКЦИЙ */
     async function loadPromotions() {
         const data = await apiCall('promotions');
         const wh = await apiCall('warehouse');
@@ -858,7 +856,7 @@
 
     async function sendBroadcast() { const text = document.getElementById('broadcastText').value; if(!text) return alert("Сначала напишите текст!"); if(!confirm("Отправить ВСЕМ?")) return; const res = await apiCall('vk_action', 'POST', {msg_type: 'broadcast', custom_val: text}); if(res && res.status === 'ok') { alert(`Успешно!`); document.getElementById('broadcastText').value = ''; } }
 
-    /* СКЛАД И НАСТРОЙКИ (С КАРТОЧКАМИ) */
+    /* СКЛАД И НАСТРОЙКИ */
     async function loadWarehouse() {
         const data = await apiCall('warehouse'); if(!data) return; categoriesList = data.categories;
         
@@ -988,6 +986,104 @@
             loadWarehouse(); 
         }); 
     }
+
+    /* === ЛОГИКА КОНКУРСОВ И РУЛЕТКИ === */
+    async function loadContests() {
+        const data = await apiCall('contests');
+        if(!data) return;
+        document.getElementById('tableContests').innerHTML = data.map(c => `
+            <tr>
+                <td data-label="Название / Условия">
+                    <div class="fw-bold">${c.title}</div>
+                    <div class="small text-muted">${c.description}</div>
+                    <div class="badge bg-light text-dark border mt-1">От ${c.min_sum} ₽</div>
+                </td>
+                <td data-label="Статус">${c.active ? '<span class="badge bg-success">Активен</span>' : '<span class="badge bg-secondary">Выкл</span>'}</td>
+                <td data-label="Действия">
+                    <button class="btn btn-sm btn-warning fw-bold rounded-pill px-3" onclick="openRoulette(${c.id})"><i class="bi bi-play-circle-fill"></i> Запуск</button>
+                    <button class="btn btn-sm btn-light border rounded-pill ms-1" onclick='openContestModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick="deleteEntity('contests', ${c.id}, loadContests)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function openContestModal(c = null) {
+        openModal(c ? 'Редактировать конкурс' : 'Новый конкурс', `
+            <input type="hidden" id="conId" value="${c ? c.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Заголовок</label>
+            <input type="text" id="conTitle" class="form-control mb-2 fw-bold" value="${c ? c.title : ''}" placeholder="Новогодний розыгрыш">
+            <label class="small fw-bold text-muted mb-1">Описание</label>
+            <textarea id="conDesc" class="form-control mb-2" rows="2">${c ? c.description : ''}</textarea>
+            <label class="small fw-bold text-muted mb-1">Мин. сумма чека для получения билета (₽)</label>
+            <input type="number" id="conMin" class="form-control mb-3 fw-bold text-success" value="${c ? c.min_sum : '1500'}">
+            <label class="small fw-bold text-muted mb-1">Статус</label>
+            <select id="conActive" class="form-select border">
+                <option value="1" ${c && c.active==1 ? 'selected' : ''}>Включен</option>
+                <option value="0" ${c && c.active==0 ? 'selected' : ''}>Выключен</option>
+            </select>
+        `, 'Сохранить', async () => {
+            await apiCall('contests', 'POST', {
+                id: document.getElementById('conId').value,
+                title: document.getElementById('conTitle').value,
+                description: document.getElementById('conDesc').value,
+                min_sum: document.getElementById('conMin').value,
+                active: document.getElementById('conActive').value,
+                img_url: ""
+            });
+            loadContests();
+        });
+    }
+
+    let currentRouletteTickets = [];
+    
+    async function openRoulette(contestId) {
+        const data = await apiCall(`tickets?contest_id=${contestId}`);
+        currentRouletteTickets = data || [];
+        document.getElementById('rouletteTicketsInfo').innerText = `Всего билетов участвует: ${currentRouletteTickets.length}`;
+        resetRoulette();
+        new bootstrap.Modal(document.getElementById('rouletteModal')).show();
+    }
+
+    function resetRoulette() {
+        document.getElementById('rouletteNumber').innerText = '000000';
+        document.getElementById('rouletteNumber').classList.remove('roulette-winner');
+        document.getElementById('rouletteWinnerInfo').style.display = 'none';
+        document.getElementById('rouletteBtn').disabled = false;
+    }
+
+    function startRoulette() {
+        if(currentRouletteTickets.length === 0) return alert("В этом конкурсе пока нет ни одного билета!");
+        
+        const btn = document.getElementById('rouletteBtn');
+        btn.disabled = true;
+        
+        const numEl = document.getElementById('rouletteNumber');
+        numEl.classList.remove('roulette-winner');
+        document.getElementById('rouletteWinnerInfo').style.display = 'none';
+        
+        let iterations = 0;
+        const maxIterations = 50; 
+        
+        const interval = setInterval(() => {
+            const randomTicket = currentRouletteTickets[Math.floor(Math.random() * currentRouletteTickets.length)];
+            numEl.innerText = randomTicket.ticket_number;
+            iterations++;
+            
+            if (iterations >= maxIterations) {
+                clearInterval(interval);
+                const winner = currentRouletteTickets[Math.floor(Math.random() * currentRouletteTickets.length)];
+                numEl.innerText = winner.ticket_number;
+                numEl.classList.add('roulette-winner'); 
+                
+                document.getElementById('rWinnerName').innerText = `Имя: ${winner.full_name || 'Без имени'}`;
+                document.getElementById('rWinnerPhone').innerText = `Телефон: ${winner.phone}`;
+                document.getElementById('rouletteWinnerInfo').style.display = 'block';
+                
+                document.getElementById('dingSound').play().catch(e => console.log('Audio autoplay blocked'));
+            }
+        }, 60); 
+    }
+    /* === КОНЕЦ ЛОГИКИ КОНКУРСОВ === */
 
     async function loadSettings() {
         const settings = await apiCall('settings');

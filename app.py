@@ -60,12 +60,14 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER)''')
         c.execute('''CREATE TABLE IF NOT EXISTS contests (id INTEGER PRIMARY KEY, title TEXT, description TEXT, img_url TEXT, min_sum REAL DEFAULT 1500, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # ЭТАП 1: Таблица логов сисадмина
+        c.execute('''CREATE TABLE IF NOT EXISTS sysadmin_logs (id INTEGER PRIMARY KEY, amount REAL, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 
         for col in ['vk_id TEXT DEFAULT ""', 'balance REAL DEFAULT 0', 'is_sysadmin INTEGER DEFAULT 0', 'password TEXT DEFAULT ""', 'role TEXT DEFAULT "client"', 'comm_type TEXT DEFAULT "fixed"', 'comm_val REAL DEFAULT 0', 'tips_link TEXT DEFAULT ""', 'tips_qr TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
             except: pass
             
-        # 💥 ВАЖНО: Добавили колонку is_paid_to_sysadmin для защиты от двойных начислений
         for col in ['delivery_time TEXT DEFAULT "Как можно скорее"', 'comment TEXT DEFAULT ""', 'courier_id INTEGER DEFAULT 0', 'is_paid_to_courier INTEGER DEFAULT 0', 'is_paid_to_sysadmin INTEGER DEFAULT 0', 'courier_rating INTEGER DEFAULT 0', 'courier_comment TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE orders ADD COLUMN {col}')
             except: pass
@@ -289,11 +291,13 @@ def courier_action():
                     conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
                     award_tickets(conn, order_id, order['user_id'], order['final_total'])
                 
-                # 2. Выплата Сисадмину (1% от суммы доставки)
-                if 'is_paid_to_sysadmin' in order.keys() and order['is_paid_to_sysadmin'] == 0 and order['delivery_type'] == 'courier':
+                # 2. Выплата Сисадмину (1% от суммы любого выполненного заказа)
+                if 'is_paid_to_sysadmin' in order.keys() and order['is_paid_to_sysadmin'] == 0:
                     sysadmin_bonus = float(order['final_total']) * 0.01
                     conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
                     conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
+                    # ЭТАП 1: Логирование начисления баланса
+                    conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (sysadmin_bonus, f"Начисление 1% за заказ #{order_id} (Выполнен)"))
 
     return jsonify({"status": "ok"})
 
@@ -420,7 +424,11 @@ def checkout():
         cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, status, address, delivery_time, comment) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", 
                     (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(cart), d_type, p_type, order_status, address, d_time, comment))
         order_id = cur.lastrowid
-        if sysadmin_pay > 0: conn.execute("UPDATE users SET balance = balance - ? WHERE id=?", (sysadmin_pay, user['id']))
+        
+        # ЭТАП 1: Логирование списания баланса при покупке
+        if sysadmin_pay > 0: 
+            conn.execute("UPDATE users SET balance = balance - ? WHERE id=?", (sysadmin_pay, user['id']))
+            conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (-sysadmin_pay, f"Оплата заказа #{order_id} промокодом Сисадмина"))
             
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
@@ -499,6 +507,10 @@ def admin_crud(entity):
         elif entity == 'reviews': return jsonify(get_db_query("SELECT r.*, u.full_name, u.phone, p.name as prod_name FROM reviews r JOIN users u ON r.user_id = u.id JOIN products p ON r.product_id = p.id ORDER BY r.id DESC"))
         elif entity == 'contests': return jsonify(get_db_query("SELECT * FROM contests ORDER BY id DESC"))
         elif entity == 'tickets': return jsonify(get_db_query("SELECT t.*, u.full_name, u.phone FROM tickets t JOIN users u ON t.user_id = u.id WHERE t.contest_id=? ORDER BY t.id DESC", (request.args.get('contest_id'),)))
+        
+        # ЭТАП 1: Вывод логов баланса
+        elif entity == 'sysadmin_logs': return jsonify(get_db_query("SELECT * FROM sysadmin_logs ORDER BY id DESC"))
+        
         elif entity == 'analytics':
             sales = get_db_query("SELECT DATE(date) as d, SUM(final_total) as t FROM orders WHERE status != 'Отменен' AND status != 'Новый' GROUP BY DATE(date) ORDER BY d DESC LIMIT 7")
             item_counts = {}
@@ -508,6 +520,10 @@ def admin_crud(entity):
         
     data = request.json
     if request.method == 'DELETE':
+        # ЭТАП 1: Защита логов от удаления (физически блокируем на бэкенде)
+        if entity == 'sysadmin_logs':
+            return jsonify({"error": "Удаление логов финансовой истории запрещено на уровне БД."}), 403
+            
         with sqlite3.connect('shop.db') as conn: conn.execute(f"DELETE FROM {entity} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
     
@@ -556,13 +572,12 @@ def admin_crud(entity):
                          data.get('age_verified', u.get('age_verified')), data.get('balance', u.get('balance')), data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
                          data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data['id']))
             
-            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ (ЗДЕСЬ НАЧИСЛЯЕМ 1% СИСАДМИНУ)
+            # УМНОЕ ОБНОВЛЕНИЕ ЗАКАЗОВ (ЗДЕСЬ НАЧИСЛЯЕМ 1% СИСАДМИНУ СО ВСЕХ ЗАКАЗОВ)
             elif entity == 'orders':
                 order_id = data.get('id'); new_status = data.get('status')
                 cid_raw = data.get('courier_id')
                 new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
                 
-                # Достаем все нужные поля: status [0], final_total [1], is_paid_to_courier [2], courier_id [3], user_id [4], delivery_type [5], is_paid_to_sysadmin [6]
                 old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id, delivery_type, is_paid_to_sysadmin FROM orders WHERE id=?", (order_id,)).fetchone()
                 
                 if old_order:
@@ -579,11 +594,13 @@ def admin_crud(entity):
                             conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
                             award_tickets(conn, order_id, old_order[4], old_order[1])
                             
-                        # 2. Выплата Сисадмину (1% от доставки, если еще не выплачено)
-                        if len(old_order) > 6 and old_order[6] == 0 and old_order[5] == 'courier':
+                        # 2. Выплата Сисадмину (1% со ВСЕХ заказов, если еще не выплачено)
+                        if len(old_order) > 6 and old_order[6] == 0:
                             sysadmin_bonus = float(old_order[1]) * 0.01
                             conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
                             conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
+                            # ЭТАП 1: Логирование начисления
+                            conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (sysadmin_bonus, f"Начисление 1% за заказ #{order_id} (Выполнен)"))
 
         return jsonify({"status": "ok"})
 

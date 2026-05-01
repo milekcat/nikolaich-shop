@@ -507,25 +507,54 @@
         else { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; } 
     }
     
-    async function sendOrder() { 
+   async function sendOrder() { 
         if(Object.keys(cart).length === 0) return; 
-        const ph = document.getElementById('checkoutPhone').value; const soc = document.getElementById('checkoutSocial').value; const pt = document.getElementById('paymentType').value; const dt = document.getElementById('deliveryType').value; const d_time = document.getElementById('checkoutTime').value; const comm = document.getElementById('checkoutComment').value; 
+        const ph = document.getElementById('checkoutPhone').value; 
+        const soc = document.getElementById('checkoutSocial').value; 
+        const pt = document.getElementById('paymentType').value; 
+        const dt = document.getElementById('deliveryType').value; 
+        const d_time = document.getElementById('checkoutTime').value; 
+        const comm = document.getElementById('checkoutComment').value; 
         if(!ph) return alert("Введите номер телефона!"); 
-        let addr = ''; if(dt !== 'pickup' && !lastCalc.force_pickup_18) { addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; if(!addr) return alert("Укажите адрес доставки!"); } 
-        const btn = document.getElementById('checkoutBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подключение к банку...'; 
+        let addr = ''; 
+        if(dt !== 'pickup' && !lastCalc.force_pickup_18) { 
+            addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; 
+            if(!addr) return alert("Укажите адрес доставки!"); 
+        } 
+        const btn = document.getElementById('checkoutBtn'); 
+        btn.disabled = true; 
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подключение к банку...'; 
         try { 
             const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc}; 
             const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)}); 
             const data = await res.json(); 
             if(data.status === 'ok') { 
                 cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals(); 
-                if(data.pay_data && data.pay_data.url) { window.location.href = data.pay_data.url; } 
-                else if(data.pay_data) { const f = document.createElement('form'); f.method = 'POST'; f.action = data.pay_data.url; for(const k in data.pay_data) { if(k !== 'url') { const h = document.createElement('input'); h.type = 'hidden'; h.name = k; h.value = data.pay_data[k]; f.appendChild(h); } } document.body.appendChild(f); f.submit(); } 
-                else { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); document.getElementById('successOrderId').innerText = `#${data.order_id}`; new bootstrap.Modal(document.getElementById('successModal')).show(); } 
+                
+                // ИСПРАВЛЕННАЯ ЛОГИКА ДЛЯ PAYKEEPER
+                if(data.pay_data) { 
+                    const f = document.createElement('form'); 
+                    f.method = 'POST'; 
+                    f.action = data.pay_data.url; 
+                    for(const k in data.pay_data) { 
+                        if(k !== 'url') { 
+                            const h = document.createElement('input'); 
+                            h.type = 'hidden'; 
+                            h.name = k; 
+                            h.value = data.pay_data[k]; 
+                            f.appendChild(h); 
+                        } 
+                    } 
+                    document.body.appendChild(f); 
+                    f.submit(); 
+                } else { 
+                    bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); 
+                    document.getElementById('successOrderId').innerText = `#${data.order_id}`; 
+                    new bootstrap.Modal(document.getElementById('successModal')).show(); 
+                } 
             } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); } 
         } catch (error) { alert('Сбой подключения к серверу банка.'); calcCart(); } 
     }
-
     async function setCourStatus(orderId, status) { if(!confirm(`Точно перевести заказ #${orderId} в статус "${status}"?`)) return; await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, action: 'status', status: status})}); refreshCabinetData(); }
     async function takeCourOrder(orderId) { if(!confirm(`Взять заказ #${orderId} в работу?`)) return; const res = await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, action: 'take'})}); const data = await res.json(); if(data.error) alert(data.error); refreshCabinetData(); }
     function switchCabTab(tabId, btn) { document.querySelectorAll('.cab-nav-item').forEach(el => el.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.cab-tab-content').forEach(el => el.style.display = 'none'); document.getElementById(tabId).style.display = 'block'; }

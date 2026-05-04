@@ -31,8 +31,6 @@
         .chat-client { align-self: flex-start; background: #fff; color: black; border: 1px solid #eee; border-bottom-left-radius: 4px; }
         .chat-admin { align-self: flex-end; background: #00b853; color: white; border-bottom-right-radius: 4px; }
         
-        .hint-text { font-size: 11px; color: #8e8e93; margin-top: 4px; display: block; }
-        
         .roulette-box { background: #1d1d1f; color: #fff; border-radius: 24px; padding: 40px; text-align: center; position: relative; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); border: 4px solid #f1c40f;}
         .roulette-number { font-size: 80px; font-weight: 900; letter-spacing: 10px; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.5); font-variant-numeric: tabular-nums; }
         .roulette-winner { animation: pulseWinner 1s infinite alternate; }
@@ -54,9 +52,6 @@
             .table-responsive td { display: block; text-align: left; font-size: 14px; border-bottom: 1px dashed #f0f0f0; padding: 10px 0; }
             .table-responsive td:last-child { border-bottom: 0; }
             .table-responsive td::before { content: attr(data-label); font-weight: 700; color: #8e8e93; display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; }
-            
-            .modal-content { border-radius: 20px 20px 0 0 !important; }
-            .modal-dialog { margin: 0; align-items: flex-end; min-height: 100%; }
         }
     </style>
 </head>
@@ -71,7 +66,8 @@
         <a class="nav-link" onclick="showTab('crm', this)"><i class="bi bi-people me-2 fs-5"></i> CRM</a>
         <a class="nav-link text-primary fw-bold" onclick="showTab('sysadmin_logs', this)"><i class="bi bi-shield-lock-fill me-2 fs-5"></i> Финансы</a>
         <a class="nav-link text-danger fw-bold" onclick="showTab('promotions_hub', this)"><i class="bi bi-tags-fill me-2 fs-5"></i> Акции</a>
-        <a class="nav-link text-warning fw-bold" onclick="showTab('contests', this)"><i class="bi bi-gift-fill me-2 fs-5"></i> Лотерея</a>
+        <a class="nav-link text-warning fw-bold" onclick="showTab('wheel', this)"><i class="bi bi-bullseye me-2 fs-5"></i> Колесо Фортуны</a>
+        <a class="nav-link" onclick="showTab('contests', this)"><i class="bi bi-ticket-perforated me-2 fs-5"></i> Ручной Розыгрыш</a>
         <a class="nav-link" onclick="showTab('warehouse', this)"><i class="bi bi-box-seam me-2 fs-5"></i> Склад</a>
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Сайт</a>
     </nav>
@@ -124,6 +120,30 @@
         </div>
     </div>
     
+    <div id="wheel" class="tab" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0 text-warning"><i class="bi bi-bullseye me-2"></i>Сектора Колеса</h3>
+            <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" onclick="openWheelSectorModal()"><i class="bi bi-plus-lg"></i> Добавить сектор</button>
+        </div>
+        <div class="alert alert-warning border-0 small py-2 mb-3 shadow-sm rounded-3"><i class="bi bi-info-circle-fill me-1"></i> <b>Здесь настраиваются призы</b> для Колеса Фортуны, которое крутят клиенты на витрине. Если <i>Остаток = 0</i>, сектор автоматически отключается (или превращается в пустышку). Чем выше <i>Вес (Шанс)</i>, тем чаще выпадает сектор.</div>
+        <div class="card-ui p-0 overflow-hidden border-0">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Иконка / Название</th>
+                            <th>Тип приза</th>
+                            <th>Шанс (Вес)</th>
+                            <th>Остаток</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableWheelSectors"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div id="sysadmin_logs" class="tab" style="display:none">
         <h3 class="fw-bold mb-4 text-primary"><i class="bi bi-shield-lock-fill me-2"></i>Прозрачная история начислений</h3>
         <div class="alert alert-info border-0 rounded-4 shadow-sm mb-4">
@@ -175,8 +195,8 @@
 
     <div id="contests" class="tab" style="display:none">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold m-0 text-warning"><i class="bi bi-gift-fill me-2"></i>Конкурсы</h3>
-            <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" onclick="openContestModal()"><i class="bi bi-plus-lg"></i></button>
+            <h3 class="fw-bold m-0 text-secondary"><i class="bi bi-ticket-perforated me-2"></i>Ручные Розыгрыши</h3>
+            <button class="btn btn-secondary fw-bold rounded-pill px-4 shadow-sm" onclick="openContestModal()"><i class="bi bi-plus-lg"></i></button>
         </div>
         <div class="card-ui p-0 overflow-hidden border-0">
             <div class="table-responsive">
@@ -194,44 +214,6 @@
         </div>
     </div>
 
-    <div id="reviews" class="tab" style="display:none">
-        <h3 class="fw-bold mb-4">Модерация отзывов</h3>
-        <div class="card-ui p-0 overflow-hidden border-0">
-            <div class="table-responsive">
-                <table class="table table-hover m-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Товар</th>
-                            <th>Клиент</th>
-                            <th>Оценка / Текст</th>
-                            <th>Статус</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableReviews"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="analytics" class="tab" style="display:none">
-        <h3 class="fw-bold mb-4">Аналитика продаж</h3>
-        <div class="row g-4 mb-4">
-            <div class="col-md-8">
-                <div class="card-ui h-100">
-                    <h5 class="fw-bold text-muted mb-4">Выручка за 7 дней</h5>
-                    <canvas id="salesChart" height="100"></canvas>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card-ui h-100">
-                    <h5 class="fw-bold text-muted mb-4"><i class="bi bi-fire text-danger"></i> Топ 5 товаров</h5>
-                    <ol id="topItemsList" class="list-group list-group-numbered fw-bold"></ol>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <div id="warehouse" class="tab" style="display:none">
         <h3 class="fw-bold mb-4">Склад и Каталог</h3>
         <div class="sub-nav overflow-auto" style="white-space: nowrap;">
@@ -252,7 +234,6 @@
                             <th>Стикеры</th>
                             <th>Цена</th>
                             <th>Ед. изм / Шаг</th>
-                            <th>Варианты (Вкусы)</th>
                             <th>Остаток</th>
                             <th>Действия</th>
                         </tr>
@@ -452,23 +433,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="rouletteModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px; background: #fff;">
-            <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
-                <h4 class="fw-bold m-0 text-warning" id="rouletteTitle"><i class="bi bi-suit-spade-fill me-2"></i>Розыгрыш</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="resetRoulette()"></button>
-            </div>
-            <div class="p-5">
-                <div class="roulette-box mb-4"><div id="rouletteNumber" class="roulette-number">000000</div></div>
-                <div id="rouletteWinnerInfo" class="text-center" style="display:none;"><h3 class="fw-bold text-success mb-2">ПОБЕДИТЕЛЬ НАЙДЕН!</h3><p class="fs-5 text-dark fw-bold m-0" id="rWinnerName">Имя: -</p><p class="fs-5 text-dark m-0" id="rWinnerPhone">Телефон: -</p></div>
-                <div id="rouletteTicketsInfo" class="text-center text-muted fw-bold mb-4">Загрузка билетов...</div>
-                <button id="rouletteBtn" class="btn btn-warning w-100 py-3 rounded-4 fw-bold shadow fs-4 text-dark" onclick="startRoulette()">КРУТИТЬ БАРАБАН!</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="modal fade" id="allChatsModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px; overflow:hidden;">
@@ -549,11 +513,10 @@
         if(id === 'crm') loadUsers();
         if(id === 'warehouse') loadWarehouse();
         if(id === 'site') loadSettings();
-        if(id === 'analytics') loadAnalytics();
-        if(id === 'reviews') loadReviews();
-        if(id === 'contests') loadContests();
-        if(id === 'sysadmin_logs') loadSysadminLogs();
         if(id === 'promotions_hub') loadPromotions(); 
+        if(id === 'wheel') loadWheelSectors(); 
+        if(id === 'contests') loadContests(); 
+        if(id === 'sysadmin_logs') loadSysadminLogs();
     }
 
     function toggleSub(showId, hideIds, btn) {
@@ -709,6 +672,63 @@
         document.getElementById('promoFields_1plus1').style.display = type === '1plus1' ? 'block' : 'none';
     }
 
+    /* ЭТАП 6: КОЛЕСО ФОРТУНЫ (АДМИНКА) */
+    async function loadWheelSectors() {
+        const data = await apiCall('wheel_sectors');
+        if(!data) return;
+        document.getElementById('tableWheelSectors').innerHTML = data.map(s => {
+            let typeStr = {'discount': 'Скидка (%)', 'partner': 'Промокод партнера', 'empty': 'Пусто (Без приза)', 'product': 'Товар/Подарок'}[s.type] || s.type;
+            let stockStr = s.stock === -1 ? 'Бесконечно' : s.stock;
+            return `<tr>
+                <td data-label="Название"><div class="d-flex align-items-center"><div style="width:30px; height:30px; background:${s.color}; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:10px; border: 1px solid #ddd;">${s.icon}</div><span class="fw-bold">${s.title}</span></div></td>
+                <td data-label="Тип приза">${typeStr} <span class="text-muted small">(${s.value})</span></td>
+                <td data-label="Шанс (Вес)">${s.weight}</td>
+                <td data-label="Остаток"><span class="badge ${s.stock>0 || s.stock===-1 ? 'bg-success' : 'bg-danger'}">${stockStr}</span></td>
+                <td data-label="Действия">
+                    <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openWheelSectorModal(${JSON.stringify(s).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick="deleteEntity('wheel_sectors', ${s.id}, loadWheelSectors)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openWheelSectorModal(s = null) {
+        openModal(s ? 'Редактировать сектор' : 'Новый сектор', `
+            <input type="hidden" id="wsId" value="${s ? s.id : ''}">
+            <div class="row g-2 mb-2">
+                <div class="col-8"><label class="small fw-bold text-muted mb-1">Название (видит клиент)</label><input type="text" id="wsTitle" class="form-control bg-light border p-2 fw-bold" value="${s ? s.title : ''}" placeholder="Скидка 10%"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Эмодзи</label><input type="text" id="wsIcon" class="form-control bg-light border p-2 text-center" value="${s ? s.icon : '🎁'}"></div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Тип приза</label>
+                    <select id="wsType" class="form-select bg-light border p-2">
+                        <option value="discount" ${s && s.type=='discount'?'selected':''}>Скидка (%)</option>
+                        <option value="partner" ${s && s.type=='partner'?'selected':''}>Промокод партнера</option>
+                        <option value="product" ${s && s.type=='product'?'selected':''}>Товар / Подарок</option>
+                        <option value="empty" ${s && s.type=='empty'?'selected':''}>Пустой сектор (Мимо)</option>
+                    </select>
+                </div>
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Значение (Сумма, Текст)</label><input type="text" id="wsValue" class="form-control bg-light border p-2" value="${s ? s.value : ''}" placeholder="10 или SBER500"></div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Вес (Шанс)</label><input type="number" id="wsWeight" class="form-control bg-light border p-2 text-primary fw-bold" value="${s ? s.weight : '10'}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Остаток (-1 = ∞)</label><input type="number" id="wsStock" class="form-control bg-light border p-2" value="${s ? s.stock : '-1'}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Цвет сектора</label><input type="color" id="wsColor" class="form-control bg-light border p-1 w-100" value="${s ? s.color : '#ffffff'}"></div>
+            </div>
+        `, 'Сохранить', async () => {
+            await apiCall('wheel_sectors', 'POST', {
+                id: document.getElementById('wsId').value,
+                title: document.getElementById('wsTitle').value,
+                icon: document.getElementById('wsIcon').value,
+                type: document.getElementById('wsType').value,
+                value: document.getElementById('wsValue').value,
+                weight: parseInt(document.getElementById('wsWeight').value) || 10,
+                stock: parseInt(document.getElementById('wsStock').value) || -1,
+                color: document.getElementById('wsColor').value
+            });
+            loadWheelSectors();
+        });
+    }
 
     /* ЛОГИ СИСАДМИНА */
     async function loadSysadminLogs() {
@@ -811,7 +831,7 @@
             
             return `<tr>
                 <td data-label="Телефон / ФИО"><div class="fw-bold">${u.phone}</div><div class="small text-muted">${u.full_name || 'Без имени'}</div></td>
-                <td data-label="Статус / Роль">${roleHtml}<br><span class="small fw-bold text-success">Баланс: ${u.balance || 0} ₽</span></td>
+                <td data-label="Статус / Роль">${roleHtml}<br><span class="small fw-bold text-success">Баланс: ${u.balance || 0} ₽</span><br><span class="small fw-bold text-warning">Билетов: ${u.tickets_balance || 0}</span></td>
                 <td data-label="VK Ссылка"><a href="${u.social_link}" target="_blank" class="small text-decoration-none fw-bold">${u.social_link ? 'VK Профиль' : '-'}</a></td>
                 <td data-label="Действия"><button class="btn btn-sm btn-light border rounded-pill px-3 w-100 shadow-sm" onclick='openUserModal(${JSON.stringify(u).replace(/'/g, "&apos;")})'>Настройки</button></td>
             </tr>`;
@@ -845,11 +865,12 @@
             </div>
             
             <div class="row g-2">
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Баланс (₽)</label><input type="number" id="uBalance" class="form-control bg-light border p-2 fw-bold text-success" value="${u.balance || 0}"></div>
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Доступ к 18+</label><select id="uAge" class="form-select bg-light border p-2"><option value="0" ${u.age_verified==0?'selected':''}>Нет</option><option value="1" ${u.age_verified==1?'selected':''}>Заявка на проверке</option><option value="2" ${u.age_verified==2?'selected':''}>VIP 18+ (Одобрен)</option></select></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Баланс (₽)</label><input type="number" id="uBalance" class="form-control bg-light border p-2 fw-bold text-success" value="${u.balance || 0}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Билеты</label><input type="number" id="uTickets" class="form-control bg-light border p-2 fw-bold text-warning" value="${u.tickets_balance || 0}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Доступ к 18+</label><select id="uAge" class="form-select bg-light border p-2"><option value="0" ${u.age_verified==0?'selected':''}>Нет</option><option value="1" ${u.age_verified==1?'selected':''}>На проверке</option><option value="2" ${u.age_verified==2?'selected':''}>Одобрен</option></select></div>
             </div>
         `, 'Сохранить', async () => { 
-            await apiCall('users', 'POST', { id: document.getElementById('uId').value, full_name: document.getElementById('uFio').value, phone: document.getElementById('uPhone').value, social_link: document.getElementById('uSocial').value, balance: document.getElementById('uBalance').value, age_verified: document.getElementById('uAge').value, password: document.getElementById('uPass').value, role: document.getElementById('uRole').value, comm_type: document.getElementById('uCommType').value, comm_val: document.getElementById('uCommVal').value }); 
+            await apiCall('users', 'POST', { id: document.getElementById('uId').value, full_name: document.getElementById('uFio').value, phone: document.getElementById('uPhone').value, social_link: document.getElementById('uSocial').value, balance: document.getElementById('uBalance').value, age_verified: document.getElementById('uAge').value, password: document.getElementById('uPass').value, role: document.getElementById('uRole').value, comm_type: document.getElementById('uCommType').value, comm_val: document.getElementById('uCommVal').value, tickets_balance: document.getElementById('uTickets').value }); 
             loadUsers(); 
         });
     }
@@ -861,7 +882,6 @@
         const data = await apiCall('warehouse'); if(!data) return; categoriesList = data.categories;
         
         document.getElementById('tableProducts').innerHTML = data.products.map(p => {
-            let varsHtml = (p.variations && String(p.variations).trim() !== '') ? p.variations.split(',').map(v => `<span class="badge bg-light text-dark border me-1">${v.trim()}</span>`).join('') : '<span class="text-muted small">—</span>';
             return `<tr>
             <td data-label="Фото / Название">
                 <div class="d-flex align-items-center">${p.images && p.images.length > 0 ? `<img src="${p.images[0]}" class="img-preview">` : ''}
@@ -870,10 +890,9 @@
             <td data-label="Стикеры">${p.stickers.map(s => `<span class="badge bg-warning text-dark me-1">${s}</span>`).join('')}</td>
             <td data-label="Цена"><div class="fw-bold text-success">${p.price} ₽</div>${p.old_price > 0 ? `<small class="text-danger text-decoration-line-through">${p.old_price} ₽</small>` : ''}</td>
             <td data-label="Ед. изм / Шаг">${p.unit} <span class="text-muted small">(${p.step})</span></td>
-            <td data-label="Варианты (Вкусы)">${varsHtml}</td>
             <td data-label="Остаток"><span class="badge ${p.stock < 10 ? 'bg-danger' : 'bg-dark'}">${p.stock}</span></td>
             <td data-label="Действия">
-                <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openProductModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i> Изменить</button>
+                <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openProductModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("product", ${p.id}, loadWarehouse)'><i class="bi bi-trash"></i></button>
             </td>
         </tr>`}).join('');
@@ -883,7 +902,7 @@
             <td data-label="Сортировка">${c.sort_order}</td>
             <td data-label="Ограничение">${c.is_hidden ? '<span class="badge bg-danger">VIP 18+</span>' : '<span class="badge bg-light text-dark">Открытая</span>'}</td>
             <td data-label="Действия">
-                <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openCategoryModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i> Изменить</button>
+                <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openCategoryModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("category", ${c.id}, loadWarehouse)'><i class="bi bi-trash"></i></button>
             </td>
         </tr>`).join('');
@@ -923,38 +942,33 @@
                     <textarea id="pDesc" class="form-control bg-light border mb-3 p-2" rows="2">${p ? p.desc : ''}</textarea>
                     
                     <div class="p-3 bg-white border border-primary rounded-4 shadow-sm mb-3">
-                        <label class="small fw-bold text-primary mb-2"><i class="bi bi-camera-fill me-1"></i>Загрузить фото (Галерея или Камера)</label>
+                        <label class="small fw-bold text-primary mb-2"><i class="bi bi-camera-fill me-1"></i>Загрузить фото</label>
                         <input type="file" id="pFileUpload" class="form-control bg-light border mb-2 p-2 fw-bold text-primary" multiple accept="image/*" capture="environment" onchange="uploadPhotos()">
                         <div id="uploadStatus" class="small text-primary mb-2 fw-bold"></div>
                         <div id="pPhotoPreviewBox" class="d-flex flex-wrap pb-2"></div>
                     </div>
 
-                    <label class="small fw-bold text-muted mb-1">Стикеры (Хит, Веган - через запятую)</label>
+                    <label class="small fw-bold text-muted mb-1">Стикеры (через запятую)</label>
                     <input type="text" id="pStickers" class="form-control bg-white border border-warning mb-3 p-2 fw-bold" placeholder="Хит, Острое" value="${pStickers}">
                     <label class="small fw-bold text-muted mb-1">Категория</label>
                     <select id="pCat" class="form-select bg-light border mb-3 p-2 fw-bold">${catOptions}</select>
                     
-                    <div class="p-3 bg-success bg-opacity-10 border border-success rounded-3 mb-3">
-                        <label class="small fw-bold text-success mb-1"><i class="bi bi-ui-radios-grid me-1"></i>Варианты (Вкусы, размеры)</label>
-                        <input type="text" id="pVariations" class="form-control border-success fw-bold" placeholder="Например: Тархун, Дюшес, Байкал" value="${(p && p.variations && String(p.variations) !== 'undefined') ? p.variations : ''}">
-                    </div>
-
                     <div class="row g-2 mb-3">
                         <div class="col-6"><label class="small fw-bold text-muted mb-1">Цена (₽)</label><input type="number" id="pPrice" class="form-control bg-light border p-2 fw-bold text-success" value="${p ? p.price : ''}"></div>
                         <div class="col-6"><label class="small fw-bold text-muted mb-1">Старая цена</label><input type="number" id="pOld" class="form-control bg-light border p-2 text-danger fw-bold" placeholder="0 = нет скидки" value="${p ? p.old_price : '0'}"></div>
                     </div>
                     <div class="row g-2 mb-2">
-                        <div class="col-4"><label class="small fw-bold text-muted mb-1">Остаток</label><input type="number" id="pStock" class="form-control bg-light border p-2" value="${p ? p.stock : '10'}"></div>
-                        <div class="col-4"><label class="small fw-bold text-muted mb-1">Ед. изм</label><input type="text" id="pUnit" class="form-control bg-light border p-2" placeholder="шт, кг" value="${p ? p.unit : 'шт'}"></div>
-                        <div class="col-4"><label class="small fw-bold text-muted mb-1">Шаг</label><input type="number" step="0.1" id="pStep" class="form-control bg-light border p-2" value="${p ? p.step : '1'}"></div>
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Остаток</label><input type="number" id="pStock" class="form-control bg-light border p-2" value="${p ? p.stock : '10'}"></div>
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Ед. изм</label><input type="text" id="pUnit" class="form-control bg-light border p-2" placeholder="шт, кг" value="${p ? p.unit : 'шт'}"></div>
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Шаг</label><input type="number" step="0.1" id="pStep" class="form-control bg-light border p-2" value="${p ? p.step : '1'}"></div>
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Билеты</label><input type="number" id="pTicket" class="form-control bg-light border p-2 text-primary fw-bold" value="${p ? (p.ticket_bonus || 0) : '0'}" placeholder="+0"></div>
                     </div>
                 </div>
             </div>
         `, 'Сохранить товар', async () => { 
             const stickersArr = document.getElementById('pStickers').value ? document.getElementById('pStickers').value.split(',').map(s => s.trim()).filter(s => s) : []; 
-            const varsInput = document.getElementById('pVariations');
             await apiCall('product', 'POST', { 
-                id: document.getElementById('pId').value, name: document.getElementById('pName').value, desc: document.getElementById('pDesc').value, price: document.getElementById('pPrice').value, old_price: document.getElementById('pOld').value, stock: document.getElementById('pStock').value, category_id: document.getElementById('pCat').value, images: currentProductImages, unit: document.getElementById('pUnit').value, step: document.getElementById('pStep').value, stickers: stickersArr, variations: varsInput ? varsInput.value.trim() : ''
+                id: document.getElementById('pId').value, name: document.getElementById('pName').value, desc: document.getElementById('pDesc').value, price: document.getElementById('pPrice').value, old_price: document.getElementById('pOld').value, stock: document.getElementById('pStock').value, category_id: document.getElementById('pCat').value, images: currentProductImages, unit: document.getElementById('pUnit').value, step: document.getElementById('pStep').value, stickers: stickersArr, ticket_bonus: document.getElementById('pTicket').value
             }); loadWarehouse(); 
         }); 
         setTimeout(renderPhotoPreviews, 100);
@@ -987,7 +1001,7 @@
         }); 
     }
 
-    /* === ЛОГИКА КОНКУРСОВ И РУЛЕТКИ === */
+    /* === СТАРЫЕ РУЧНЫЕ КОНКУРСЫ === */
     async function loadContests() {
         const data = await apiCall('contests');
         if(!data) return;
@@ -1035,7 +1049,6 @@
     }
 
     let currentRouletteTickets = [];
-    
     async function openRoulette(contestId) {
         const data = await apiCall(`tickets?contest_id=${contestId}`);
         currentRouletteTickets = data || [];
@@ -1043,48 +1056,36 @@
         resetRoulette();
         new bootstrap.Modal(document.getElementById('rouletteModal')).show();
     }
-
     function resetRoulette() {
         document.getElementById('rouletteNumber').innerText = '000000';
         document.getElementById('rouletteNumber').classList.remove('roulette-winner');
         document.getElementById('rouletteWinnerInfo').style.display = 'none';
         document.getElementById('rouletteBtn').disabled = false;
     }
-
     function startRoulette() {
         if(currentRouletteTickets.length === 0) return alert("В этом конкурсе пока нет ни одного билета!");
-        
-        const btn = document.getElementById('rouletteBtn');
-        btn.disabled = true;
-        
-        const numEl = document.getElementById('rouletteNumber');
-        numEl.classList.remove('roulette-winner');
+        const btn = document.getElementById('rouletteBtn'); btn.disabled = true;
+        const numEl = document.getElementById('rouletteNumber'); numEl.classList.remove('roulette-winner');
         document.getElementById('rouletteWinnerInfo').style.display = 'none';
-        
-        let iterations = 0;
-        const maxIterations = 50; 
-        
+        let iterations = 0; const maxIterations = 50; 
         const interval = setInterval(() => {
             const randomTicket = currentRouletteTickets[Math.floor(Math.random() * currentRouletteTickets.length)];
             numEl.innerText = randomTicket.ticket_number;
             iterations++;
-            
             if (iterations >= maxIterations) {
                 clearInterval(interval);
                 const winner = currentRouletteTickets[Math.floor(Math.random() * currentRouletteTickets.length)];
                 numEl.innerText = winner.ticket_number;
                 numEl.classList.add('roulette-winner'); 
-                
                 document.getElementById('rWinnerName').innerText = `Имя: ${winner.full_name || 'Без имени'}`;
                 document.getElementById('rWinnerPhone').innerText = `Телефон: ${winner.phone}`;
                 document.getElementById('rouletteWinnerInfo').style.display = 'block';
-                
                 document.getElementById('dingSound').play().catch(e => console.log('Audio autoplay blocked'));
             }
         }, 60); 
     }
-    /* === КОНЕЦ ЛОГИКИ КОНКУРСОВ === */
 
+    /* === СЕТТИНГИ === */
     async function loadSettings() {
         const settings = await apiCall('settings');
         if(settings) { 

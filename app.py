@@ -64,7 +64,7 @@ def init_db():
             id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, 
             stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", 
             step REAL DEFAULT 1, active INTEGER DEFAULT 1, stickers TEXT DEFAULT "[]", rating REAL DEFAULT 5.0, 
-            variations TEXT DEFAULT "")''')
+            variations TEXT DEFAULT "", ticket_bonus INTEGER DEFAULT 0)''')
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, link_url TEXT DEFAULT "", active INTEGER DEFAULT 1)')
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS users (
@@ -72,7 +72,8 @@ def init_db():
             addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, 
             vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0, password TEXT DEFAULT "", 
             role TEXT DEFAULT "client", comm_type TEXT DEFAULT "fixed", comm_val REAL DEFAULT 0, 
-            tips_link TEXT DEFAULT "", tips_qr TEXT DEFAULT "", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+            tips_link TEXT DEFAULT "", tips_qr TEXT DEFAULT "", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tickets_balance INTEGER DEFAULT 0, last_daily_bonus TIMESTAMP DEFAULT NULL)''')
         c.execute('''CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, 
             final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, 
@@ -89,22 +90,31 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS sysadmin_logs (id INTEGER PRIMARY KEY, amount REAL, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
         c.execute('''CREATE TABLE IF NOT EXISTS promotions (
-            id INTEGER PRIMARY KEY, 
-            title TEXT, 
-            promo_type TEXT, 
-            target_id INTEGER DEFAULT 0, 
-            discount_val REAL DEFAULT 0, 
-            min_sum REAL DEFAULT 0, 
-            time_start TEXT DEFAULT "", 
-            time_end TEXT DEFAULT "", 
-            active INTEGER DEFAULT 1
+            id INTEGER PRIMARY KEY, title TEXT, promo_type TEXT, target_id INTEGER DEFAULT 0, 
+            discount_val REAL DEFAULT 0, min_sum REAL DEFAULT 0, time_start TEXT DEFAULT "", 
+            time_end TEXT DEFAULT "", active INTEGER DEFAULT 1
         )''')
 
+        # НОВЫЕ ТАБЛИЦЫ ДЛЯ РУЛЕТКИ (ЭТАП 6)
+        c.execute('''CREATE TABLE IF NOT EXISTS wheel_sectors (
+            id INTEGER PRIMARY KEY, title TEXT, type TEXT, value TEXT, weight INTEGER DEFAULT 10, 
+            stock INTEGER DEFAULT -1, color TEXT DEFAULT "#ffffff", icon TEXT DEFAULT "🎁")''')
+        c.execute('''CREATE TABLE IF NOT EXISTS user_prizes (
+            id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT, type TEXT, value TEXT, 
+            expires_at TIMESTAMP, is_used INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+
+        # Добавляем новые колонки, если их не было
         for col in ['is_on_main INTEGER DEFAULT 0']:
             try: c.execute(f'ALTER TABLE categories ADD COLUMN {col}')
             except: pass
         for col in ['link_url TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE banners ADD COLUMN {col}')
+            except: pass
+        for col in ['tickets_balance INTEGER DEFAULT 0', 'last_daily_bonus TIMESTAMP DEFAULT NULL']:
+            try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
+            except: pass
+        for col in ['ticket_bonus INTEGER DEFAULT 0']:
+            try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
             except: pass
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
@@ -116,6 +126,16 @@ def init_db():
                 ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'),
                 ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress')
             ])
+
+        # Заглушки для колеса
+        if c.execute("SELECT COUNT(*) FROM wheel_sectors").fetchone()[0] == 0:
+            defaults = [
+                ('Скидка 5%', 'discount', '5', 30, -1, '#ffc107', '🏷️'),
+                ('СберПрайм 30 дней', 'partner', 'SBER30', 20, -1, '#00d65f', '🏦'),
+                ('Пусто', 'empty', '', 40, -1, '#e0e0e0', '😢'),
+                ('Супер приз', 'product', 'Корзина продуктов', 5, 2, '#ff9800', '🎁')
+            ]
+            c.executemany("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon) VALUES (?,?,?,?,?,?,?)", defaults)
     conn.commit()
 
 init_db()
@@ -134,7 +154,8 @@ def get_user_by_identifier(identifier, is_vk=False):
     field = "vk_id" if is_vk else "phone"
     return get_db_query(f"SELECT * FROM users WHERE {field}=?", (identifier,), fetch_one=True)
 
-def award_tickets(conn, order_id, user_id, final_total):
+def award_tickets(conn, order_id, user_id, final_total, items_json="{}"):
+    # Билеты для старой классической лотереи
     contest = conn.execute("SELECT id, min_sum FROM contests WHERE active=1 LIMIT 1").fetchone()
     if contest and float(final_total) >= float(contest[1]):
         exists = conn.execute("SELECT COUNT(*) FROM tickets WHERE order_id=?", (order_id,)).fetchone()[0]
@@ -143,7 +164,22 @@ def award_tickets(conn, order_id, user_id, final_total):
             for _ in range(t_count):
                 t_num = f"{random.randint(100000, 999999)}"
                 conn.execute("INSERT INTO tickets (contest_id, user_id, order_id, ticket_number) VALUES (?,?,?,?)", (contest[0], user_id, order_id, t_num))
+    
+    # Билеты для нового Колеса Николаича
+    wheel_tix = int(float(final_total) // 500)
+    items = json.loads(items_json) if items_json else {}
+    for k, v in items.items():
+        if '_gift' in k: continue
+        pid = k.split('_')[0]
+        p = conn.execute("SELECT ticket_bonus FROM products WHERE id=?", (pid,)).fetchone()
+        if p and p[0]: 
+            wheel_tix += (int(p[0]) * int(v.get('qty', 1)))
+            
+    if wheel_tix > 0:
+        conn.execute("UPDATE users SET tickets_balance = tickets_balance + ? WHERE id=?", (wheel_tix, user_id))
 
+
+# ================= ВЕБХУК БАНКА И VK =================
 @app.route('/api/paykeeper_webhook', methods=['POST'])
 def paykeeper_webhook():
     data = request.form
@@ -235,6 +271,85 @@ def auth_logout():
     session.clear()
     return jsonify({"status": "ok"})
 
+
+# ================= РУЛЕТКА (АПИ КОЛЕСА) =================
+@app.route('/api/wheel/data', methods=['GET'])
+def wheel_data():
+    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
+    if not user: return jsonify({"error": "unauthorized"})
+    
+    sectors = get_db_query("SELECT id, title, type, color, icon FROM wheel_sectors WHERE stock != 0 ORDER BY id ASC")
+    prizes = get_db_query("SELECT * FROM user_prizes WHERE user_id=? AND is_used=0 AND expires_at > ? ORDER BY id DESC", 
+                          (user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                          
+    return jsonify({"sectors": sectors, "tickets": user['tickets_balance'], "prizes": prizes})
+
+@app.route('/api/wheel/spin', methods=['POST'])
+def wheel_spin():
+    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
+    if not user: return jsonify({"error": "unauthorized"})
+    
+    with sqlite3.connect('shop.db') as conn:
+        conn.row_factory = sqlite3.Row
+        
+        curr_user = conn.execute("SELECT tickets_balance FROM users WHERE id=?", (user['id'],)).fetchone()
+        if not curr_user or curr_user[0] < 1: return jsonify({"error": "Недостаточно билетов"})
+        
+        conn.execute("UPDATE users SET tickets_balance = tickets_balance - 1 WHERE id=?", (user['id'],))
+        
+        sectors = conn.execute("SELECT * FROM wheel_sectors WHERE stock != 0 ORDER BY id ASC").fetchall()
+        if not sectors: return jsonify({"error": "Колесо не настроено"})
+        
+        total_weight = sum(s['weight'] for s in sectors)
+        rand_val = random.uniform(0, total_weight)
+        curr_weight = 0
+        winner_sector = sectors[0]
+        winner_index = 0
+        
+        for idx, s in enumerate(sectors):
+            curr_weight += s['weight']
+            if rand_val <= curr_weight:
+                winner_sector = s
+                winner_index = idx
+                break
+                
+        if winner_sector['stock'] > 0:
+            conn.execute("UPDATE wheel_sectors SET stock = stock - 1 WHERE id=?", (winner_sector['id'],))
+            
+        if winner_sector['type'] != 'empty':
+            exp = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+            conn.execute("INSERT INTO user_prizes (user_id, title, type, value, expires_at) VALUES (?,?,?,?,?)", 
+                         (user['id'], winner_sector['title'], winner_sector['type'], winner_sector['value'], exp))
+                         
+    sector_angle = 360 / len(sectors)
+    target_angle = 360 * 5 + (360 - (winner_index * sector_angle + sector_angle/2))
+    
+    return jsonify({
+        "status": "ok", 
+        "target_angle": target_angle, 
+        "prize": dict(winner_sector),
+        "tickets_left": curr_user[0] - 1
+    })
+
+@app.route('/api/wheel/daily', methods=['POST'])
+def wheel_daily():
+    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
+    if not user: return jsonify({"error": "unauthorized"})
+    
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    last_bonus = user.get('last_daily_bonus', '')
+    
+    if last_bonus and last_bonus.startswith(today):
+        return jsonify({"error": "Бонус сегодня уже получен"})
+    
+    with sqlite3.connect('shop.db') as conn:
+        conn.execute("UPDATE users SET tickets_balance = tickets_balance + 1, last_daily_bonus=? WHERE id=?", 
+                     (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user['id']))
+                     
+    return jsonify({"status": "ok", "tickets": user['tickets_balance'] + 1})
+
+
+# ================= ВИТРИНА И ЗАКАЗЫ =================
 @app.route('/')
 def index():
     auth_val = session.get('user_identifier')
@@ -391,7 +506,7 @@ def courier_action():
                     payout = float(user['comm_val']) if user['comm_type'] == 'fixed' else (float(order['final_total']) * float(user['comm_val']) / 100)
                     conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, user['id']))
                     conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
-                    award_tickets(conn, order_id, order['user_id'], order['final_total'])
+                    award_tickets(conn, order_id, order['user_id'], order['final_total'], order['items'])
                     
                 if 'is_paid_to_sysadmin' in order.keys() and order['is_paid_to_sysadmin'] == 0:
                     sysadmin_bonus = float(order['final_total']) * 0.01
@@ -585,6 +700,38 @@ def checkout():
     sysadmin_pay = calc.get('sysadmin_pay', 0)
     order_status = "Ожидает оплаты" if p_type == 'online' else "Новый"
 
+    # ФИСКАЛИЗАЦИЯ 54-ФЗ (СБИС/PayKeeper)
+    receipt_items = []
+    total_cart_sum = sum(float(i['price']) * i['qty'] for k, i in cart.items() if '_gift' not in str(k))
+    total_logistics = calc['package_cost'] + calc['delivery_cost']
+    discount_ratio = calc['final_total'] / (total_cart_sum + total_logistics) if (total_cart_sum + total_logistics) > 0 else 1
+    
+    for p_id_key, item in cart.items():
+        if "_gift" in str(p_id_key): continue
+        adjusted_price = round(float(item['price']) * discount_ratio, 2)
+        adjusted_sum = round(adjusted_price * item['qty'], 2)
+        receipt_items.append({"name": item['name'][:128], "price": adjusted_price, "quantity": item['qty'], "sum": adjusted_sum, "tax": "none"})
+        
+    if calc['package_cost'] > 0:
+        adj_pkg = round(calc['package_cost'] * discount_ratio, 2)
+        receipt_items.append({"name": "Упаковка", "price": adj_pkg, "quantity": 1, "sum": adj_pkg, "tax": "none"})
+    if calc['delivery_cost'] > 0:
+        adj_del = round(calc['delivery_cost'] * discount_ratio, 2)
+        receipt_items.append({"name": "Доставка", "price": adj_del, "quantity": 1, "sum": adj_del, "tax": "none"})
+        
+    current_sum = sum(i['sum'] for i in receipt_items)
+    diff = round(calc['final_total'] - current_sum, 2)
+    if diff != 0 and receipt_items:
+        receipt_items[0]['sum'] = round(receipt_items[0]['sum'] + diff, 2)
+        receipt_items[0]['price'] = round(receipt_items[0]['sum'] / receipt_items[0]['quantity'], 2)
+
+    receipt_json = json.dumps({
+        "clientEmail": f"{phone.replace('+', '')}@nikolaich.shop",
+        "clientPhone": phone,
+        "taxSystem": "usn_income",
+        "items": receipt_items
+    })
+
     with sqlite3.connect('shop.db') as conn:
         cur = conn.cursor()
         for p_id_key, item in cart.items(): 
@@ -607,7 +754,11 @@ def checkout():
     if p_type == 'online':
         pk_server = settings.get('pk_server', '').strip().rstrip('/')
         if pk_server: 
-            return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": f"{pk_server}/create/", "sum": f"{int(calc['final_total'])}", "orderid": str(order_id), "clientid": phone}})
+            return jsonify({
+                "status": "ok", 
+                "order_id": order_id, 
+                "pay_data": {"url": f"{pk_server}/create/", "sum": f"{int(calc['final_total'])}", "orderid": str(order_id), "clientid": phone, "receipt": receipt_json}
+            })
         else: 
             return jsonify({"status": "error", "error": "PayKeeper не настроен."}), 400
             
@@ -628,6 +779,8 @@ def chat_get_site():
     if not user: return jsonify([])
     return jsonify(get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)))
 
+
+# ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): 
     if not session.get('is_admin'): return render_template('admin_login.html')
@@ -670,15 +823,13 @@ def admin_crud(entity):
         elif entity == 'contests': return jsonify(get_db_query("SELECT * FROM contests ORDER BY id DESC"))
         elif entity == 'tickets': return jsonify(get_db_query("SELECT t.*, u.full_name, u.phone FROM tickets t JOIN users u ON t.user_id = u.id WHERE t.contest_id=? ORDER BY t.id DESC", (request.args.get('contest_id'),)))
         elif entity == 'sysadmin_logs': return jsonify(get_db_query("SELECT * FROM sysadmin_logs ORDER BY id DESC"))
+        elif entity == 'wheel_sectors': return jsonify(get_db_query("SELECT * FROM wheel_sectors ORDER BY id ASC"))
         
     data = request.json
     if request.method == 'DELETE':
         if entity == 'sysadmin_logs': return jsonify({"error": "Удаление логов финансовой истории запрещено на уровне БД."}), 403
-        
-        # Исправление бага с именами таблиц
         table_map = {'product': 'products', 'category': 'categories'}
         table_name = table_map.get(entity, entity)
-        
         with sqlite3.connect('shop.db') as conn: 
             conn.execute(f"DELETE FROM {table_name} WHERE id=?", (data['id'],))
         return jsonify({"status": "ok"})
@@ -690,7 +841,6 @@ def admin_crud(entity):
                 stickers_json = json.dumps(data.get('stickers', []))
                 variations = data.get('variations', '').strip()
                 
-                # Защита от пустых строк
                 try: p_price = float(data.get('price') or 0)
                 except: p_price = 0.0
                 try: p_old = float(data.get('old_price') or 0)
@@ -701,19 +851,21 @@ def admin_crud(entity):
                 except: p_step = 1.0
                 try: p_cat = int(data.get('category_id') or 0)
                 except: p_cat = 0
+                try: p_ticket = int(data.get('ticket_bonus') or 0)
+                except: p_ticket = 0
 
                 if data.get('id'): 
                     conn.execute("""
                         UPDATE products 
-                        SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=?, stickers=?, variations=? 
+                        SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=?, stickers=?, variations=?, ticket_bonus=? 
                         WHERE id=?
-                    """, (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations, data['id']))
+                    """, (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations, p_ticket, data['id']))
                 else: 
                     conn.execute("""
                         INSERT INTO products 
-                        (name, desc, price, stock, category_id, images, unit, step, old_price, stickers, variations) 
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?)
-                    """, (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations))
+                        (name, desc, price, stock, category_id, images, unit, step, old_price, stickers, variations, ticket_bonus) 
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                    """, (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations, p_ticket))
             
             elif entity == 'category':
                 try: c_sort = int(data.get('sort_order') or 1)
@@ -723,12 +875,8 @@ def admin_crud(entity):
                 try: c_main = int(data.get('is_on_main') or 0)
                 except: c_main = 0
 
-                if data.get('id'): 
-                    conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=?, is_on_main=? WHERE id=?", 
-                                 (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main, data['id']))
-                else: 
-                    conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden, is_on_main) VALUES (?,?,?,?,?)", 
-                                 (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main))
+                if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=?, is_on_main=? WHERE id=?", (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main, data['id']))
+                else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden, is_on_main) VALUES (?,?,?,?,?)", (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main))
             
             elif entity == 'banners':
                 if data.get('id'): conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=?, link_url=? WHERE id=?", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', ''), data['id']))
@@ -743,33 +891,38 @@ def admin_crud(entity):
                 else: conn.execute("INSERT INTO promocodes (code, discount_percent, discount_rub, min_sum, is_active, is_sysadmin_only) VALUES (?,?,?,?,?,?)", (data['code'], data['discount_percent'], data['discount_rub'], data['min_sum'], data['is_active'], data['is_sysadmin_only']))
             
             elif entity == 'promotions':
-                if data.get('id'): 
-                    conn.execute("UPDATE promotions SET title=?, promo_type=?, target_id=?, discount_val=?, min_sum=?, time_start=?, time_end=?, active=? WHERE id=?", 
-                                 (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active'], data['id']))
-                else: 
-                    conn.execute("INSERT INTO promotions (title, promo_type, target_id, discount_val, min_sum, time_start, time_end, active) VALUES (?,?,?,?,?,?,?,?)", 
-                                 (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active']))
+                if data.get('id'): conn.execute("UPDATE promotions SET title=?, promo_type=?, target_id=?, discount_val=?, min_sum=?, time_start=?, time_end=?, active=? WHERE id=?", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active'], data['id']))
+                else: conn.execute("INSERT INTO promotions (title, promo_type, target_id, discount_val, min_sum, time_start, time_end, active) VALUES (?,?,?,?,?,?,?,?)", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active']))
+
+            elif entity == 'wheel_sectors':
+                if data.get('id'): conn.execute("UPDATE wheel_sectors SET title=?, type=?, value=?, weight=?, stock=?, color=?, icon=? WHERE id=?", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data['id']))
+                else: conn.execute("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon) VALUES (?,?,?,?,?,?,?)", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon']))
 
             elif entity == 'settings':
                 for key, val in data.items(): conn.execute("INSERT INTO settings (key_name, value) VALUES (?,?) ON CONFLICT(key_name) DO UPDATE SET value=?", (key, val, val))
+            
             elif entity == 'reviews':
                 conn.execute("UPDATE reviews SET rating=?, text=?, is_approved=? WHERE id=?", (data['rating'], data['text'], data['is_approved'], data['id']))
+            
             elif entity == 'contests':
                 if data.get('id'): conn.execute("UPDATE contests SET title=?, description=?, img_url=?, min_sum=?, active=? WHERE id=?", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO contests (title, description, img_url, min_sum, active) VALUES (?,?,?,?,?)", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active']))
+            
             elif entity == 'users':
                 u = get_db_query("SELECT * FROM users WHERE id=?", (data['id'],), fetch_one=True)
                 if u:
-                    conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=? WHERE id=?", 
+                    conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=?, tickets_balance=? WHERE id=?", 
                         (data.get('full_name', u.get('full_name')), data.get('phone', u.get('phone')), data.get('social_link', u.get('social_link')), data.get('addresses', u.get('addresses')), 
                          data.get('age_verified', u.get('age_verified')), data.get('balance', u.get('balance')), data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
-                         data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data['id']))
+                         data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data.get('tickets_balance', u.get('tickets_balance')), data['id']))
+            
             elif entity == 'orders':
-                order_id = data.get('id'); new_status = data.get('status')
+                order_id = data.get('id')
+                new_status = data.get('status')
                 cid_raw = data.get('courier_id')
                 new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
                 
-                old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id, delivery_type, is_paid_to_sysadmin FROM orders WHERE id=?", (order_id,)).fetchone()
+                old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id, delivery_type, is_paid_to_sysadmin, items FROM orders WHERE id=?", (order_id,)).fetchone()
                 if old_order:
                     conn.execute("UPDATE orders SET status=?, courier_id=? WHERE id=?", (new_status, new_courier_id, order_id))
                     if new_status == 'Выполнен':
@@ -780,7 +933,7 @@ def admin_crud(entity):
                                     payout = float(courier[1]) if courier[0] == 'fixed' else (float(old_order[1]) * float(courier[1]) / 100)
                                     conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, new_courier_id))
                             conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
-                            award_tickets(conn, order_id, old_order[4], old_order[1])
+                            award_tickets(conn, order_id, old_order[4], old_order[1], old_order[7])
                             
                         if len(old_order) > 6 and old_order[6] == 0:
                             sysadmin_bonus = float(old_order[1]) * 0.01

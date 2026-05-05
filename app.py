@@ -95,15 +95,17 @@ def init_db():
             time_end TEXT DEFAULT "", active INTEGER DEFAULT 1
         )''')
 
-        # НОВЫЕ ТАБЛИЦЫ ДЛЯ РУЛЕТКИ (ЭТАП 6)
+        # ТАБЛИЦЫ РУЛЕТКИ (Расширено для Perfluence)
         c.execute('''CREATE TABLE IF NOT EXISTS wheel_sectors (
             id INTEGER PRIMARY KEY, title TEXT, type TEXT, value TEXT, weight INTEGER DEFAULT 10, 
-            stock INTEGER DEFAULT -1, color TEXT DEFAULT "#ffffff", icon TEXT DEFAULT "🎁")''')
+            stock INTEGER DEFAULT -1, color TEXT DEFAULT "#ffffff", icon TEXT DEFAULT "🎁",
+            banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS user_prizes (
             id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT, type TEXT, value TEXT, 
-            expires_at TIMESTAMP, is_used INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+            expires_at TIMESTAMP, is_used INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "")''')
 
-        # Добавляем новые колонки, если их не было
+        # Добавляем новые колонки (миграция БД)
         for col in ['is_on_main INTEGER DEFAULT 0']:
             try: c.execute(f'ALTER TABLE categories ADD COLUMN {col}')
             except: pass
@@ -116,6 +118,13 @@ def init_db():
         for col in ['ticket_bonus INTEGER DEFAULT 0']:
             try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
             except: pass
+            
+        # НОВЫЕ КОЛОНКИ ДЛЯ ПОДАРКОВ (Perfluence)
+        for col in ['banner_url TEXT DEFAULT ""', 'partner_link TEXT DEFAULT ""', 'promo_code TEXT DEFAULT ""', 'description TEXT DEFAULT ""']:
+            try: c.execute(f'ALTER TABLE wheel_sectors ADD COLUMN {col}')
+            except: pass
+            try: c.execute(f'ALTER TABLE user_prizes ADD COLUMN {col}')
+            except: pass
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
@@ -124,18 +133,22 @@ def init_db():
                 ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), 
                 ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('pk_server', ''), ('pk_secret', ''),
                 ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'),
-                ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress')
+                ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'),
+                ('wheel_active', '1') # По умолчанию колесо включено
             ])
+            
+        if c.execute("SELECT COUNT(*) FROM settings WHERE key_name='wheel_active'").fetchone()[0] == 0:
+            c.execute("INSERT INTO settings (key_name, value) VALUES ('wheel_active', '1')")
 
         # Заглушки для колеса
         if c.execute("SELECT COUNT(*) FROM wheel_sectors").fetchone()[0] == 0:
             defaults = [
-                ('Скидка 5%', 'discount', '5', 30, -1, '#ffc107', '🏷️'),
-                ('СберПрайм 30 дней', 'partner', 'SBER30', 20, -1, '#00d65f', '🏦'),
-                ('Пусто', 'empty', '', 40, -1, '#e0e0e0', '😢'),
-                ('Супер приз', 'product', 'Корзина продуктов', 5, 2, '#ff9800', '🎁')
+                ('Скидка 5%', 'discount', '5', 30, -1, '#ffc107', '🏷️', '', '', '', 'Скидка на весь ассортимент'),
+                ('СберПрайм 30 дней', 'partner', 'SBER30', 20, -1, '#00d65f', '🏦', 'https://example.com/sber.png', 'https://sber.ru', 'SBER30', 'Крутой подарок от партнера'),
+                ('Пусто', 'empty', '', 40, -1, '#e0e0e0', '😢', '', '', '', ''),
+                ('Супер приз', 'product', 'Корзина продуктов', 5, 2, '#ff9800', '🎁', '', '', '', 'Свяжитесь с админом для получения')
             ]
-            c.executemany("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon) VALUES (?,?,?,?,?,?,?)", defaults)
+            c.executemany("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)", defaults)
     conn.commit()
 
 init_db()
@@ -155,7 +168,6 @@ def get_user_by_identifier(identifier, is_vk=False):
     return get_db_query(f"SELECT * FROM users WHERE {field}=?", (identifier,), fetch_one=True)
 
 def award_tickets(conn, order_id, user_id, final_total, items_json="{}"):
-    # Билеты для старой классической лотереи
     contest = conn.execute("SELECT id, min_sum FROM contests WHERE active=1 LIMIT 1").fetchone()
     if contest and float(final_total) >= float(contest[1]):
         exists = conn.execute("SELECT COUNT(*) FROM tickets WHERE order_id=?", (order_id,)).fetchone()[0]
@@ -165,7 +177,6 @@ def award_tickets(conn, order_id, user_id, final_total, items_json="{}"):
                 t_num = f"{random.randint(100000, 999999)}"
                 conn.execute("INSERT INTO tickets (contest_id, user_id, order_id, ticket_number) VALUES (?,?,?,?)", (contest[0], user_id, order_id, t_num))
     
-    # Билеты для нового Колеса Николаича
     wheel_tix = int(float(final_total) // 500)
     items = json.loads(items_json) if items_json else {}
     for k, v in items.items():
@@ -282,7 +293,10 @@ def wheel_data():
     prizes = get_db_query("SELECT * FROM user_prizes WHERE user_id=? AND is_used=0 AND expires_at > ? ORDER BY id DESC", 
                           (user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                           
-    return jsonify({"sectors": sectors, "tickets": user['tickets_balance'], "prizes": prizes})
+    is_active = get_db_query("SELECT value FROM settings WHERE key_name='wheel_active'", fetch_one=True)
+    wheel_active = int(is_active['value']) if is_active else 1
+                          
+    return jsonify({"sectors": sectors, "tickets": user['tickets_balance'], "prizes": prizes, "wheel_active": wheel_active})
 
 @app.route('/api/wheel/spin', methods=['POST'])
 def wheel_spin():
@@ -318,8 +332,12 @@ def wheel_spin():
             
         if winner_sector['type'] != 'empty':
             exp = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
-            conn.execute("INSERT INTO user_prizes (user_id, title, type, value, expires_at) VALUES (?,?,?,?,?)", 
-                         (user['id'], winner_sector['title'], winner_sector['type'], winner_sector['value'], exp))
+            conn.execute("""INSERT INTO user_prizes 
+                (user_id, title, type, value, expires_at, banner_url, partner_link, promo_code, description) 
+                VALUES (?,?,?,?,?,?,?,?,?)""", 
+                (user['id'], winner_sector['title'], winner_sector['type'], winner_sector['value'], exp,
+                 winner_sector.get('banner_url', ''), winner_sector.get('partner_link', ''), 
+                 winner_sector.get('promo_code', ''), winner_sector.get('description', '')))
                          
     sector_angle = 360 / len(sectors)
     target_angle = 360 * 5 + (360 - (winner_index * sector_angle + sector_angle/2))
@@ -649,6 +667,8 @@ def calc_cart():
 def checkout():
     data = request.json
     phone = data.get('phone', '').strip()
+    email = data.get('email', '').strip() # НОВОЕ: Забираем email для бесплатных чеков ОФД
+    
     if not phone: return jsonify({"error": "Введите номер телефона!"}), 400
 
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
@@ -725,8 +745,11 @@ def checkout():
         receipt_items[0]['sum'] = round(receipt_items[0]['sum'] + diff, 2)
         receipt_items[0]['price'] = round(receipt_items[0]['sum'] / receipt_items[0]['quantity'], 2)
 
+    # ОБНОВЛЕНО: Используем настоящую почту клиента или безопасную заглушку для банка
+    client_email = email if email else f"{phone.replace('+', '')}@nikolaich.shop"
+
     receipt_json = json.dumps({
-        "clientEmail": f"{phone.replace('+', '')}@nikolaich.shop",
+        "clientEmail": client_email,
         "clientPhone": phone,
         "taxSystem": "usn_income",
         "items": receipt_items
@@ -894,9 +917,9 @@ def admin_crud(entity):
                 if data.get('id'): conn.execute("UPDATE promotions SET title=?, promo_type=?, target_id=?, discount_val=?, min_sum=?, time_start=?, time_end=?, active=? WHERE id=?", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO promotions (title, promo_type, target_id, discount_val, min_sum, time_start, time_end, active) VALUES (?,?,?,?,?,?,?,?)", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active']))
 
-            elif entity == 'wheel_sectors':
-                if data.get('id'): conn.execute("UPDATE wheel_sectors SET title=?, type=?, value=?, weight=?, stock=?, color=?, icon=? WHERE id=?", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data['id']))
-                else: conn.execute("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon) VALUES (?,?,?,?,?,?,?)", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon']))
+            elif entity == 'wheel_sectors': # ОБНОВЛЕНО: Поддержка рекламных полей
+                if data.get('id'): conn.execute("UPDATE wheel_sectors SET title=?, type=?, value=?, weight=?, stock=?, color=?, icon=?, banner_url=?, partner_link=?, promo_code=?, description=? WHERE id=?", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', ''), data['id']))
+                else: conn.execute("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', '')))
 
             elif entity == 'settings':
                 for key, val in data.items(): conn.execute("INSERT INTO settings (key_name, value) VALUES (?,?) ON CONFLICT(key_name) DO UPDATE SET value=?", (key, val, val))

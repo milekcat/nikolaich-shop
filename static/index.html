@@ -163,7 +163,9 @@
         <div class="bg-light p-2 text-center small fw-bold text-muted mt-3 mb-2">СЕРВИС</div>
         {% if user %}
         <a class="burger-item" onclick="toggleBurger(); openCabinet()"><i class="bi bi-person-circle"></i> Мой профиль и заказы</a>
+        {% if settings.wheel_active|default('1') == '1' %}
         <a class="burger-item text-warning" onclick="toggleBurger(); openWheel()"><i class="bi bi-bullseye"></i> Колесо Николаича</a>
+        {% endif %}
         {% else %}
         <a class="burger-item text-primary" onclick="toggleBurger(); new bootstrap.Modal(document.getElementById('loginModal')).show()"><i class="bi bi-box-arrow-in-right"></i> Войти в систему</a>
         {% endif %}
@@ -363,7 +365,7 @@
     <span id="cartSum">0 ₽</span>
 </div>
 
-{% if user %}
+{% if user and settings.wheel_active|default('1') == '1' %}
 <div class="floating-wheel-btn" onclick="openWheel()"><i class="bi bi-bullseye"></i></div>
 {% endif %}
 
@@ -404,7 +406,7 @@
                 
                 <div class="text-start mt-4 pt-3 border-top border-secondary">
                     <h6 class="fw-bold text-white mb-2">🎁 Мои активные призы</h6>
-                    <div id="wPrizesList" style="max-height: 150px; overflow-y: auto;"></div>
+                    <div id="wPrizesList" class="d-flex flex-column gap-2" style="max-height: 180px; overflow-y: auto; padding-right: 5px;"></div>
                 </div>
             </div>
         </div>
@@ -413,14 +415,25 @@
 
 <div class="modal fade" id="prizeWinnerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-5 rounded-4 border-0 shadow-lg text-center" style="background: linear-gradient(135deg, #00b853, #00d65f); color: white;">
-            <i id="prizeIcon" class="bi bi-gift-fill mb-3" style="font-size: 60px; color: #f1c40f;"></i>
-            <h2 class="fw-bold mb-2">ПОЗДРАВЛЯЕМ!</h2>
-            <p class="fs-5 mb-4" id="prizeTitleText"></p>
-            <div id="prizeCodeBlock" style="display:none;" class="bg-white text-dark p-3 rounded-4 mb-3">
+        <div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center" style="background: linear-gradient(135deg, #00b853, #00d65f); color: white;">
+            <i id="prizeIcon" class="bi bi-gift-fill mb-2" style="font-size: 50px; color: #f1c40f;"></i>
+            <h2 class="fw-bold mb-1">ПОЗДРАВЛЯЕМ!</h2>
+            <p class="fs-5 mb-1 fw-bold" id="prizeTitleText"></p>
+            <p class="small mb-3 opacity-75" id="prizeDescText"></p>
+            
+            <a id="prizeBannerLink" href="#" target="_blank" style="display:none; text-decoration:none;">
+                <img id="prizeBannerImg" src="" class="w-100 rounded-4 mb-3 shadow-sm border border-light" style="height: 130px; object-fit: cover;">
+            </a>
+
+            <div id="prizeCodeBlock" style="display:none;" class="bg-white text-dark p-3 rounded-4 mb-3 position-relative shadow-sm">
                 <span class="small text-muted fw-bold d-block mb-1">Ваш промокод:</span>
-                <span class="fs-4 fw-bold text-primary" id="prizeCodeText"></span>
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                    <span class="fs-3 fw-bold text-primary" id="prizeCodeText"></span>
+                    <button class="btn btn-sm btn-outline-primary rounded-circle" onclick="copyPromo()" title="Скопировать" style="width: 35px; height: 35px;"><i class="bi bi-copy"></i></button>
+                </div>
             </div>
+            
+            <a id="prizePartnerBtn" href="#" target="_blank" class="btn btn-warning w-100 fw-bold rounded-pill text-dark fs-5 py-3 shadow-sm mb-2" style="display:none;">Получить подарок!</a>
             <button class="btn btn-light w-100 fw-bold rounded-pill text-success fs-5 py-3 shadow-sm" data-bs-dismiss="modal">Отлично!</button>
         </div>
     </div>
@@ -452,7 +465,7 @@
 <div class="modal fade" id="deliveryRatingModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-2">Оцените доставку</h5><p class="small text-muted fw-bold mb-3">Был ли курьер (<span id="drCourName"></span>) вежлив? Всё ли понравилось?</p><div class="star-rating-dr mb-3 w-100"><input type="radio" id="dr_star5" name="dr_rating" value="5" checked><label for="dr_star5" title="5 звезд">★</label><input type="radio" id="dr_star4" name="dr_rating" value="4"><label for="dr_star4" title="4 звезды">★</label><input type="radio" id="dr_star3" name="dr_rating" value="3"><label for="dr_star3" title="3 звезды">★</label><input type="radio" id="dr_star2" name="dr_rating" value="2"><label for="dr_star2" title="2 звезды">★</label><input type="radio" id="dr_star1" name="dr_rating" value="1"><label for="dr_star1" title="1 звезда">★</label></div><textarea id="drComment" class="form-control bg-light border-0 rounded-4 p-3 mb-4" rows="2" placeholder="Ваши впечатления о доставке"></textarea><div id="drTipsContainer" style="display:none;" class="mb-4 text-start"><button id="drShowTipsBtn" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm py-2" onclick="document.getElementById('drTipsDetails').style.display='block'; this.style.display='none';"><i class="bi bi-cup-hot-fill me-1"></i>Хотите оставить чаевые?</button><div id="drTipsDetails" style="display:none;" class="p-3 bg-success bg-opacity-10 rounded-4 border border-success text-center"><p class="small text-success fw-bold mb-3" style="line-height: 1.3;">Это личные реквизиты курьера. Средства поступят напрямую на его счет.</p><img id="drTipsQr" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm"><a id="drTipsLink" href="" target="_blank" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" style="display:none;">Перевести по ссылке</a></div></div><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="submitDeliveryRating()">Отправить оценку</button></div></div></div>
 <div class="modal fade" id="addReviewModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-1">Оцените товар</h5><div class="small text-muted fw-bold mb-3" id="revProdName"></div><div class="star-rating mb-3"><input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 звезд">★</label><input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 звезды">★</label><input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 звезды">★</label><input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 звезды">★</label><input type="radio" id="star1" name="rating" value="1" checked><label for="star1" title="1 звезда">★</label></div><textarea id="revText" class="form-control bg-light border-0 rounded-4 p-3 mb-3" rows="3" placeholder="Что вам понравилось?"></textarea><button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitReview()">Отправить отзыв</button></div></div></div>
 <div class="modal fade" id="productDetailModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4"><button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 rounded-circle shadow-sm" data-bs-dismiss="modal" style="z-index: 10;"></button><img id="pdImg" src="" class="w-100 rounded-4 mb-3 shadow-sm" style="height:280px; object-fit:cover; display:none;"><h3 class="fw-bold mb-1" id="pdName"></h3><h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4><p class="text-muted small mb-4" id="pdDesc"></p><button class="btn w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-4" id="pdAddBtn"></button><h5 class="fw-bold mb-3"><i class="bi bi-chat-left-text text-primary me-2"></i>Отзывы покупателей</h5><div id="pdReviewsList" class="d-flex flex-column gap-3"></div></div></div></div>
-<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6><select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()"><option value="pickup">Самовывоз (Магазин)</option><option value="courier">Доставка курьером</option><option value="taxi">Отправка Яндекс.Доставкой</option></select><select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime"><option value="Как можно скорее">🕒 Как можно скорее</option><option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option><option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option></select><div id="addressBox" style="display:none;"><label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label><div class="d-flex gap-2 mb-2"><button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button><button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button></div><select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select><div id="newAddrWrap" class="input-group mb-2"><input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира"><button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button></div></div></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (Безопасно)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
+<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6><select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()"><option value="pickup">Самовывоз (Магазин)</option><option value="courier">Доставка курьером</option><option value="taxi">Отправка Яндекс.Доставкой</option></select><select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime"><option value="Как можно скорее">🕒 Как можно скорее</option><option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option><option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option></select><div id="addressBox" style="display:none;"><label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label><div class="d-flex gap-2 mb-2"><button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button><button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button></div><select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select><div id="newAddrWrap" class="input-group mb-2"><input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира"><button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button></div></div></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (Безопасно)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><label class="small text-muted fw-bold ms-2 mb-1 mt-1">E-mail для чека (Бесплатно от ОФД)</label><input type="email" id="checkoutEmail" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="example@mail.ru (необязательно)"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
 <div class="modal fade" id="chatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden"><div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center"><h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Чат с магазином</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="site-chat-container"><div class="site-chat-messages" id="siteChatBox"></div><div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;"><input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()"><button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button></div></div></div></div></div>
 <div class="modal fade" id="loginModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center">Вход в систему</h4><div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div><div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div><input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00"><input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button></div></div></div>
 <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 text-center"><i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i><h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3><button class="btn btn-warning w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="bootstrap.Modal.getInstance(document.getElementById('successModal')).hide(); openWheel();"><i class="bi bi-bullseye me-2"></i> Крутануть колесо Фортуны!</button><a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2"><i class="bi bi-send-fill me-2"></i> Написать боту в VK</a><button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.reload()">Закрыть</button></div></div></div>
@@ -480,6 +493,12 @@
         const data = await res.json();
         if(data.error) return alert("Ошибка авторизации");
         
+        // Если администратор отключил колесо, но пользователь как-то нажал кнопку
+        if(data.wheel_active === 0) {
+            alert("Колесо фортуны временно отключено.");
+            return;
+        }
+        
         wheelData = data.sectors;
         wheelTickets = data.tickets;
         document.getElementById('wTicketsCount').innerText = wheelTickets;
@@ -496,11 +515,24 @@
         const prizesBox = document.getElementById('wPrizesList');
         if(data.prizes.length > 0) {
             prizesBox.innerHTML = data.prizes.map(p => {
-                let codeHtml = p.type === 'partner' ? `<span class="badge bg-dark mt-1 fs-6">${p.value}</span>` : '';
-                return `<div class="prize-card"><div class="text-dark fw-bold">${p.title}<br>${codeHtml}</div><div class="small text-danger fw-bold text-end">До:<br>${p.expires_at.split(' ')[0]}</div></div>`;
+                let codeHtml = p.promo_code || (p.type === 'partner' ? p.value : '');
+                let codeBadge = codeHtml ? `<div class="badge bg-dark mt-1 fs-6 user-select-all">${codeHtml}</div>` : '';
+                let linkBtn = p.partner_link ? `<a href="${p.partner_link}" target="_blank" class="btn btn-sm btn-outline-primary mt-1 py-0 px-2 fw-bold" style="font-size:11px;">Открыть ссылку</a>` : '';
+                
+                return `<div class="prize-card flex-column align-items-start">
+                            <div class="d-flex justify-content-between w-100 mb-1">
+                                <div class="text-dark fw-bold fs-6">${p.title}</div>
+                                <div class="small text-danger fw-bold text-end" style="font-size:10px;">До:<br>${p.expires_at.split(' ')[0]}</div>
+                            </div>
+                            <div class="small text-muted mb-2 lh-sm" style="font-size:12px;">${p.description || ''}</div>
+                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                ${codeBadge}
+                                ${linkBtn}
+                            </div>
+                        </div>`;
             }).join('');
         } else {
-            prizesBox.innerHTML = '<div class="text-white-50 small">Вы пока ничего не выиграли. Крутите барабан!</div>';
+            prizesBox.innerHTML = '<div class="text-white-50 small text-center mt-3">Вы пока ничего не выиграли. Скорее крутите барабан!</div>';
         }
 
         drawWheel();
@@ -572,13 +604,45 @@
         }, 4100);
     }
 
+    function copyPromo() {
+        const code = document.getElementById('prizeCodeText').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Промокод скопирован: ' + code);
+        }).catch(err => {
+            alert('Не удалось скопировать код. Выделите его вручную.');
+        });
+    }
+
     function showPrizeModal(prize) {
         document.getElementById('prizeTitleText').innerText = prize.title;
-        document.getElementById('prizeIcon').className = prize.type === 'empty' ? 'bi bi-emoji-frown-fill mb-3' : 'bi bi-gift-fill mb-3';
+        document.getElementById('prizeDescText').innerText = prize.description || '';
+        document.getElementById('prizeIcon').className = prize.type === 'empty' ? 'bi bi-emoji-frown-fill mb-2 text-white' : 'bi bi-gift-fill mb-2 text-warning';
         
         const codeBlock = document.getElementById('prizeCodeBlock');
-        if(prize.type === 'partner') {
-            document.getElementById('prizeCodeText').innerText = prize.value;
+        const bannerLink = document.getElementById('prizeBannerLink');
+        const bannerImg = document.getElementById('prizeBannerImg');
+        const partnerBtn = document.getElementById('prizePartnerBtn');
+
+        // Логика баннера
+        if (prize.banner_url) {
+            bannerImg.src = prize.banner_url;
+            bannerLink.href = prize.partner_link || '#';
+            bannerLink.style.display = 'block';
+        } else {
+            bannerLink.style.display = 'none';
+        }
+
+        // Логика кнопки перехода
+        if (prize.partner_link && prize.type === 'partner') {
+            partnerBtn.href = prize.partner_link;
+            partnerBtn.style.display = 'block';
+        } else {
+            partnerBtn.style.display = 'none';
+        }
+
+        // Логика промокода
+        if (prize.promo_code || (prize.type === 'partner' && prize.value)) {
+            document.getElementById('prizeCodeText').innerText = prize.promo_code || prize.value;
             codeBlock.style.display = 'block';
         } else {
             codeBlock.style.display = 'none';
@@ -704,6 +768,7 @@
     async function sendOrder() { 
         if(Object.keys(cart).length === 0) return; 
         const ph = document.getElementById('checkoutPhone').value; 
+        const em = document.getElementById('checkoutEmail').value.trim(); 
         const soc = document.getElementById('checkoutSocial').value; 
         const pt = document.getElementById('paymentType').value; 
         const dt = document.getElementById('deliveryType').value; 
@@ -719,7 +784,7 @@
         btn.disabled = true; 
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подключение к банку...'; 
         try { 
-            const pl = {phone: ph, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc}; 
+            const pl = {phone: ph, email: em, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc}; 
             const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)}); 
             const data = await res.json(); 
             if(data.status === 'ok') { 

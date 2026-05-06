@@ -125,7 +125,7 @@
             <h3 class="fw-bold m-0 text-warning"><i class="bi bi-bullseye me-2"></i>Сектора Колеса</h3>
             <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" onclick="openWheelSectorModal()"><i class="bi bi-plus-lg"></i> Добавить сектор</button>
         </div>
-        <div class="alert alert-warning border-0 small py-2 mb-3 shadow-sm rounded-3"><i class="bi bi-info-circle-fill me-1"></i> <b>Здесь настраиваются призы</b> для Колеса Фортуны, которое крутят клиенты на витрине. Если <i>Остаток = 0</i>, сектор автоматически отключается (или превращается в пустышку). Чем выше <i>Вес (Шанс)</i>, тем чаще выпадает сектор.</div>
+        <div class="alert alert-warning border-0 small py-2 mb-3 shadow-sm rounded-3"><i class="bi bi-info-circle-fill me-1"></i> <b>Здесь настраиваются призы</b> для Колеса Фортуны, которое крутят клиенты на витрине. Если <i>Остаток = 0</i>, сектор автоматически отключается (или превращается в пустышку). Чем выше <i>Вес (Шанс)</i>, тем чаще выпадает сектор. Настроить вероятность проигрыша можно в разделе <b>Сайт -> Настройки</b>.</div>
         <div class="card-ui p-0 overflow-hidden border-0">
             <div class="table-responsive">
                 <table class="table table-hover m-0 align-middle">
@@ -379,6 +379,20 @@
                                 <select id="setLockIcon" class="form-select bg-light border p-2 fw-bold"><option value="1">🟢 Включен</option><option value="0">🔴 Выключен</option></select>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="card-ui mb-4 shadow-sm" style="border: 2px solid #e67e22;">
+                        <h5 class="fw-bold mb-3" style="color: #e67e22;"><i class="bi bi-bullseye me-2"></i>Алгоритм Колеса Фортуны</h5>
+                        
+                        <label class="small fw-bold text-muted mb-1">Статус акции на витрине</label>
+                        <select id="setWheelActive" class="form-select bg-light border mb-3 p-2 fw-bold">
+                            <option value="1">🟢 Колесо включено</option>
+                            <option value="0">🔴 Скрыто от клиентов</option>
+                        </select>
+
+                        <label class="small fw-bold text-muted mb-1">Пустых прокрутов до шанса на ценный приз</label>
+                        <input type="number" id="setWheelLossThreshold" class="form-control bg-light border mb-2 p-2 fw-bold text-danger" placeholder="0 = отключить защиту">
+                        <div class="small text-muted lh-sm" style="font-size: 11px;">Укажите количество прокрутов, во время которых система будет принудительно выдавать только мелкие скидки или пустышки. На следующий раз сработает честный рандом. (Настроим это в app.py следом!)</div>
                     </div>
 
                     <div class="card-ui mb-4" style="border: 2px solid #0dcaf0;">
@@ -1104,6 +1118,9 @@
             document.getElementById('setPrivacyText').value = settings.privacy_text || ''; 
             document.getElementById('setPkServer').value = settings.pk_server || '';
             document.getElementById('setPkSecret').value = settings.pk_secret || ''; 
+            
+            document.getElementById('setWheelActive').value = settings.wheel_active || '1';
+            document.getElementById('setWheelLossThreshold').value = settings.wheel_loss_threshold || '0';
         }
         const wh = await apiCall('warehouse'); if(wh) { categoriesList = wh.categories; productsList = wh.products; }
         const banners = await apiCall('banners'); if(banners) document.getElementById('tableBanners').innerHTML = banners.map(b => `<tr><td data-label="Текст">${b.title}</td><td data-label="Цвет фона"><div style="width:24px; height:24px; background:${b.bg_color}; border-radius:6px; border:1px solid #ddd;"></div></td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBannerModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("banners", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
@@ -1112,7 +1129,25 @@
     }
 
     async function saveSettings() { 
-        await apiCall('settings', 'POST', { shop_name: document.getElementById('setShopName').value, footer_text: document.getElementById('setFooterText').value, package_cost: document.getElementById('setPackageCost').value, courier_cost: document.getElementById('setCourierCost').value, free_delivery_threshold: document.getElementById('setFreeDelivery').value, min_order_sum: document.getElementById('setMinOrder').value, min_pickup_sum: document.getElementById('setMinPickup').value, high_demand: document.getElementById('setHighDemand').value, payment_details: document.getElementById('setPayment').value, vk_confirm_code: document.getElementById('setVkCode').value, admin_pin: document.getElementById('setAdminPin').value, oferta_text: document.getElementById('setOfertaText').value, privacy_text: document.getElementById('setPrivacyText').value, pk_server: document.getElementById('setPkServer').value, pk_secret: document.getElementById('setPkSecret').value }); 
+        await apiCall('settings', 'POST', { 
+            shop_name: document.getElementById('setShopName').value, 
+            footer_text: document.getElementById('setFooterText').value, 
+            package_cost: document.getElementById('setPackageCost').value, 
+            courier_cost: document.getElementById('setCourierCost').value, 
+            free_delivery_threshold: document.getElementById('setFreeDelivery').value, 
+            min_order_sum: document.getElementById('setMinOrder').value, 
+            min_pickup_sum: document.getElementById('setMinPickup').value, 
+            high_demand: document.getElementById('setHighDemand').value, 
+            payment_details: document.getElementById('setPayment').value, 
+            vk_confirm_code: document.getElementById('setVkCode').value, 
+            admin_pin: document.getElementById('setAdminPin').value, 
+            oferta_text: document.getElementById('setOfertaText').value, 
+            privacy_text: document.getElementById('setPrivacyText').value, 
+            pk_server: document.getElementById('setPkServer').value, 
+            pk_secret: document.getElementById('setPkSecret').value,
+            wheel_active: document.getElementById('setWheelActive').value,
+            wheel_loss_threshold: document.getElementById('setWheelLossThreshold').value
+        }); 
         alert('Все настройки успешно сохранены!'); 
     }
 

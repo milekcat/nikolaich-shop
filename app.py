@@ -306,21 +306,46 @@ def wheel_spin():
     with sqlite3.connect('shop.db') as conn:
         conn.row_factory = sqlite3.Row
         
-        curr_user = conn.execute("SELECT tickets_balance FROM users WHERE id=?", (user['id'],)).fetchone()
-        if not curr_user or curr_user[0] < 1: return jsonify({"error": "Недостаточно билетов"})
+        # Миграция: добавляем счетчик прокрутов на лету, если его еще нет
+        try: conn.execute("ALTER TABLE users ADD COLUMN wheel_spins INTEGER DEFAULT 0")
+        except: pass
         
-        conn.execute("UPDATE users SET tickets_balance = tickets_balance - 1 WHERE id=?", (user['id'],))
+        curr_user = conn.execute("SELECT tickets_balance, wheel_spins FROM users WHERE id=?", (user['id'],)).fetchone()
+        if not curr_user or curr_user['tickets_balance'] < 1: return jsonify({"error": "Недостаточно билетов"})
+        
+        # Списываем билет и увеличиваем счетчик прокрутов
+        conn.execute("UPDATE users SET tickets_balance = tickets_balance - 1, wheel_spins = IFNULL(wheel_spins, 0) + 1 WHERE id=?", (user['id'],))
+        current_spin = (curr_user['wheel_spins'] or 0) + 1
+        
+        # Получаем настройку "Жадности" из админки
+        loss_setting = conn.execute("SELECT value FROM settings WHERE key_name='wheel_loss_threshold'").fetchone()
+        loss_threshold = int(loss_setting['value']) if loss_setting and str(loss_setting['value']).isdigit() else 0
         
         sectors = conn.execute("SELECT * FROM wheel_sectors WHERE stock != 0 ORDER BY id ASC").fetchall()
         if not sectors: return jsonify({"error": "Колесо не настроено"})
         
-        total_weight = sum(s['weight'] for s in sectors)
+        # ЛОГИКА ЗАЩИТЫ ОТ РАЗОРЕНИЯ (Pity Timer)
+        force_cheap = False
+        if loss_threshold > 0 and (current_spin % loss_threshold != 0):
+            force_cheap = True # Форсируем выдачу пустышки или мелкой скидки
+            
+        total_weight = sum(s['weight'] for s in sectors if not force_cheap or s['type'] in ['empty', 'discount'])
+        
+        # Если из-за фильтра не осталось доступных секторов, отключаем защиту
+        if total_weight <= 0:
+            total_weight = sum(s['weight'] for s in sectors)
+            force_cheap = False
+            
         rand_val = random.uniform(0, total_weight)
         curr_weight = 0
         winner_sector = sectors[0]
         winner_index = 0
         
         for idx, s in enumerate(sectors):
+            # Пропускаем дорогие призы, если включен режим "Жадности"
+            if force_cheap and s['type'] not in ['empty', 'discount']:
+                continue
+                
             curr_weight += s['weight']
             if rand_val <= curr_weight:
                 winner_sector = s
@@ -346,9 +371,8 @@ def wheel_spin():
         "status": "ok", 
         "target_angle": target_angle, 
         "prize": dict(winner_sector),
-        "tickets_left": curr_user[0] - 1
+        "tickets_left": curr_user['tickets_balance'] - 1
     })
-
 @app.route('/api/wheel/daily', methods=['POST'])
 def wheel_daily():
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))

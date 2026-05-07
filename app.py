@@ -95,7 +95,7 @@ def init_db():
             time_end TEXT DEFAULT "", active INTEGER DEFAULT 1
         )''')
 
-        # ТАБЛИЦЫ РУЛЕТКИ (Расширено для Perfluence)
+        # ТАБЛИЦЫ РУЛЕТКИ
         c.execute('''CREATE TABLE IF NOT EXISTS wheel_sectors (
             id INTEGER PRIMARY KEY, title TEXT, type TEXT, value TEXT, weight INTEGER DEFAULT 10, 
             stock INTEGER DEFAULT -1, color TEXT DEFAULT "#ffffff", icon TEXT DEFAULT "🎁",
@@ -105,7 +105,7 @@ def init_db():
             expires_at TIMESTAMP, is_used INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "")''')
 
-        # Добавляем новые колонки (миграция БД)
+        # Миграция
         for col in ['is_on_main INTEGER DEFAULT 0']:
             try: c.execute(f'ALTER TABLE categories ADD COLUMN {col}')
             except: pass
@@ -119,7 +119,6 @@ def init_db():
             try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
             except: pass
             
-        # НОВЫЕ КОЛОНКИ ДЛЯ ПОДАРКОВ (Perfluence)
         for col in ['banner_url TEXT DEFAULT ""', 'partner_link TEXT DEFAULT ""', 'promo_code TEXT DEFAULT ""', 'description TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE wheel_sectors ADD COLUMN {col}')
             except: pass
@@ -134,13 +133,12 @@ def init_db():
                 ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('pk_server', ''), ('pk_secret', ''),
                 ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'),
                 ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'),
-                ('wheel_active', '1') # По умолчанию колесо включено
+                ('wheel_active', '1')
             ])
             
         if c.execute("SELECT COUNT(*) FROM settings WHERE key_name='wheel_active'").fetchone()[0] == 0:
             c.execute("INSERT INTO settings (key_name, value) VALUES ('wheel_active', '1')")
 
-        # Заглушки для колеса
         if c.execute("SELECT COUNT(*) FROM wheel_sectors").fetchone()[0] == 0:
             defaults = [
                 ('Скидка 5%', 'discount', '5', 30, -1, '#ffc107', '🏷️', '', '', '', 'Скидка на весь ассортимент'),
@@ -306,32 +304,27 @@ def wheel_spin():
     with sqlite3.connect('shop.db') as conn:
         conn.row_factory = sqlite3.Row
         
-        # Миграция: добавляем счетчик прокрутов на лету, если его еще нет
         try: conn.execute("ALTER TABLE users ADD COLUMN wheel_spins INTEGER DEFAULT 0")
         except: pass
         
         curr_user = conn.execute("SELECT tickets_balance, wheel_spins FROM users WHERE id=?", (user['id'],)).fetchone()
         if not curr_user or curr_user['tickets_balance'] < 1: return jsonify({"error": "Недостаточно билетов"})
         
-        # Списываем билет и увеличиваем счетчик прокрутов
         conn.execute("UPDATE users SET tickets_balance = tickets_balance - 1, wheel_spins = IFNULL(wheel_spins, 0) + 1 WHERE id=?", (user['id'],))
         current_spin = (curr_user['wheel_spins'] or 0) + 1
         
-        # Получаем настройку "Жадности" из админки
         loss_setting = conn.execute("SELECT value FROM settings WHERE key_name='wheel_loss_threshold'").fetchone()
         loss_threshold = int(loss_setting['value']) if loss_setting and str(loss_setting['value']).isdigit() else 0
         
         sectors = conn.execute("SELECT * FROM wheel_sectors WHERE stock != 0 ORDER BY id ASC").fetchall()
         if not sectors: return jsonify({"error": "Колесо не настроено"})
         
-        # ЛОГИКА ЗАЩИТЫ ОТ РАЗОРЕНИЯ (Pity Timer)
         force_cheap = False
         if loss_threshold > 0 and (current_spin % loss_threshold != 0):
-            force_cheap = True # Форсируем выдачу пустышки или мелкой скидки
+            force_cheap = True 
             
         total_weight = sum(s['weight'] for s in sectors if not force_cheap or s['type'] in ['empty', 'discount'])
         
-        # Если из-за фильтра не осталось доступных секторов, отключаем защиту
         if total_weight <= 0:
             total_weight = sum(s['weight'] for s in sectors)
             force_cheap = False
@@ -342,7 +335,6 @@ def wheel_spin():
         winner_index = 0
         
         for idx, s in enumerate(sectors):
-            # Пропускаем дорогие призы, если включен режим "Жадности"
             if force_cheap and s['type'] not in ['empty', 'discount']:
                 continue
                 
@@ -373,6 +365,7 @@ def wheel_spin():
         "prize": dict(winner_sector),
         "tickets_left": curr_user['tickets_balance'] - 1
     })
+
 @app.route('/api/wheel/daily', methods=['POST'])
 def wheel_daily():
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
@@ -691,7 +684,7 @@ def calc_cart():
 def checkout():
     data = request.json
     phone = data.get('phone', '').strip()
-    email = data.get('email', '').strip() # НОВОЕ: Забираем email для бесплатных чеков ОФД
+    email = data.get('email', '').strip() 
     
     if not phone: return jsonify({"error": "Введите номер телефона!"}), 400
 
@@ -744,7 +737,7 @@ def checkout():
     sysadmin_pay = calc.get('sysadmin_pay', 0)
     order_status = "Ожидает оплаты" if p_type == 'online' else "Новый"
 
-    # ФИСКАЛИЗАЦИЯ 54-ФЗ (СБИС/PayKeeper)
+    # ФИСКАЛИЗАЦИЯ 54-ФЗ (СБИС/PayKeeper) МАКСИМАЛЬНО ПОДРОБНАЯ (FFD 1.2)
     receipt_items = []
     total_cart_sum = sum(float(i['price']) * i['qty'] for k, i in cart.items() if '_gift' not in str(k))
     total_logistics = calc['package_cost'] + calc['delivery_cost']
@@ -754,28 +747,54 @@ def checkout():
         if "_gift" in str(p_id_key): continue
         adjusted_price = round(float(item['price']) * discount_ratio, 2)
         adjusted_sum = round(adjusted_price * item['qty'], 2)
-        receipt_items.append({"name": item['name'][:128], "price": adjusted_price, "quantity": item['qty'], "sum": adjusted_sum, "tax": "none"})
+        receipt_items.append({
+            "name": item['name'][:128], 
+            "price": adjusted_price, 
+            "quantity": item['qty'], 
+            "sum": adjusted_sum, 
+            "tax": "none",
+            "item_type": "goods", # Тип: Товар
+            "payment_method": "full_prepayment" # Способ: Полная предоплата
+        })
         
     if calc['package_cost'] > 0:
         adj_pkg = round(calc['package_cost'] * discount_ratio, 2)
-        receipt_items.append({"name": "Упаковка", "price": adj_pkg, "quantity": 1, "sum": adj_pkg, "tax": "none"})
+        receipt_items.append({
+            "name": "Упаковка заказа", 
+            "price": adj_pkg, 
+            "quantity": 1, 
+            "sum": adj_pkg, 
+            "tax": "none",
+            "item_type": "service", # Тип: Услуга
+            "payment_method": "full_prepayment"
+        })
+        
     if calc['delivery_cost'] > 0:
         adj_del = round(calc['delivery_cost'] * discount_ratio, 2)
-        receipt_items.append({"name": "Доставка", "price": adj_del, "quantity": 1, "sum": adj_del, "tax": "none"})
+        receipt_items.append({
+            "name": "Доставка курьером", 
+            "price": adj_del, 
+            "quantity": 1, 
+            "sum": adj_del, 
+            "tax": "none",
+            "item_type": "service", # Тип: Услуга
+            "payment_method": "full_prepayment"
+        })
         
     current_sum = sum(i['sum'] for i in receipt_items)
     diff = round(calc['final_total'] - current_sum, 2)
     if diff != 0 and receipt_items:
+        # Корректировка копеек для СБИСа (добавляем к первому товару)
         receipt_items[0]['sum'] = round(receipt_items[0]['sum'] + diff, 2)
         receipt_items[0]['price'] = round(receipt_items[0]['sum'] / receipt_items[0]['quantity'], 2)
 
-    # ОБНОВЛЕНО: Используем настоящую почту клиента или безопасную заглушку для банка
     client_email = email if email else f"{phone.replace('+', '')}@nikolaich.shop"
 
+    # Строгий формат для PayKeeper + СБИС
     receipt_json = json.dumps({
         "clientEmail": client_email,
         "clientPhone": phone,
-        "taxSystem": "usn_income",
+        "taxSystem": "usn_income", # УСН Доходы. (Если Патент - "patent")
         "items": receipt_items
     })
 
@@ -804,7 +823,17 @@ def checkout():
             return jsonify({
                 "status": "ok", 
                 "order_id": order_id, 
-                "pay_data": {"url": f"{pk_server}/create/", "sum": f"{int(calc['final_total'])}", "orderid": str(order_id), "clientid": phone, "receipt": receipt_json}
+                "pay_data": {
+                    "url": f"{pk_server}/create/", 
+                    "sum": f"{calc['final_total']}", 
+                    "orderid": str(order_id), 
+                    "clientid": user.get('full_name', phone) if user.get('full_name') else phone,
+                    "client_email": client_email,  # <--- Вытащили в корень!
+                    "client_phone": phone,         # <--- Вытащили в корень!
+                    "name": f"Заказ #{order_id} (У Николаича)", # <--- Обязательно для некоторых банков
+                    "service_name": f"Продукты питания (Заказ #{order_id})", # <--- Запасной ключ для Альфы
+                    "receipt": receipt_json
+                }
             })
         else: 
             return jsonify({"status": "error", "error": "PayKeeper не настроен."}), 400
@@ -941,7 +970,7 @@ def admin_crud(entity):
                 if data.get('id'): conn.execute("UPDATE promotions SET title=?, promo_type=?, target_id=?, discount_val=?, min_sum=?, time_start=?, time_end=?, active=? WHERE id=?", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active'], data['id']))
                 else: conn.execute("INSERT INTO promotions (title, promo_type, target_id, discount_val, min_sum, time_start, time_end, active) VALUES (?,?,?,?,?,?,?,?)", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active']))
 
-            elif entity == 'wheel_sectors': # ОБНОВЛЕНО: Поддержка рекламных полей
+            elif entity == 'wheel_sectors': 
                 if data.get('id'): conn.execute("UPDATE wheel_sectors SET title=?, type=?, value=?, weight=?, stock=?, color=?, icon=?, banner_url=?, partner_link=?, promo_code=?, description=? WHERE id=?", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', ''), data['id']))
                 else: conn.execute("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', '')))
 

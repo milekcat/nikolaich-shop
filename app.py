@@ -384,6 +384,22 @@ def wheel_daily():
     return jsonify({"status": "ok", "tickets": user['tickets_balance'] + 1})
 
 
+# ================= ПРОВЕРКА PERFLUENCE =================
+@app.route('/perfluence_89813663bd51.html')
+def perfluence_verify():
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfluence</title>
+</head>
+<body>
+Verification: 89813663bd51
+</body>
+</html>"""
+
+
 # ================= ВИТРИНА И ЗАКАЗЫ =================
 @app.route('/')
 def index():

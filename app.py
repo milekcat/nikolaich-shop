@@ -384,25 +384,6 @@ def wheel_daily():
     return jsonify({"status": "ok", "tickets": user['tickets_balance'] + 1})
 
 
-# ================= ВЕРИФИКАЦИЯ PERFLUENCE =================
-@app.route('/<name>.html')
-def perfluence_verify(name):
-    if '89813663bd51' in name:
-        return '''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfluence</title>
-</head>
-<body>
-Verification: 89813663bd51
-</body>
-</html>'''
-    from flask import abort
-    abort(404)
-
-
 # ================= ВИТРИНА И ЗАКАЗЫ =================
 @app.route('/')
 def index():
@@ -874,7 +855,23 @@ def chat_get_site():
     if not user: return jsonify([])
     return jsonify(get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)))
 
-
+# ================= ВЕРИФИКАЦИЯ PERFLUENCE =================
+@app.route('/<name>.html')
+def perfluence_verify(name):
+    if '89813663bd51' in name:
+        return '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfluence</title>
+</head>
+<body>
+Verification: 89813663bd51
+</body>
+</html>'''
+    from flask import abort
+    abort(404)
 # ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): 

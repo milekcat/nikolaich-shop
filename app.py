@@ -855,23 +855,11 @@ def chat_get_site():
     if not user: return jsonify([])
     return jsonify(get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)))
 
-# ================= ВЕРИФИКАЦИЯ PERFLUENCE =================
-@app.route('/<name>.html')
-def perfluence_verify(name):
-    if '89813663bd51' in name:
-        return '''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfluence</title>
-</head>
-<body>
-Verification: 89813663bd51
-</body>
-</html>'''
-    from flask import abort
-    abort(404)
+# ================= ROBOTS.TXT И ВЕРИФИКАЦИЯ PERFLUENCE =================
+@app.route('/robots.txt')
+def robots():
+    text = "User-agent: *\nAllow: /\n\nUser-agent: Perfluence\nVerification: 89813663bd51\n"
+    return text, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 # ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): 

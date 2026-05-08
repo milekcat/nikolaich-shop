@@ -10,6 +10,8 @@
     <title>{{ settings.shop_name }}</title>
     <meta name="theme-color" content="#00b853">
     
+    <meta name="perfluence-verification" content="89813663bd51" />
+    
     <link rel="manifest" href="/static/manifest.json">
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     
@@ -493,7 +495,6 @@
         const data = await res.json();
         if(data.error) return alert("Ошибка авторизации");
         
-        // Если администратор отключил колесо, но пользователь как-то нажал кнопку
         if(data.wheel_active === 0) {
             alert("Колесо фортуны временно отключено.");
             return;
@@ -623,7 +624,6 @@
         const bannerImg = document.getElementById('prizeBannerImg');
         const partnerBtn = document.getElementById('prizePartnerBtn');
 
-        // Логика баннера
         if (prize.banner_url) {
             bannerImg.src = prize.banner_url;
             bannerLink.href = prize.partner_link || '#';
@@ -632,7 +632,6 @@
             bannerLink.style.display = 'none';
         }
 
-        // Логика кнопки перехода
         if (prize.partner_link && prize.type === 'partner') {
             partnerBtn.href = prize.partner_link;
             partnerBtn.style.display = 'block';
@@ -640,7 +639,6 @@
             partnerBtn.style.display = 'none';
         }
 
-        // Логика промокода
         if (prize.promo_code || (prize.type === 'partner' && prize.value)) {
             document.getElementById('prizeCodeText').innerText = prize.promo_code || prize.value;
             codeBlock.style.display = 'block';
@@ -740,7 +738,6 @@
         if (lastCalc.sysadmin_pay > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-primary fw-bold"><span>Оплата балансом IT:</span><span>- ${lastCalc.sysadmin_pay.toFixed(0)} ₽</span></div>`; 
         if (lastCalc.gift) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-warning fw-bold bg-warning bg-opacity-10 p-2 rounded border border-warning mt-2"><span>🎁 Ваш подарок:</span><span>${lastCalc.gift.name} (0 ₽)</span></div>`;
         
-        // Расчет билетов
         let earnedTickets = Math.floor(lastCalc.final_total / 500);
         for(let id in cart) { 
             if(String(id).includes('_gift')) continue;

@@ -384,10 +384,11 @@ def wheel_daily():
     return jsonify({"status": "ok", "tickets": user['tickets_balance'] + 1})
 
 
-# ================= ПРОВЕРКА PERFLUENCE =================
-@app.route('/perfluence_89813663bd51.html')
-def perfluence_verify():
-    return """<!DOCTYPE html>
+# ================= ВЕРИФИКАЦИЯ PERFLUENCE =================
+@app.route('/<name>.html')
+def perfluence_verify(name):
+    if '89813663bd51' in name:
+        return '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -397,7 +398,9 @@ def perfluence_verify():
 <body>
 Verification: 89813663bd51
 </body>
-</html>"""
+</html>'''
+    from flask import abort
+    abort(404)
 
 
 # ================= ВИТРИНА И ЗАКАЗЫ =================

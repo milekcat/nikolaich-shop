@@ -359,6 +359,8 @@
                         <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="4"></textarea>
 
                         <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Безопасность</h5>
+                        <label class="small fw-bold text-muted mb-1">VK ID Администратора (Для уведомлений)</label>
+                        <input type="text" id="setAdminVkId" class="form-control bg-light border mb-3 p-2 fw-bold text-primary" placeholder="Только цифры ID">
                         <label class="small fw-bold text-muted mb-1">Секретный код VK</label>
                         <input type="text" id="setVkCode" class="form-control bg-light border mb-3 p-2">
                         <label class="small fw-bold text-muted mb-1">PIN-код Администратора</label>
@@ -392,7 +394,7 @@
 
                         <label class="small fw-bold text-muted mb-1">Пустых прокрутов до шанса на ценный приз</label>
                         <input type="number" id="setWheelLossThreshold" class="form-control bg-light border mb-2 p-2 fw-bold text-danger" placeholder="0 = отключить защиту">
-                        <div class="small text-muted lh-sm" style="font-size: 11px;">Укажите количество прокрутов, во время которых система будет принудительно выдавать только мелкие скидки или пустышки. На следующий раз сработает честный рандом. (Настроим это в app.py следом!)</div>
+                        <div class="small text-muted lh-sm" style="font-size: 11px;">Укажите количество прокрутов, во время которых система будет принудительно выдавать только мелкие скидки или пустышки. На следующий раз сработает честный рандом.</div>
                     </div>
 
                     <div class="card-ui mb-4" style="border: 2px solid #0dcaf0;">
@@ -408,19 +410,43 @@
                         <div id="designUploadStatus" class="small text-success fw-bold"></div>
                     </div>
 
-                    <div class="card-ui">
-                        <h5 class="fw-bold mb-4">Комплектация и Логистика</h5>
+                    <div class="card-ui mb-4" style="border: 2px solid #8e8e93;">
+                        <h5 class="fw-bold mb-4"><i class="bi bi-truck me-2"></i>Комплектация и Логистика</h5>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Доставка включена?</label><select id="setDelEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Включена</option><option value="0">🔴 Выключена</option></select></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Самовывоз включен?</label><select id="setPickEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Включен</option><option value="0">🔴 Выключен</option></select></div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Магазин открыт с</label><input type="time" id="setWorkStart" class="form-control bg-light border p-2 fw-bold"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Закрыт с (До завтра)</label><input type="time" id="setWorkEnd" class="form-control bg-light border p-2 fw-bold text-danger"></div>
+                        </div>
+                        <label class="small fw-bold text-muted mb-1">Принимать предзаказы ночью?</label>
+                        <select id="setPreorderEnabled" class="form-select bg-light border mb-3 p-2 fw-bold">
+                            <option value="1">✅ Да, принимать на завтра</option>
+                            <option value="0">⛔ Нет, блокировать оформление заказа</option>
+                        </select>
                         <div class="row mb-3">
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Режим работы</label><select id="setHighDemand" class="form-select bg-light border p-2 fw-bold"><option value="0">🟢 Обычный</option><option value="1">🔴 Высокий спрос</option></select></div>
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Мин. ДОСТАВКА</label><input type="number" id="setMinOrder" class="form-control bg-light border p-2"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Мин. САМОВЫВОЗ</label><input type="number" id="setMinPickup" class="form-control bg-light border p-2 text-primary fw-bold"></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Мин. САМОВЫВОЗ</label><input type="number" id="setMinPickup" class="form-control bg-light border p-2 text-primary fw-bold"></div>
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Сборка пакета</label><input type="number" id="setPackageCost" class="form-control bg-light border p-2"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Логистика магазина</label><input type="number" id="setCourierCost" class="form-control bg-light border p-2"></div>
                         </div>
-                        <div class="row">
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Логистика магазина</label><input type="number" id="setCourierCost" class="form-control bg-light border mb-3 p-2"></div>
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Бесплатно от (₽)</label><input type="number" id="setFreeDelivery" class="form-control bg-light border mb-3 p-2"></div>
+                        <div class="row mb-4">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Бесплатно от (₽)</label><input type="number" id="setFreeDelivery" class="form-control bg-light border p-2"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Режим работы</label><select id="setHighDemand" class="form-select bg-light border p-2 fw-bold"><option value="0">🟢 Обычный</option><option value="1">🔴 Высокий спрос</option></select></div>
+                        </div>
+
+                        <div class="p-3 border border-dark rounded-4 bg-light mb-2">
+                            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-taxi-front-fill me-2"></i>Яндекс API (Доставка / Зоны)</h6>
+                            <label class="small fw-bold text-muted mb-1">Yandex Delivery Token (Для вызова такси)</label>
+                            <input type="text" id="setYandexToken" class="form-control bg-white border border-dark mb-2 p-2">
+                            <label class="small fw-bold text-muted mb-1">Yandex Maps API Key (Для расчета зон)</label>
+                            <input type="text" id="setYandexMapsKey" class="form-control bg-white border border-dark mb-2 p-2">
+                            <label class="small fw-bold text-muted mb-1">Координаты зоны (Массив GeoJSON)</label>
+                            <textarea id="setDeliveryPolygon" class="form-control bg-white border border-dark mb-2 p-2" rows="3" placeholder="[ [lat, lng], [lat, lng] ]"></textarea>
+                            <div class="small text-muted" style="font-size: 11px;">Сгенерировать массив можно в конструкторе Я.Карт и скопировать сюда.</div>
                         </div>
                     </div>
                 </div>
@@ -686,7 +712,7 @@
         document.getElementById('promoFields_1plus1').style.display = type === '1plus1' ? 'block' : 'none';
     }
 
-    /* ЭТАП 6: КОЛЕСО ФОРТУНЫ (АДМИНКА) */
+    /* ЭТАП 6: КОЛЕСО ФОРТУНЫ (АДМИНКА И ПОДАРКИ) */
     async function loadWheelSectors() {
         const data = await apiCall('wheel_sectors');
         if(!data) return;
@@ -717,13 +743,26 @@
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Тип приза</label>
                     <select id="wsType" class="form-select bg-light border p-2">
                         <option value="discount" ${s && s.type=='discount'?'selected':''}>Скидка (%)</option>
-                        <option value="partner" ${s && s.type=='partner'?'selected':''}>Промокод партнера</option>
+                        <option value="partner" ${s && s.type=='partner'?'selected':''}>Промокод партнера / Реклама</option>
                         <option value="product" ${s && s.type=='product'?'selected':''}>Товар / Подарок</option>
                         <option value="empty" ${s && s.type=='empty'?'selected':''}>Пустой сектор (Мимо)</option>
                     </select>
                 </div>
                 <div class="col-6"><label class="small fw-bold text-muted mb-1">Значение (Сумма, Текст)</label><input type="text" id="wsValue" class="form-control bg-light border p-2" value="${s ? s.value : ''}" placeholder="10 или SBER500"></div>
             </div>
+            
+            <div class="p-3 bg-light border rounded-4 mb-3">
+                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-gift-fill me-2"></i>Красивая выдача приза (Партнерка)</h6>
+                <label class="small fw-bold text-muted mb-1">Промокод (если нужно выдать код)</label>
+                <input type="text" id="wsPromoCode" class="form-control bg-white border mb-2 p-2 fw-bold text-primary" value="${s ? (s.promo_code || '') : ''}">
+                <label class="small fw-bold text-muted mb-1">Ссылка-баннер (Картинка)</label>
+                <input type="text" id="wsBannerUrl" class="form-control bg-white border mb-2 p-2" value="${s ? (s.banner_url || '') : ''}" placeholder="https://...">
+                <label class="small fw-bold text-muted mb-1">Куда ведет клик по баннеру / кнопке</label>
+                <input type="text" id="wsPartnerLink" class="form-control bg-white border mb-2 p-2 text-success fw-bold" value="${s ? (s.partner_link || '') : ''}" placeholder="https://...">
+                <label class="small fw-bold text-muted mb-1">Описание приза (Для карточки)</label>
+                <textarea id="wsDescription" class="form-control bg-white border p-2" rows="2">${s ? (s.description || '') : ''}</textarea>
+            </div>
+
             <div class="row g-2 mb-3">
                 <div class="col-4"><label class="small fw-bold text-muted mb-1">Вес (Шанс)</label><input type="number" id="wsWeight" class="form-control bg-light border p-2 text-primary fw-bold" value="${s ? s.weight : '10'}"></div>
                 <div class="col-4"><label class="small fw-bold text-muted mb-1">Остаток (-1 = ∞)</label><input type="number" id="wsStock" class="form-control bg-light border p-2" value="${s ? s.stock : '-1'}"></div>
@@ -738,7 +777,11 @@
                 value: document.getElementById('wsValue').value,
                 weight: parseInt(document.getElementById('wsWeight').value) || 10,
                 stock: parseInt(document.getElementById('wsStock').value) || -1,
-                color: document.getElementById('wsColor').value
+                color: document.getElementById('wsColor').value,
+                promo_code: document.getElementById('wsPromoCode').value,
+                banner_url: document.getElementById('wsBannerUrl').value,
+                partner_link: document.getElementById('wsPartnerLink').value,
+                description: document.getElementById('wsDescription').value
             });
             loadWheelSectors();
         });
@@ -1121,6 +1164,17 @@
             
             document.getElementById('setWheelActive').value = settings.wheel_active || '1';
             document.getElementById('setWheelLossThreshold').value = settings.wheel_loss_threshold || '0';
+            
+            // Новые настройки
+            document.getElementById('setDelEnabled').value = settings.delivery_enabled || '1';
+            document.getElementById('setPickEnabled').value = settings.pickup_enabled || '1';
+            document.getElementById('setWorkStart').value = settings.work_time_start || '09:00';
+            document.getElementById('setWorkEnd').value = settings.work_time_end || '21:00';
+            document.getElementById('setPreorderEnabled').value = settings.preorder_enabled || '1';
+            document.getElementById('setAdminVkId').value = settings.admin_vk_id || '';
+            document.getElementById('setYandexToken').value = settings.yandex_delivery_token || '';
+            document.getElementById('setYandexMapsKey').value = settings.yandex_maps_apikey || '';
+            document.getElementById('setDeliveryPolygon').value = settings.delivery_polygon || '';
         }
         const wh = await apiCall('warehouse'); if(wh) { categoriesList = wh.categories; productsList = wh.products; }
         const banners = await apiCall('banners'); if(banners) document.getElementById('tableBanners').innerHTML = banners.map(b => `<tr><td data-label="Текст">${b.title}</td><td data-label="Цвет фона"><div style="width:24px; height:24px; background:${b.bg_color}; border-radius:6px; border:1px solid #ddd;"></div></td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBannerModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("banners", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
@@ -1146,7 +1200,17 @@
             pk_server: document.getElementById('setPkServer').value, 
             pk_secret: document.getElementById('setPkSecret').value,
             wheel_active: document.getElementById('setWheelActive').value,
-            wheel_loss_threshold: document.getElementById('setWheelLossThreshold').value
+            wheel_loss_threshold: document.getElementById('setWheelLossThreshold').value,
+            
+            delivery_enabled: document.getElementById('setDelEnabled').value,
+            pickup_enabled: document.getElementById('setPickEnabled').value,
+            work_time_start: document.getElementById('setWorkStart').value,
+            work_time_end: document.getElementById('setWorkEnd').value,
+            preorder_enabled: document.getElementById('setPreorderEnabled').value,
+            admin_vk_id: document.getElementById('setAdminVkId').value,
+            yandex_delivery_token: document.getElementById('setYandexToken').value,
+            yandex_maps_apikey: document.getElementById('setYandexMapsKey').value,
+            delivery_polygon: document.getElementById('setDeliveryPolygon').value
         }); 
         alert('Все настройки успешно сохранены!'); 
     }

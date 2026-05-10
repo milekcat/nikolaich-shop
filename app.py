@@ -19,26 +19,36 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 VK_TOKEN = "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
 VK_API_VERSION = "5.131"
 
-def send_vk_message(db_user_id, user_vk_link, text):
-    if not user_vk_link or "vk.com" not in user_vk_link: 
-        return "Нет ссылки на VK."
-    try:
-        domain = user_vk_link.split('/')[-1].split('?')[0]
-        vk_id = None
-        if domain.startswith('id') and domain[2:].isdigit(): 
-            vk_id = domain[2:]
-        else:
-            req_url = f"https://api.vk.com/method/utils.resolveScreenName?screen_name={domain}&access_token={VK_TOKEN}&v={VK_API_VERSION}"
-            r_id = requests.get(req_url).json()
-            if r_id.get('response') and r_id['response']['type'] == 'user': 
-                vk_id = r_id['response']['object_id']
-        
-        if not vk_id: return "Не удалось распознать ID."
-        
-        with sqlite3.connect('shop.db') as conn:
-            conn.execute("UPDATE users SET vk_id=? WHERE id=?", (str(vk_id), db_user_id))
-            conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (db_user_id, text))
+def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
+    if custom_vk_id:
+        vk_id = custom_vk_id
+    else:
+        if not user_vk_link or "vk.com" not in user_vk_link: 
+            return "Нет ссылки на VK."
+        try:
+            domain = user_vk_link.split('/')[-1].split('?')[0]
+            vk_id = None
+            if domain.startswith('id') and domain[2:].isdigit(): 
+                vk_id = domain[2:]
+            else:
+                req_url = f"https://api.vk.com/method/utils.resolveScreenName?screen_name={domain}&access_token={VK_TOKEN}&v={VK_API_VERSION}"
+                r_id = requests.get(req_url).json()
+                if r_id.get('response') and r_id['response']['type'] == 'user': 
+                    vk_id = r_id['response']['object_id']
             
+            if not vk_id: return "Не удалось распознать ID."
+            
+            if db_user_id:
+                with sqlite3.connect('shop.db') as conn:
+                    conn.execute("UPDATE users SET vk_id=? WHERE id=?", (str(vk_id), db_user_id))
+        except Exception as e:
+            return f"Сбой парсинга: {str(e)}"
+
+    try:
+        if db_user_id and not custom_vk_id:
+            with sqlite3.connect('shop.db') as conn:
+                conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (db_user_id, text))
+        
         payload = {
             "user_id": vk_id, 
             "random_id": random.randint(1, 2147483647), 
@@ -112,7 +122,7 @@ def init_db():
         for col in ['link_url TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE banners ADD COLUMN {col}')
             except: pass
-        for col in ['tickets_balance INTEGER DEFAULT 0', 'last_daily_bonus TIMESTAMP DEFAULT NULL']:
+        for col in ['tickets_balance INTEGER DEFAULT 0', 'last_daily_bonus TIMESTAMP DEFAULT NULL', 'wheel_spins INTEGER DEFAULT 0']:
             try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
             except: pass
         for col in ['ticket_bonus INTEGER DEFAULT 0']:
@@ -123,6 +133,10 @@ def init_db():
             try: c.execute(f'ALTER TABLE wheel_sectors ADD COLUMN {col}')
             except: pass
             try: c.execute(f'ALTER TABLE user_prizes ADD COLUMN {col}')
+            except: pass
+            
+        for col in ['gift_claimed INTEGER DEFAULT 0']:
+            try: c.execute(f'ALTER TABLE orders ADD COLUMN {col}')
             except: pass
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
@@ -135,9 +149,16 @@ def init_db():
                 ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'),
                 ('wheel_active', '1')
             ])
-            
-        if c.execute("SELECT COUNT(*) FROM settings WHERE key_name='wheel_active'").fetchone()[0] == 0:
-            c.execute("INSERT INTO settings (key_name, value) VALUES ('wheel_active', '1')")
+
+        # Добавляем новые настройки для доставки и админа
+        new_settings = [
+            ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'),
+            ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'),
+            ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), ('yandex_delivery_token', '')
+        ]
+        for key, val in new_settings:
+            if c.execute("SELECT COUNT(*) FROM settings WHERE key_name=?", (key,)).fetchone()[0] == 0:
+                c.execute("INSERT INTO settings (key_name, value) VALUES (?, ?)", (key, val))
 
         if c.execute("SELECT COUNT(*) FROM wheel_sectors").fetchone()[0] == 0:
             defaults = [
@@ -209,6 +230,12 @@ def paykeeper_webhook():
             user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
             if user and user['social_link']: 
                 send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{orderid} получена! Начинаем комплектацию.")
+            
+            # Уведомление Админу об успешной оплате
+            admin_vk = settings.get('admin_vk_id', '').strip()
+            if admin_vk:
+                send_vk_message(None, None, f"💰 Заказ #{orderid} УСПЕШНО ОПЛАЧЕН онлайн!\nСумма: {order['final_total']} ₽\nОжидайте чек в ОФД.", custom_vk_id=admin_vk)
+                
         return f"OK {valid_hash}"
     return "Error: Hash mismatch"
 
@@ -718,6 +745,7 @@ def checkout():
         cart[f"{g['id']}_gift"] = {"name": f"🎁 {g['name']}", "price": 0, "qty": g['step'], "unit": g['unit'], "img": json.loads(g['images'])[0] if g['images'] else ''}
 
     has_18 = False
+    cart_summary_text = ""
     for p_id_key, item in cart.items():
         if "_gift" in str(p_id_key): continue
         base_p_id = str(p_id_key).split('_')[0]
@@ -725,6 +753,7 @@ def checkout():
         if not db_prod or db_prod['stock'] < item['qty']: 
             return jsonify({"error": f"Товара '{item['name']}' недостаточно (остаток: {db_prod['stock'] if db_prod else 0})."}), 400
         if db_prod['is_hidden'] == 1: has_18 = True
+        cart_summary_text += f"• {item['name']} (x{item['qty']})\n"
 
     is_vip = user and user.get('age_verified') == 2
     force_pickup_18 = has_18 and not is_vip
@@ -737,7 +766,7 @@ def checkout():
     sysadmin_pay = calc.get('sysadmin_pay', 0)
     order_status = "Ожидает оплаты" if p_type == 'online' else "Новый"
 
-    # ФИСКАЛИЗАЦИЯ 54-ФЗ (СБИС/PayKeeper) МАКСИМАЛЬНО ПОДРОБНАЯ (FFD 1.2)
+    # ФИСКАЛИЗАЦИЯ 54-ФЗ (СБИС/PayKeeper)
     receipt_items = []
     total_cart_sum = sum(float(i['price']) * i['qty'] for k, i in cart.items() if '_gift' not in str(k))
     total_logistics = calc['package_cost'] + calc['delivery_cost']
@@ -784,7 +813,6 @@ def checkout():
     current_sum = sum(i['sum'] for i in receipt_items)
     diff = round(calc['final_total'] - current_sum, 2)
     if diff != 0 and receipt_items:
-        # Корректировка копеек для СБИСа (добавляем к первому товару)
         receipt_items[0]['sum'] = round(receipt_items[0]['sum'] + diff, 2)
         receipt_items[0]['price'] = round(receipt_items[0]['sum'] / receipt_items[0]['quantity'], 2)
 
@@ -794,7 +822,7 @@ def checkout():
     receipt_json = json.dumps({
         "clientEmail": client_email,
         "clientPhone": phone,
-        "taxSystem": "usn_income", # УСН Доходы. (Если Патент - "patent")
+        "taxSystem": "usn_income",
         "items": receipt_items
     })
 
@@ -814,12 +842,29 @@ def checkout():
             conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (-sysadmin_pay, f"Оплата заказа #{order_id} промокодом Сисадмина"))
             
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+    
+    # 🔔 Уведомление Администратору (Николаичу)
+    admin_vk = settings.get('admin_vk_id', '').strip()
+    if admin_vk:
+        admin_msg = f"🔥 НОВЫЙ ЗАКАЗ #{order_id}!\n"
+        admin_msg += f"👤 Клиент: {user.get('full_name', phone) if user else phone}\n"
+        admin_msg += f"📞 Телефон: {phone}\n"
+        admin_msg += f"💰 Сумма: {calc['final_total']} ₽ ({'Онлайн' if p_type == 'online' else 'При получении'})\n"
+        admin_msg += f"🚚 {d_type.upper()} ({d_time})\n"
+        if address: admin_msg += f"📍 Адрес: {address}\n"
+        if comment: admin_msg += f"📝 Комментарий: {comment}\n"
+        admin_msg += f"\n🛒 Состав:\n{cart_summary_text}"
+        send_vk_message(None, None, admin_msg, custom_vk_id=admin_vk)
+
     if user['social_link'] and p_type != 'online': 
         send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
         
     if p_type == 'online':
         pk_server = settings.get('pk_server', '').strip().rstrip('/')
         if pk_server: 
+            client_fio_safe = user.get('full_name', '').strip() if user and user.get('full_name') else phone
+            short_cart = cart_summary_text.replace('\n', ', ')[:200] + "..." if len(cart_summary_text) > 200 else cart_summary_text.replace('\n', ', ')
+            
             return jsonify({
                 "status": "ok", 
                 "order_id": order_id, 
@@ -827,11 +872,11 @@ def checkout():
                     "url": f"{pk_server}/create/", 
                     "sum": f"{calc['final_total']}", 
                     "orderid": str(order_id), 
-                    "clientid": user.get('full_name', phone) if user.get('full_name') else phone,
-                    "client_email": client_email,  # <--- Вытащили в корень!
-                    "client_phone": phone,         # <--- Вытащили в корень!
-                    "name": f"Заказ #{order_id} (У Николаича)", # <--- Обязательно для некоторых банков
-                    "service_name": f"Продукты питания (Заказ #{order_id})", # <--- Запасной ключ для Альфы
+                    "clientid": client_fio_safe,
+                    "client_email": client_email,
+                    "client_phone": phone, 
+                    "name": f"Заказ #{order_id}: {short_cart}", 
+                    "service_name": f"Продукты (Заказ #{order_id})",
                     "receipt": receipt_json
                 }
             })
@@ -839,6 +884,47 @@ def checkout():
             return jsonify({"status": "error", "error": "PayKeeper не настроен."}), 400
             
     return jsonify({"status": "ok", "order_id": order_id})
+
+@app.route('/api/order/claim_gift', methods=['POST'])
+def claim_order_gift():
+    auth_val = session.get('user_identifier')
+    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
+    if not user: return jsonify({"error": "unauthorized"})
+    
+    order_id = request.json.get('order_id')
+    with sqlite3.connect('shop.db') as conn:
+        conn.row_factory = sqlite3.Row
+        order = conn.execute("SELECT * FROM orders WHERE id=? AND user_id=?", (order_id, user['id'])).fetchone()
+        
+        if not order: return jsonify({"error": "Заказ не найден"})
+        
+        try: conn.execute("ALTER TABLE orders ADD COLUMN gift_claimed INTEGER DEFAULT 0")
+        except: pass
+        
+        order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+        
+        if order['gift_claimed'] == 1:
+            return jsonify({"status": "already_claimed"})
+            
+        tickets_to_give = int(float(order['final_total']) // 500)
+        items = json.loads(order['items'])
+        for k, v in items.items():
+            if '_gift' in k: continue
+            pid = k.split('_')[0]
+            p = conn.execute("SELECT ticket_bonus FROM products WHERE id=?", (pid,)).fetchone()
+            if p and p[0]: 
+                tickets_to_give += (int(p[0]) * int(v.get('qty', 1)))
+                
+        if order['payment_type'] == 'online' and order['status'] != 'Оплачен':
+            return jsonify({"status": "waiting_payment"})
+            
+        if tickets_to_give > 0:
+            conn.execute("UPDATE users SET tickets_balance = tickets_balance + ? WHERE id=?", (tickets_to_give, user['id']))
+            
+        conn.execute("UPDATE orders SET gift_claimed=1 WHERE id=?", (order_id,))
+        
+        return jsonify({"status": "ok", "tickets": tickets_to_give})
+
 
 @app.route('/api/chat/send_from_site', methods=['POST'])
 def chat_send_site():
@@ -860,6 +946,7 @@ def chat_get_site():
 def robots():
     text = "User-agent: *\nAllow: /\n\nUser-agent: Perfluence\nVerification: 89813663bd51\n"
     return text, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+
 # ================= АДМИНКА =================
 @app.route('/admin')
 def admin(): 

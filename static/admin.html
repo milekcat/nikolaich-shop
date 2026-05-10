@@ -407,14 +407,13 @@
                         <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCat" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCat').click()"><i class="bi bi-upload"></i></button><input type="file" id="uploadBgCat" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCat')"></div>
                         <label class="small fw-bold text-muted mb-1 mt-2">Картинка Карточек Товаров</label>
                         <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCard" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCard').click()"><i class="bi bi-upload"></i></button><input type="file" id="uploadBgCard" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCard')"></div>
-                        <div id="designUploadStatus" class="small text-success fw-bold"></div>
                     </div>
 
                     <div class="card-ui mb-4" style="border: 2px solid #8e8e93;">
                         <h5 class="fw-bold mb-4"><i class="bi bi-truck me-2"></i>Комплектация и Логистика</h5>
                         <div class="row g-2 mb-3">
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Доставка включена?</label><select id="setDelEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Включена</option><option value="0">🔴 Выключена</option></select></div>
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Самовывоз включен?</label><select id="setPickEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Включен</option><option value="0">🔴 Выключен</option></select></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Самовывоз включен?</label><select id="setPickEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Вклюен</option><option value="0">🔴 Выключен</option></select></div>
                         </div>
                         <div class="row g-2 mb-3">
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Магазин открыт с</label><input type="time" id="setWorkStart" class="form-control bg-light border p-2 fw-bold"></div>
@@ -592,6 +591,19 @@
     
     async function logoutAdmin() { await fetch('/api/admin/logout', {method: 'POST'}); window.location.reload(); }
 
+    /* ЗАГРУЗКА ФОТО (ДОБАВЛЕНО) */
+    async function uploadDesignBg(input, targetId) {
+        if(!input.files || input.files.length === 0) return;
+        const formData = new FormData(); formData.append('file', input.files[0]);
+        document.body.style.cursor = 'wait';
+        try {
+            const res = await fetch('/api/upload', {method: 'POST', body: formData});
+            const data = await res.json();
+            if(data.url) document.getElementById(targetId).value = data.url;
+        } catch(e) { alert("Ошибка загрузки"); }
+        document.body.style.cursor = 'default';
+    }
+
     /* ХАБ АКЦИЙ */
     async function loadPromotions() {
         const data = await apiCall('promotions');
@@ -756,7 +768,11 @@
                 <label class="small fw-bold text-muted mb-1">Промокод (если нужно выдать код)</label>
                 <input type="text" id="wsPromoCode" class="form-control bg-white border mb-2 p-2 fw-bold text-primary" value="${s ? (s.promo_code || '') : ''}">
                 <label class="small fw-bold text-muted mb-1">Ссылка-баннер (Картинка)</label>
-                <input type="text" id="wsBannerUrl" class="form-control bg-white border mb-2 p-2" value="${s ? (s.banner_url || '') : ''}" placeholder="https://...">
+                <div class="input-group mb-2 shadow-sm">
+                    <input type="text" id="wsBannerUrl" class="form-control bg-white border" value="${s ? (s.banner_url || '') : ''}" placeholder="https://...">
+                    <button class="btn btn-dark" type="button" onclick="document.getElementById('uploadWsBanner').click()"><i class="bi bi-upload"></i></button>
+                    <input type="file" id="uploadWsBanner" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'wsBannerUrl')">
+                </div>
                 <label class="small fw-bold text-muted mb-1">Куда ведет клик по баннеру / кнопке</label>
                 <input type="text" id="wsPartnerLink" class="form-control bg-white border mb-2 p-2 text-success fw-bold" value="${s ? (s.partner_link || '') : ''}" placeholder="https://...">
                 <label class="small fw-bold text-muted mb-1">Описание приза (Для карточки)</label>
@@ -1218,71 +1234,3 @@
     function openBlockModal(b = null) { 
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.category_id==c.id ? 'selected' : ''}>${c.name}</option>`).join(''); 
         openModal(b ? 'Настройка блока' : 'Создать блок', `
-            <input type="hidden" id="blId" value="${b ? b.id : ''}">
-            <label class="small fw-bold text-muted mb-1">Название блока на сайте</label>
-            <input type="text" id="blTitle" class="form-control bg-light border mb-3 p-2 fw-bold" placeholder="🔥 Хиты продаж" value="${b ? b.title : ''}">
-            <div class="row g-2 mb-3">
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Тип товаров</label><select id="blType" class="form-select bg-light border p-2 fw-bold" onchange="document.getElementById('blCatWrap').style.display = this.value === 'category' ? 'block' : 'none'"><option value="sale" ${b && b.block_type=='sale' ? 'selected' : ''}>Товары по скидке (Акция)</option><option value="category" ${b && b.block_type=='category' ? 'selected' : ''}>Товары из Категории</option></select></div>
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Порядок вывода</label><input type="number" id="blSort" class="form-control bg-light border p-2" value="${b ? b.sort_order : '1'}"></div>
-            </div>
-            <div id="blCatWrap" style="display: ${b && b.block_type=='category' ? 'block' : 'none'}"><label class="small fw-bold text-muted mb-1">Какую категорию выводить?</label><select id="blCat" class="form-select bg-light border mb-3 p-2">${catOptions}</select></div>
-            <label class="small fw-bold text-muted mb-1">Статус</label>
-            <select id="blActive" class="form-select bg-light border p-2"><option value="1" ${b && b.active==1 ? 'selected' : ''}>Включен (Показывать)</option><option value="0" ${b && b.active==0 ? 'selected' : ''}>Выключен (Скрыть)</option></select>
-        `, 'Сохранить', async () => { await apiCall('homepage_blocks', 'POST', { id: document.getElementById('blId').value, title: document.getElementById('blTitle').value, block_type: document.getElementById('blType').value, category_id: document.getElementById('blCat').value, sort_order: document.getElementById('blSort').value, active: document.getElementById('blActive').value }); loadSettings(); }); 
-    }
-    
-    function openBannerModal(b = null) { 
-        const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.link_cat==c.id ? 'selected' : ''}>${c.name}</option>`).join(''); 
-        openModal(b ? 'Настройка баннера' : 'Новый баннер', `
-            <input type="hidden" id="bId" value="${b ? b.id : ''}">
-            <div class="p-3 border rounded bg-white mt-2">
-                <label class="small fw-bold text-muted mb-1">Крупный текст</label>
-                <input type="text" id="bTitle" class="form-control bg-light border mb-2 p-2 fw-bold" value="${b ? b.title : ''}">
-                <label class="small fw-bold text-muted mb-1">Мелкий текст</label>
-                <input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
-                <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label>
-                <input type="text" id="bUrl" class="form-control bg-light border mb-3 p-2" value="${b ? b.img_url : ''}">
-                <label class="small fw-bold text-muted mb-1">Внешняя ссылка (VK и т.д.)</label>
-                <input type="text" id="bLinkUrl" class="form-control bg-light border mb-3 p-2 text-primary fw-bold" placeholder="https://vk.com/..." value="${b ? b.link_url || '' : ''}">
-                <div class="row g-2 mb-3">
-                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Цвет плашки</label><input type="color" id="bColor" class="form-control bg-light border w-100 p-1" value="${b ? b.bg_color : '#ffffff'}"></div>
-                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Куда ведет клик</label><select id="bLink" class="form-select bg-light border p-2 fw-bold">${catOptions}</select></div>
-                </div>
-            </div>
-        `, 'Опубликовать', async () => { await apiCall('banners', 'POST', { id: document.getElementById('bId').value, title: document.getElementById('bTitle').value, subtitle: document.getElementById('bSub').value, img_url: document.getElementById('bUrl').value, link_url: document.getElementById('bLinkUrl').value, bg_color: document.getElementById('bColor').value, link_cat: document.getElementById('bLink').value }); loadSettings(); }); 
-    }
-    
-    function openPromoModal(p = null) { 
-        openModal(p ? 'Настройка промокода' : 'Новый промокод', `
-            <input type="hidden" id="prId" value="${p ? p.id : ''}">
-            <label class="small fw-bold text-muted mb-1">Код</label>
-            <input type="text" id="prCode" class="form-control bg-light border mb-3 p-2 fw-bold text-danger" value="${p ? p.code : ''}">
-            <div class="row g-2 mb-3">
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Скидка в %</label><input type="number" id="prPerc" class="form-control bg-light border p-2" value="${p ? p.discount_percent : '0'}"></div>
-                <div class="col-6"><label class="small fw-bold text-muted mb-1">Скидка в рублях</label><input type="number" id="prRub" class="form-control bg-light border p-2" value="${p ? p.discount_rub : '0'}"></div>
-            </div>
-            <label class="small fw-bold text-muted mb-1">Минимальная сумма заказа (₽)</label>
-            <input type="number" id="prMin" class="form-control bg-light border mb-3 p-2" value="${p ? p.min_sum : '0'}">
-            <div class="form-check form-switch mb-3 border p-3 rounded-3 bg-white">
-                <input class="form-check-input" type="checkbox" id="prSysadmin" ${p && p.is_sysadmin_only == 1 ? 'checked' : ''}>
-                <label class="form-check-label small fw-bold" for="prSysadmin">Код Сисадмина (Оплата балансом)</label>
-            </div>
-            <label class="small fw-bold text-muted mb-1">Статус</label>
-            <select id="prActive" class="form-select bg-light border p-2"><option value="1" ${p && p.is_active==1 ? 'selected' : ''}>Включен</option><option value="0" ${p && p.is_active==0 ? 'selected' : ''}>Выключен</option></select>
-        `, 'Сохранить', async () => { await apiCall('promocodes', 'POST', { id: document.getElementById('prId').value, code: document.getElementById('prCode').value, discount_percent: document.getElementById('prPerc').value, discount_rub: document.getElementById('prRub').value, min_sum: document.getElementById('prMin').value, is_active: document.getElementById('prActive').value, is_sysadmin_only: document.getElementById('prSysadmin').checked ? 1 : 0 }); loadSettings(); }); 
-    }
-
-    async function deleteEntity(entity, id, callback) { 
-        let payload = {id: id}; 
-        if (entity === 'orders') { 
-            const pin = prompt('Введите PIN:'); if (pin === null) return; payload.pin = pin; 
-        } else { if(!confirm('Точно удалить?')) return; } 
-        const res = await fetch(`/api/admin/${entity}`, { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }); 
-        const data = await res.json(); 
-        if (data.error) { alert("Ошибка: " + data.error); } else { callback(); } 
-    }
-
-    window.onload = () => { loadOrders(); };
-</script>
-</body>
-</html>

@@ -18,6 +18,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
+    {% if settings.yandex_maps_apikey %}
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ settings.yandex_maps_apikey }}&lang=ru_RU" type="text/javascript"></script>
+    {% endif %}
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <script src="https://unpkg.com/@vkid/sdk@latest/dist-sdk/umd/index.js"></script>
     <script src="https://vk.com/js/api/openapi.js?169" type="text/javascript"></script>
     
@@ -126,7 +132,7 @@
         .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #ffc107; }
         .star-rating-dr label:hover, .star-rating-dr label:hover ~ label, .star-rating-dr input:checked ~ label { color: #00b853; }
 
-        /* ЭТАП 6: СТИЛИ ДЛЯ КОЛЕСА ФОРТУНЫ */
+        /* ЭТАП 6: СТИЛИ ДЛЯ КОЛЕСА ФОРТУНЫ И ПОДАРКОВ */
         .wheel-canvas-container { position: relative; width: 300px; height: 300px; margin: 0 auto; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
         #wheelCanvas { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #1d1d1f; transition: transform 4s cubic-bezier(0.1, 2.7, 0.5, 1); }
         .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 35px solid #e63946; z-index: 10; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4)); }
@@ -136,9 +142,17 @@
         .wheel-btn:active { transform: translateY(4px); box-shadow: 0 4px 10px rgba(230, 126, 34, 0.4); }
         .wheel-btn:disabled { background: #ccc; box-shadow: none; color: #888; transform: none; }
         .prize-card { background: #fff; border-radius: 16px; padding: 15px; border: 2px dashed #f1c40f; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(241, 196, 15, 0.1); }
+        
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+        .gift-box-anim { transition: 0.3s; display: inline-block; }
+        .gift-box-anim:hover { animation: shake 0.5s infinite; transform: scale(1.1); }
     </style>
 </head>
 <body>
+
+<div id="closedBanner" class="bg-dark text-white text-center p-2 fw-bold small shadow-sm position-relative" style="display:none; z-index: 1001;">
+    🌙 Магазин сейчас закрыт (работаем с {{ settings.work_time_start | default('09:00') }} до {{ settings.work_time_end | default('21:00') }}). {% if settings.preorder_enabled|default('1') == '1' %}Принимаем предзаказы!{% else %}Заказы временно не принимаются.{% endif %}
+</div>
 
 {% if settings.high_demand == '1' %}
 <div class="bg-warning text-dark text-center p-2 fw-bold small shadow-sm position-relative" style="z-index: 1001;">
@@ -314,7 +328,7 @@
                         {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
                     </div>
                     <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
-                    <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
+                    <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                     <div class="p-unit">за 1 {{ p.unit }}</div>
                     <div class="p-name">{{ p.name }}</div>
                     <button class="btn-add mt-auto" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
@@ -470,12 +484,48 @@
 <div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6><select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()"><option value="pickup">Самовывоз (Магазин)</option><option value="courier">Доставка курьером</option><option value="taxi">Отправка Яндекс.Доставкой</option></select><select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime"><option value="Как можно скорее">🕒 Как можно скорее</option><option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option><option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option></select><div id="addressBox" style="display:none;"><label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label><div class="d-flex gap-2 mb-2"><button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button><button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button></div><select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select><div id="newAddrWrap" class="input-group mb-2"><input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира"><button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button></div></div></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (Безопасно)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mt-[-10px] mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><label class="small text-muted fw-bold ms-2 mb-1 mt-1">E-mail для чека (Бесплатно от ОФД)</label><input type="email" id="checkoutEmail" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="example@mail.ru (необязательно)"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
 <div class="modal fade" id="chatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden"><div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center"><h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Чат с магазином</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="site-chat-container"><div class="site-chat-messages" id="siteChatBox"></div><div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;"><input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()"><button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button></div></div></div></div></div>
 <div class="modal fade" id="loginModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center">Вход в систему</h4><div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div><div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div><input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00"><input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button></div></div></div>
-<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 text-center"><i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i><h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3><button class="btn btn-warning w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="bootstrap.Modal.getInstance(document.getElementById('successModal')).hide(); openWheel();"><i class="bi bi-bullseye me-2"></i> Крутануть колесо Фортуны!</button><a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2"><i class="bi bi-send-fill me-2"></i> Написать боту в VK</a><button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.reload()">Закрыть</button></div></div></div>
+
+<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-4 text-center border-0 shadow-lg rounded-4">
+            <div id="successStandard">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 60px;"></i>
+                <h3 class="fw-bold mt-3 mb-2">Заказ <span id="successOrderId"></span> оформлен!</h3>
+                <button class="btn btn-warning w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="bootstrap.Modal.getInstance(document.getElementById('successModal')).hide(); openWheel();"><i class="bi bi-bullseye me-2"></i> Крутануть колесо Фортуны!</button>
+                <a href="https://vk.com/im?sel=-235562112" target="_blank" class="btn btn-primary w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2"><i class="bi bi-send-fill me-2"></i> Написать боту в VK</a>
+                <button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.href='/'">Закрыть</button>
+            </div>
+            <div id="successGift" style="display:none;">
+                <h3 class="fw-bold mb-2 text-success">Оплата прошла успешно!</h3>
+                <p class="text-muted small mb-4 fw-bold">Николаич передал вам подарок за этот заказ:</p>
+                <div class="gift-box-anim mb-4" onclick="openOrderGift()" style="cursor:pointer; font-size: 90px; text-shadow: 0 10px 20px rgba(0,0,0,0.2);">🎁</div>
+                <button class="btn btn-warning w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-2" onclick="openOrderGift()">Открыть подарок!</button>
+                <button class="btn btn-light fw-bold w-100 py-2 rounded-4 text-muted" onclick="location.href='/'">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
     function toggleBurger() { document.getElementById('burgerMenu').classList.toggle('active'); document.getElementById('burgerOverlay').classList.toggle('active'); }
+
+    // Фикс зависания серого фона при закрытии модалок
+    document.querySelectorAll('.modal').forEach(m => {
+        m.addEventListener('hidden.bs.modal', function () {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
+    });
+
+    function fireConfetti() {
+        if(window.confetti) {
+            confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 3000 });
+        }
+    }
 
     let cart = {};
     try { const stored = localStorage.getItem('nikolaich_cart'); if (stored && stored !== 'undefined') { cart = JSON.parse(stored); } } catch (e) { localStorage.removeItem('nikolaich_cart'); cart = {}; }
@@ -483,6 +533,49 @@
     let itemsTotal = 0; let lastCalc = null; let userAddresses = []; let currentReviewProdId = null;
     let calcDebounceTimer = null; let currentAddressMode = 'new'; let currentRatingOrderId = null;
     let pendingAction = null; let userVipStatus = parseInt('{{ user.age_verified if user else 0 }}') || 0;
+
+    // ВРЕМЯ РАБОТЫ И ПРЕДЗАКАЗЫ
+    const workStart = "{{ settings.work_time_start | default('09:00') }}";
+    const workEnd = "{{ settings.work_time_end | default('21:00') }}";
+    const preorderEnabled = "{{ settings.preorder_enabled | default('1') }}" === "1";
+    let isStoreOpen = true;
+
+    function checkWorkTime() {
+        const now = new Date();
+        const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+        const parseTime = (t) => { const [h,m] = t.split(':'); return parseInt(h)*60 + parseInt(m); };
+        const startMins = parseTime(workStart);
+        const endMins = parseTime(workEnd);
+        
+        if (startMins <= endMins) {
+            isStoreOpen = currentTotalMins >= startMins && currentTotalMins < endMins;
+        } else {
+            isStoreOpen = currentTotalMins >= startMins || currentTotalMins < endMins;
+        }
+        
+        if (!isStoreOpen) {
+            document.getElementById('closedBanner').style.display = 'block';
+        }
+        return isStoreOpen;
+    }
+
+    // ЗОНА ДОСТАВКИ (Подготовка фундамента Яндекс.Карт)
+    async function checkDeliveryZone(address) {
+        if(!window.ymaps || !ymaps.geocode) return true; // Пропускаем, если карт нет
+        const polygonCoords = JSON.parse('{{ settings.delivery_polygon | default("[]") | safe }}');
+        if(polygonCoords.length === 0) return true; // Зона не настроена
+        
+        try {
+            const res = await ymaps.geocode(address);
+            const firstGeoObject = res.geoObjects.get(0);
+            if(!firstGeoObject) return false;
+            const coords = firstGeoObject.geometry.getCoordinates();
+            const polygon = new ymaps.Polygon([polygonCoords]);
+            return polygon.geometry.contains(coords);
+        } catch(e) {
+            return true; // При ошибке разрешаем
+        }
+    }
 
     /* ЭТАП 6: Колесо Фортуны (JS Логика) */
     let wheelData = [];
@@ -601,6 +694,7 @@
 
         setTimeout(() => {
             isSpinning = false;
+            fireConfetti(); // Конфетти при выигрыше!
             showPrizeModal(data.prize);
         }, 4100);
     }
@@ -659,7 +753,30 @@
             openWheel();
         }
     }
-    /* Конец ЭТАПА 6 */
+    
+    // Получение подарка после оплаты заказа
+    async function openOrderGift() {
+        fireConfetti();
+        document.querySelector('.shake-btn').disabled = true;
+        
+        const res = await fetch('/api/order/claim_gift', {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({order_id: window.currentSuccessOrderId})
+        });
+        const data = await res.json();
+        bootstrap.Modal.getInstance(document.getElementById('successModal')).hide();
+        
+        if(data.status === 'ok' || data.status === 'already_claimed') {
+            if(data.tickets > 0) alert(`Вам начислено +${data.tickets} билетов! Крутите рулетку!`);
+            setTimeout(() => openWheel(), 500);
+        } else if (data.status === 'waiting_payment') {
+            alert("Платеж еще обрабатывается банком. Как только он пройдет, подарок станет доступен в личном кабинете!");
+            window.location.href = "/";
+        } else {
+            alert(data.error || "Ошибка получения подарка");
+        }
+    }
 
     if(!localStorage.getItem('cookies_accepted')) { document.getElementById('cookieBanner').style.setProperty('display', 'flex', 'important'); }
     window.acceptCookies = function() { localStorage.setItem('cookies_accepted', 'true'); const cb = document.getElementById('cookieBanner'); cb.style.display = 'none'; cb.style.setProperty('display', 'none', 'important'); }
@@ -672,7 +789,24 @@
     function handleInstallClick() { const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase()); if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; } deferredPrompt = null; }); } else if (isIos) { new bootstrap.Modal(document.getElementById('iosInstallModal')).show(); } else { new bootstrap.Modal(document.getElementById('androidInstallModal')).show(); } }
     function updateProductVisibility() { const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true'; document.querySelectorAll('.p-item').forEach(el => { const pHidden = parseInt(el.dataset.hidden || '0', 10); if (pHidden === 1 && !isConfirmed) { el.classList.add('locked-18'); } else { el.classList.remove('locked-18'); } }); }
 
-    document.addEventListener("DOMContentLoaded", () => { updateProductVisibility(); recalcTotals(); });
+    document.addEventListener("DOMContentLoaded", () => { 
+        checkWorkTime();
+        updateProductVisibility(); 
+        recalcTotals(); 
+        
+        // Проверка возврата с PayKeeper
+        const urlParams = new URLSearchParams(window.location.search);
+        const succOrder = urlParams.get('success_order');
+        if(succOrder) {
+            document.getElementById('successOrderId').innerText = `#${succOrder}`;
+            document.getElementById('successStandard').style.display = 'none';
+            document.getElementById('successGift').style.display = 'block';
+            window.history.replaceState({}, document.title, "/");
+            new bootstrap.Modal(document.getElementById('successModal')).show();
+            window.currentSuccessOrderId = succOrder;
+        }
+    });
+    
     function sortCatalog(order) { const container = document.getElementById('grid-filter'); const items = Array.from(container.querySelectorAll('.p-item')); items.sort((a, b) => { return order === 'asc' ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price) : parseFloat(b.dataset.price) - parseFloat(a.dataset.price); }); items.forEach(item => container.appendChild(item)); }
     
     function searchProducts() { 
@@ -727,7 +861,27 @@
         const res = await fetch('/api/cart/calc', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items_total: itemsTotal, delivery_type: dt, promo_code: pc, phone: ph, cart: cart})}); 
         lastCalc = await res.json(); 
         
-        const warnBox = document.getElementById('cart18Warning'); const delSelect = document.getElementById('deliveryType'); const paySelect = document.getElementById('paymentType'); 
+        const warnBox = document.getElementById('cart18Warning'); const delSelect = document.getElementById('deliveryType'); const paySelect = document.getElementById('paymentType'); const timeSelect = document.getElementById('checkoutTime');
+        const btn = document.getElementById('checkoutBtn'); const mo = lastCalc.min_order || 0; 
+        
+        // Логика времени работы
+        if(!isStoreOpen) {
+            if(!preorderEnabled) {
+                btn.disabled = true;
+                btn.classList.replace('btn-success', 'btn-secondary');
+                btn.innerHTML = 'Магазин сейчас закрыт';
+                return;
+            } else {
+                // Убираем из выбора "Как можно скорее" если магазин закрыт, но предзаказы работают
+                Array.from(timeSelect.options).forEach(opt => {
+                    if(opt.value.includes('скорее')) opt.style.display = 'none';
+                });
+                if(timeSelect.value.includes('скорее')) timeSelect.selectedIndex = 1;
+            }
+        } else {
+            Array.from(timeSelect.options).forEach(opt => opt.style.display = 'block');
+        }
+
         if(lastCalc.force_pickup_18) { warnBox.style.display = 'block'; dt = 'pickup'; pt = 'cash'; delSelect.value = 'pickup'; delSelect.disabled = true; paySelect.value = 'cash'; paySelect.disabled = true; document.getElementById('addressBox').style.display = 'none'; } 
         else { warnBox.style.display = 'none'; delSelect.disabled = false; paySelect.disabled = false; document.getElementById('addressBox').style.display = dt === 'pickup' ? 'none' : 'block'; if(dt !== 'pickup') { oc.disabled = true; if(pt === 'cash') { pt = 'online'; paySelect.value = 'online'; } } else { oc.disabled = false; } } 
         
@@ -757,9 +911,8 @@
         document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; 
         document.getElementById('tDiscount').innerText = lastCalc.final_total.toFixed(0) + ' ₽'; 
         
-        const btn = document.getElementById('checkoutBtn'); const mo = lastCalc.min_order || 0; 
         if(lastCalc.items_total < mo) { btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary'); btn.innerHTML = `Добавьте ещё на ${mo - lastCalc.items_total} ₽`; } 
-        else { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; } 
+        else if (isStoreOpen || preorderEnabled) { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; } 
     }
     
     async function sendOrder() { 
@@ -805,6 +958,8 @@
                 } else { 
                     bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); 
                     document.getElementById('successOrderId').innerText = `#${data.order_id}`; 
+                    document.getElementById('successStandard').style.display = 'block';
+                    document.getElementById('successGift').style.display = 'none';
                     new bootstrap.Modal(document.getElementById('successModal')).show(); 
                 } 
             } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); calcCart(); } 

@@ -9,28 +9,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background: #f4f5f7; display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
-        
         .sidebar { width: 280px; background: #fff; border-right: 1px solid #e5e5ea; padding: 25px; display: flex; flex-direction: column; overflow-y: auto; z-index: 2000;}
         .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; background: #f4f5f7; }
         .card-ui { background: #fff; border-radius: 20px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 24px; border: 1px solid #f0f0f0; }
-        
         .nav-link { color: #8e8e93; font-weight: 600; border-radius: 12px; margin-bottom: 5px; cursor: pointer; padding: 12px 18px; transition: all 0.2s ease;}
         .nav-link:hover { background: #fafafa; color: #1d1d1f; }
         .nav-link.active { background: #f2f2f7; color: #000; }
-        
         .sub-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .sub-nav-item { cursor: pointer; font-weight: 600; color: #8e8e93; padding: 8px 18px; border-radius: 20px; transition: 0.2s;}
         .sub-nav-item:hover { color: #000; }
         .sub-nav-item.active { background: #000; color: #fff; }
-        
         .img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 8px; border: 1px solid #eee;}
         .table th { font-weight: 600; color: #8e8e93; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eee; }
         .table td { vertical-align: middle; border-bottom: 1px solid #f8f9fa; }
-        
         .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
         .chat-client { align-self: flex-start; background: #fff; color: black; border: 1px solid #eee; border-bottom-left-radius: 4px; }
         .chat-admin { align-self: flex-end; background: #00b853; color: white; border-bottom-right-radius: 4px; }
-        
         .roulette-box { background: #1d1d1f; color: #fff; border-radius: 24px; padding: 40px; text-align: center; position: relative; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); border: 4px solid #f1c40f;}
         .roulette-number { font-size: 80px; font-weight: 900; letter-spacing: 10px; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.5); font-variant-numeric: tabular-nums; }
         .roulette-winner { animation: pulseWinner 1s infinite alternate; }
@@ -42,10 +36,8 @@
             .sidebar .nav { flex-direction: row !important; width: 100%; justify-content: space-between; overflow-x: auto;}
             .nav-link { flex: 0 0 auto; text-align: center; font-size: 10px; padding: 5px 10px; margin: 0; border-radius: 8px; display: flex; flex-direction: column; align-items: center;}
             .nav-link i { font-size: 20px !important; margin: 0 0 2px 0 !important; }
-            
             .main-content { padding: 15px; padding-bottom: 100px; }
             .card-ui { padding: 15px; }
-
             .table-responsive table { border: 0; }
             .table-responsive thead { display: none; }
             .table-responsive tr { display: block; border: 1px solid #eee; border-radius: 16px; margin-bottom: 15px; background: #fff; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
@@ -125,7 +117,9 @@
             <h3 class="fw-bold m-0 text-warning"><i class="bi bi-bullseye me-2"></i>Сектора Колеса</h3>
             <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" onclick="openWheelSectorModal()"><i class="bi bi-plus-lg"></i> Добавить сектор</button>
         </div>
-        <div class="alert alert-warning border-0 small py-2 mb-3 shadow-sm rounded-3"><i class="bi bi-info-circle-fill me-1"></i> <b>Здесь настраиваются призы</b> для Колеса Фортуны, которое крутят клиенты на витрине. Если <i>Остаток = 0</i>, сектор автоматически отключается (или превращается в пустышку). Чем выше <i>Вес (Шанс)</i>, тем чаще выпадает сектор. Настроить вероятность проигрыша можно в разделе <b>Сайт -> Настройки</b>.</div>
+        <div class="alert alert-warning border-0 small py-2 mb-3 shadow-sm rounded-3">
+            <i class="bi bi-info-circle-fill me-1"></i> Настройка призов для Колеса Фортуны. Если <i>Остаток = 0</i>, сектор отключается.
+        </div>
         <div class="card-ui p-0 overflow-hidden border-0">
             <div class="table-responsive">
                 <table class="table table-hover m-0 align-middle">
@@ -337,12 +331,12 @@
                 <div class="col-md-6">
                     <div class="card-ui h-100">
                         <h5 class="fw-bold mb-4">Основные настройки</h5>
-                        <label class="small fw-bold text-muted mb-1">Название магазина (Логотип)</label>
+                        <label class="small fw-bold text-muted mb-1">Название магазина</label>
                         <input type="text" id="setShopName" class="form-control bg-light border mb-3 p-2">
                         <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
                         <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
-                        <label class="small fw-bold text-muted mb-1">Ваши Реквизиты (Для ручного перевода)</label>
-                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2" placeholder="+7 999 000 00 00 (Сбербанк)"></textarea>
+                        <label class="small fw-bold text-muted mb-1">Реквизиты (Для ручного перевода)</label>
+                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
                         
                         <div class="p-3 border border-success rounded-4 bg-success bg-opacity-10 mb-4">
                             <h5 class="fw-bold mb-3 text-success"><i class="bi bi-credit-card-fill me-2"></i>Эквайринг (PayKeeper)</h5>
@@ -353,14 +347,14 @@
                         </div>
 
                         <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
-                        <label class="small fw-bold text-muted mb-1">Текст Публичной Оферты</label>
+                        <label class="small fw-bold text-muted mb-1">Текст Оферты</label>
                         <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="4"></textarea>
                         <label class="small fw-bold text-muted mb-1">Политика конфиденциальности</label>
                         <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="4"></textarea>
 
-                        <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Безопасность</h5>
-                        <label class="small fw-bold text-muted mb-1">VK ID Администратора (Для уведомлений)</label>
-                        <input type="text" id="setAdminVkId" class="form-control bg-light border mb-3 p-2 fw-bold text-primary" placeholder="Только цифры ID">
+                        <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Безопасность и Доступ</h5>
+                        <label class="small fw-bold text-muted mb-1">VK ID Админа (Для уведомлений)</label>
+                        <input type="text" id="setAdminVkId" class="form-control bg-light border mb-3 p-2 fw-bold text-primary">
                         <label class="small fw-bold text-muted mb-1">Секретный код VK</label>
                         <input type="text" id="setVkCode" class="form-control bg-light border mb-3 p-2">
                         <label class="small fw-bold text-muted mb-1">PIN-код Администратора</label>
@@ -384,45 +378,39 @@
                     </div>
 
                     <div class="card-ui mb-4 shadow-sm" style="border: 2px solid #e67e22;">
-                        <h5 class="fw-bold mb-3" style="color: #e67e22;"><i class="bi bi-bullseye me-2"></i>Алгоритм Колеса Фортуны</h5>
-                        
-                        <label class="small fw-bold text-muted mb-1">Статус акции на витрине</label>
-                        <select id="setWheelActive" class="form-select bg-light border mb-3 p-2 fw-bold">
-                            <option value="1">🟢 Колесо включено</option>
-                            <option value="0">🔴 Скрыто от клиентов</option>
-                        </select>
-
-                        <label class="small fw-bold text-muted mb-1">Пустых прокрутов до шанса на ценный приз</label>
-                        <input type="number" id="setWheelLossThreshold" class="form-control bg-light border mb-2 p-2 fw-bold text-danger" placeholder="0 = отключить защиту">
-                        <div class="small text-muted lh-sm" style="font-size: 11px;">Укажите количество прокрутов, во время которых система будет принудительно выдавать только мелкие скидки или пустышки. На следующий раз сработает честный рандом.</div>
+                        <h5 class="fw-bold mb-3" style="color: #e67e22;"><i class="bi bi-bullseye me-2"></i>Колесо Фортуны</h5>
+                        <label class="small fw-bold text-muted mb-1">Статус на витрине</label>
+                        <select id="setWheelActive" class="form-select bg-light border mb-3 p-2 fw-bold"><option value="1">🟢 Включено</option><option value="0">🔴 Скрыто</option></select>
+                        <label class="small fw-bold text-muted mb-1">Прокрутов до шанса выиграть (0=откл)</label>
+                        <input type="number" id="setWheelLossThreshold" class="form-control bg-light border mb-2 p-2 fw-bold text-danger">
                     </div>
 
                     <div class="card-ui mb-4" style="border: 2px solid #0dcaf0;">
                         <h5 class="fw-bold mb-3 text-info"><i class="bi bi-palette me-2"></i>Фоны сайта</h5>
-                        <label class="small fw-bold text-muted mb-1">Цвет основного фона (HEX) или ссылка</label>
-                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgMain" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgMain').click()"><i class="bi bi-upload"></i></button><input type="file" id="uploadBgMain" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgMain')"></div>
-                        <label class="small fw-bold text-muted mb-1 mt-2">Картинка верхней Шапки</label>
-                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgHeader" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgHeader').click()"><i class="bi bi-upload"></i></button><input type="file" id="uploadBgHeader" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgHeader')"></div>
-                        <label class="small fw-bold text-muted mb-1 mt-2">Картинка ленты Категорий</label>
-                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCat" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCat').click()"><i class="bi bi-upload"></i></button><input type="file" id="uploadBgCat" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCat')"></div>
-                        <label class="small fw-bold text-muted mb-1 mt-2">Картинка Карточек Товаров</label>
-                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCard" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCard').click()"><i class="bi bi-upload"></i></button><input type="file" id="uploadBgCard" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCard')"></div>
+                        <label class="small fw-bold text-muted mb-1">Основной фон</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgMain" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgMain').click()">Загрузить</button><input type="file" id="uploadBgMain" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgMain')"></div>
+                        <label class="small fw-bold text-muted mb-1 mt-2">Шапка</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgHeader" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgHeader').click()">Загрузить</button><input type="file" id="uploadBgHeader" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgHeader')"></div>
+                        <label class="small fw-bold text-muted mb-1 mt-2">Лента Категорий</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCat" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCat').click()">Загрузить</button><input type="file" id="uploadBgCat" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCat')"></div>
+                        <label class="small fw-bold text-muted mb-1 mt-2">Карточки Товаров</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCard" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCard').click()">Загрузить</button><input type="file" id="uploadBgCard" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCard')"></div>
                     </div>
 
                     <div class="card-ui mb-4" style="border: 2px solid #8e8e93;">
                         <h5 class="fw-bold mb-4"><i class="bi bi-truck me-2"></i>Комплектация и Логистика</h5>
                         <div class="row g-2 mb-3">
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Доставка включена?</label><select id="setDelEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Включена</option><option value="0">🔴 Выключена</option></select></div>
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Самовывоз включен?</label><select id="setPickEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Вклюен</option><option value="0">🔴 Выключен</option></select></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Доставка?</label><select id="setDelEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Вкл</option><option value="0">🔴 Выкл</option></select></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Самовывоз?</label><select id="setPickEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Вкл</option><option value="0">🔴 Выкл</option></select></div>
                         </div>
                         <div class="row g-2 mb-3">
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Магазин открыт с</label><input type="time" id="setWorkStart" class="form-control bg-light border p-2 fw-bold"></div>
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Закрыт с (До завтра)</label><input type="time" id="setWorkEnd" class="form-control bg-light border p-2 fw-bold text-danger"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Открыто с</label><input type="time" id="setWorkStart" class="form-control bg-light border p-2 fw-bold"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Закрыто с</label><input type="time" id="setWorkEnd" class="form-control bg-light border p-2 fw-bold text-danger"></div>
                         </div>
-                        <label class="small fw-bold text-muted mb-1">Принимать предзаказы ночью?</label>
+                        <label class="small fw-bold text-muted mb-1">Предзаказы ночью?</label>
                         <select id="setPreorderEnabled" class="form-select bg-light border mb-3 p-2 fw-bold">
-                            <option value="1">✅ Да, принимать на завтра</option>
-                            <option value="0">⛔ Нет, блокировать оформление заказа</option>
+                            <option value="1">✅ Принимать на завтра</option>
+                            <option value="0">⛔ Блокировать полностью</option>
                         </select>
                         <div class="row mb-3">
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Мин. ДОСТАВКА</label><input type="number" id="setMinOrder" class="form-control bg-light border p-2"></div>
@@ -430,7 +418,7 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Сборка пакета</label><input type="number" id="setPackageCost" class="form-control bg-light border p-2"></div>
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Логистика магазина</label><input type="number" id="setCourierCost" class="form-control bg-light border p-2"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Цена доставки курьером</label><input type="number" id="setCourierCost" class="form-control bg-light border p-2"></div>
                         </div>
                         <div class="row mb-4">
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Бесплатно от (₽)</label><input type="number" id="setFreeDelivery" class="form-control bg-light border p-2"></div>
@@ -439,13 +427,12 @@
 
                         <div class="p-3 border border-dark rounded-4 bg-light mb-2">
                             <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-taxi-front-fill me-2"></i>Яндекс API (Доставка / Зоны)</h6>
-                            <label class="small fw-bold text-muted mb-1">Yandex Delivery Token (Для вызова такси)</label>
+                            <label class="small fw-bold text-muted mb-1">Yandex Delivery Token</label>
                             <input type="text" id="setYandexToken" class="form-control bg-white border border-dark mb-2 p-2">
-                            <label class="small fw-bold text-muted mb-1">Yandex Maps API Key (Для расчета зон)</label>
+                            <label class="small fw-bold text-muted mb-1">Yandex Maps API Key</label>
                             <input type="text" id="setYandexMapsKey" class="form-control bg-white border border-dark mb-2 p-2">
-                            <label class="small fw-bold text-muted mb-1">Координаты зоны (Массив GeoJSON)</label>
+                            <label class="small fw-bold text-muted mb-1">Координаты зоны доставки (GeoJSON)</label>
                             <textarea id="setDeliveryPolygon" class="form-control bg-white border border-dark mb-2 p-2" rows="3" placeholder="[ [lat, lng], [lat, lng] ]"></textarea>
-                            <div class="small text-muted" style="font-size: 11px;">Сгенерировать массив можно в конструкторе Я.Карт и скопировать сюда.</div>
                         </div>
                     </div>
                 </div>
@@ -503,9 +490,9 @@
                     <div class="mb-4"><label class="small fw-bold text-muted mb-1">Сменить статус</label><select id="ocStatus" class="form-select fw-bold border-2 p-2 shadow-sm" onchange="sendOrderMsg('status', this.value)"></select></div>
                     <div class="mt-auto">
                         <h6 class="fw-bold mb-2 text-muted small">Быстрые сообщения</h6>
-                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="sendOrderMsg('req')"><i class="bi bi-credit-card text-primary me-2"></i> Реквизиты для оплаты</button>
+                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="sendOrderMsg('req')"><i class="bi bi-credit-card text-primary me-2"></i> Реквизиты оплаты</button>
                         <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="promptTaxi()"><i class="bi bi-taxi-front text-warning me-2"></i> Тариф Яндекс.Логистики</button>
-                        <button class="btn btn-success shadow-sm w-100 fw-bold text-start" onclick="sendOrderMsg('paid')"><i class="bi bi-check-circle me-2"></i> Подтвердить получение денег</button>
+                        <button class="btn btn-success shadow-sm w-100 fw-bold text-start" onclick="sendOrderMsg('paid')"><i class="bi bi-check-circle me-2"></i> Деньги получены</button>
                     </div>
                 </div>
                 <div class="col-md-7 d-flex flex-column bg-white position-relative">
@@ -529,13 +516,14 @@
     let currentActiveOrder = null; 
     let activeCouriers = [];
     let productsList = []; 
-    let lastOrdersCount = 0;
+    let lastOrdersCount = 0; 
+    let currentGlobalChatUserId = null;
     
     setInterval(async () => {
         try {
             const data = await apiCall('orders');
             if(data && data.length > lastOrdersCount) {
-                if(lastOrdersCount > 0) document.getElementById('dingSound').play().catch(e => console.log('Audio blocked'));
+                if(lastOrdersCount > 0) document.getElementById('dingSound').play().catch(e => console.log(e));
                 lastOrdersCount = data.length;
                 if(document.getElementById('orders').style.display === 'block') loadOrders();
             }
@@ -588,13 +576,16 @@
         };
         new bootstrap.Modal(document.getElementById('universalModal')).show();
     }
-    
-    async function logoutAdmin() { await fetch('/api/admin/logout', {method: 'POST'}); window.location.reload(); }
 
-    /* ЗАГРУЗКА ФОТО (ДОБАВЛЕНО) */
+    async function logoutAdmin() { 
+        await fetch('/api/admin/logout', {method: 'POST'}); 
+        window.location.reload(); 
+    }
+
     async function uploadDesignBg(input, targetId) {
         if(!input.files || input.files.length === 0) return;
-        const formData = new FormData(); formData.append('file', input.files[0]);
+        const formData = new FormData(); 
+        formData.append('file', input.files[0]);
         document.body.style.cursor = 'wait';
         try {
             const res = await fetch('/api/upload', {method: 'POST', body: formData});
@@ -609,8 +600,8 @@
         const data = await apiCall('promotions');
         const wh = await apiCall('warehouse');
         if(wh) { categoriesList = wh.categories; productsList = wh.products; }
-        
         if(!data) return;
+        
         document.getElementById('tablePromotions').innerHTML = data.map(p => {
             let typeName = ""; let conditions = ""; let benefit = "";
             if (p.promo_type === 'happy_hours') { 
@@ -622,7 +613,7 @@
                 conditions = `Сумма от ${p.min_sum} ₽`;
                 benefit = `🎁 Товар ID: ${p.target_id}`;
             } else if (p.promo_type === '1plus1') { 
-                typeName = '<span class="badge bg-warning text-dark">1+1=3 (Третий в подарок)</span>'; 
+                typeName = '<span class="badge bg-warning text-dark">1+1=3</span>'; 
                 conditions = `Категория ID: ${p.target_id || 'Все'}`;
                 benefit = `🎁 Бесплатно 1 шт.`;
             }
@@ -860,11 +851,14 @@
         const res = await apiCall('order_chat/' + orderId); 
         if(!res || res.error) return alert("Ошибка загрузки заказа");
         const o = res.order; const u = res.user; const msgs = res.messages; currentGlobalChatUserId = u.id;
+        
         document.getElementById('ocTitle').innerText = `Заказ #${o.id}`;
         let itemsHtml = Object.values(o.items).map(i => `<li>${i.name} — ${i.qty}${i.unit}</li>`).join('');
         document.getElementById('ocInfo').innerHTML = `<b>Клиент:</b> ${u.full_name || u.phone}<br><b>Сумма чека:</b> ${o.final_total} ₽<br><b>Адрес:</b> ${o.address || '-'}<br><b class="mt-2 d-block">Состав:</b><ul>${itemsHtml}</ul>`;
+        
         const statuses = ['Новый', 'Ожидает оплаты', 'Оплачен', 'Собран', 'В пути', 'Выполнен', 'Отменен'];
         document.getElementById('ocStatus').innerHTML = statuses.map(s => `<option value="${s}" ${o.status===s ? 'selected' : ''}>${s}</option>`).join('');
+        
         renderOrderChatMessages(msgs, 'ocMessages'); 
         new bootstrap.Modal(document.getElementById('orderChatModal')).show();
     }
@@ -949,6 +943,9 @@
     }
 
     async function sendBroadcast() { const text = document.getElementById('broadcastText').value; if(!text) return alert("Сначала напишите текст!"); if(!confirm("Отправить ВСЕМ?")) return; const res = await apiCall('vk_action', 'POST', {msg_type: 'broadcast', custom_val: text}); if(res && res.status === 'ok') { alert(`Успешно!`); document.getElementById('broadcastText').value = ''; } }
+    async function openAllChatsModal() { const data = await apiCall('all_chats'); if(!data) return; document.getElementById('chatUserList').innerHTML = data.map(u => `<div class="p-3 border-bottom" style="cursor:pointer;" onclick="openGlobalChat(${u.id}, '${u.full_name || u.phone}')"><div class="fw-bold">${u.full_name || 'Без имени'}</div><div class="small text-muted">${u.phone}</div></div>`).join(''); new bootstrap.Modal(document.getElementById('allChatsModal')).show(); }
+    async function openGlobalChat(userId, name) { currentGlobalChatUserId = userId; document.getElementById('activeChatName').innerText = name; const res = await apiCall('order_chat/0'); if(res) renderOrderChatMessages(res.messages.filter(m => m.user_id == userId), 'globalChatMessages'); }
+    async function sendGlobalChatMsg() { const text = document.getElementById('globalChatInput').value.trim(); if(!text || !currentGlobalChatUserId) return; document.getElementById('globalChatInput').value = ''; await apiCall('vk_action', 'POST', {msg_type: 'direct', custom_val: text, target_id: currentGlobalChatUserId}); openGlobalChat(currentGlobalChatUserId, document.getElementById('activeChatName').innerText); }
 
     /* СКЛАД И НАСТРОЙКИ */
     async function loadWarehouse() {
@@ -997,7 +994,7 @@
     
     function renderPhotoPreviews() { 
         const box = document.getElementById('pPhotoPreviewBox'); 
-        if(box) box.innerHTML = currentProductImages.map((url, idx) => `<div style="position:relative; display:inline-block; margin-right:10px; margin-bottom:10px;"><img src="${url}" class="img-preview" style="width:70px; height:70px; box-shadow:0 2px 5px rgba(0,0,0,0.1);"><button class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0" style="padding: 0 5px; transform: translate(30%, -30%); font-size:10px;" onclick="currentProductImages.splice(${idx}, 1); renderPhotoPreviews(); event.stopPropagation();">X</button></div>`).join(''); 
+        if(box) box.innerHTML = currentProductImages.map((url, idx) => `<div style="position:relative; display:inline-block; margin-right:10px; margin-bottom:10px;"><img src="${url}" class="img-preview"><button class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0" style="padding: 0 5px; transform: translate(30%, -30%); font-size:10px;" onclick="currentProductImages.splice(${idx}, 1); renderPhotoPreviews(); event.stopPropagation();">X</button></div>`).join(''); 
     }
 
     function openProductModal(p = null) {
@@ -1008,7 +1005,7 @@
         openModal(p ? 'Редактирование товара' : 'Новый товар', `
             <input type="hidden" id="pId" value="${p ? p.id : ''}">
             <div class="row">
-                <div class="col-md-8 border-end pe-md-4">
+                <div class="col-md-12 border-end pe-md-4">
                     <label class="small fw-bold text-muted mb-1">Название</label>
                     <input type="text" id="pName" class="form-control bg-light border mb-2 p-2 fw-bold" placeholder="Стейк Рибай" value="${p ? p.name : ''}">
                     <label class="small fw-bold text-muted mb-1">Описание</label>
@@ -1191,6 +1188,13 @@
             document.getElementById('setYandexToken').value = settings.yandex_delivery_token || '';
             document.getElementById('setYandexMapsKey').value = settings.yandex_maps_apikey || '';
             document.getElementById('setDeliveryPolygon').value = settings.delivery_polygon || '';
+            
+            document.getElementById('setPWABanner').value = settings.show_pwa_banner || '1';
+            document.getElementById('setLockIcon').value = settings.show_lock_icon || '1';
+            document.getElementById('setBgMain').value = settings.bg_main || '';
+            document.getElementById('setBgHeader').value = settings.bg_header || '';
+            document.getElementById('setBgCat').value = settings.bg_cat || '';
+            document.getElementById('setBgCard').value = settings.bg_card || '';
         }
         const wh = await apiCall('warehouse'); if(wh) { categoriesList = wh.categories; productsList = wh.products; }
         const banners = await apiCall('banners'); if(banners) document.getElementById('tableBanners').innerHTML = banners.map(b => `<tr><td data-label="Текст">${b.title}</td><td data-label="Цвет фона"><div style="width:24px; height:24px; background:${b.bg_color}; border-radius:6px; border:1px solid #ddd;"></div></td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBannerModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("banners", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
@@ -1217,7 +1221,6 @@
             pk_secret: document.getElementById('setPkSecret').value,
             wheel_active: document.getElementById('setWheelActive').value,
             wheel_loss_threshold: document.getElementById('setWheelLossThreshold').value,
-            
             delivery_enabled: document.getElementById('setDelEnabled').value,
             pickup_enabled: document.getElementById('setPickEnabled').value,
             work_time_start: document.getElementById('setWorkStart').value,
@@ -1226,7 +1229,13 @@
             admin_vk_id: document.getElementById('setAdminVkId').value,
             yandex_delivery_token: document.getElementById('setYandexToken').value,
             yandex_maps_apikey: document.getElementById('setYandexMapsKey').value,
-            delivery_polygon: document.getElementById('setDeliveryPolygon').value
+            delivery_polygon: document.getElementById('setDeliveryPolygon').value,
+            bg_main: document.getElementById('setBgMain').value, 
+            bg_header: document.getElementById('setBgHeader').value,
+            bg_cat: document.getElementById('setBgCat').value, 
+            bg_card: document.getElementById('setBgCard').value,
+            show_pwa_banner: document.getElementById('setPWABanner').value, 
+            show_lock_icon: document.getElementById('setLockIcon').value
         }); 
         alert('Все настройки успешно сохранены!'); 
     }
@@ -1234,3 +1243,71 @@
     function openBlockModal(b = null) { 
         const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.category_id==c.id ? 'selected' : ''}>${c.name}</option>`).join(''); 
         openModal(b ? 'Настройка блока' : 'Создать блок', `
+            <input type="hidden" id="blId" value="${b ? b.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Название блока на сайте</label>
+            <input type="text" id="blTitle" class="form-control bg-light border mb-3 p-2 fw-bold" placeholder="🔥 Хиты продаж" value="${b ? b.title : ''}">
+            <div class="row g-2 mb-3">
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Тип товаров</label><select id="blType" class="form-select bg-light border p-2 fw-bold" onchange="document.getElementById('blCatWrap').style.display = this.value === 'category' ? 'block' : 'none'"><option value="sale" ${b && b.block_type=='sale' ? 'selected' : ''}>Товары по скидке (Акция)</option><option value="category" ${b && b.block_type=='category' ? 'selected' : ''}>Товары из Категории</option></select></div>
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Порядок вывода</label><input type="number" id="blSort" class="form-control bg-light border p-2" value="${b ? b.sort_order : '1'}"></div>
+            </div>
+            <div id="blCatWrap" style="display: ${b && b.block_type=='category' ? 'block' : 'none'}"><label class="small fw-bold text-muted mb-1">Какую категорию выводить?</label><select id="blCat" class="form-select bg-light border mb-3 p-2">${catOptions}</select></div>
+            <label class="small fw-bold text-muted mb-1">Статус</label>
+            <select id="blActive" class="form-select bg-light border p-2"><option value="1" ${b && b.active==1 ? 'selected' : ''}>Включен (Показывать)</option><option value="0" ${b && b.active==0 ? 'selected' : ''}>Выключен (Скрыть)</option></select>
+        `, 'Сохранить', async () => { await apiCall('homepage_blocks', 'POST', { id: document.getElementById('blId').value, title: document.getElementById('blTitle').value, block_type: document.getElementById('blType').value, category_id: document.getElementById('blCat').value, sort_order: document.getElementById('blSort').value, active: document.getElementById('blActive').value }); loadSettings(); }); 
+    }
+    
+    function openBannerModal(b = null) { 
+        const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.link_cat==c.id ? 'selected' : ''}>${c.name}</option>`).join(''); 
+        openModal(b ? 'Настройка баннера' : 'Новый баннер', `
+            <input type="hidden" id="bId" value="${b ? b.id : ''}">
+            <div class="p-3 border rounded bg-white mt-2">
+                <label class="small fw-bold text-muted mb-1">Крупный текст</label>
+                <input type="text" id="bTitle" class="form-control bg-light border mb-2 p-2 fw-bold" value="${b ? b.title : ''}">
+                <label class="small fw-bold text-muted mb-1">Мелкий текст</label>
+                <input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
+                <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label>
+                <div class="input-group mb-2 shadow-sm"><input type="text" id="bUrl" class="form-control bg-white border" value="${b ? b.img_url : ''}"><button class="btn btn-dark" type="button" onclick="document.getElementById('upBnImg').click()"><i class="bi bi-upload"></i></button><input type="file" id="upBnImg" style="display:none" onchange="uploadDesignBg(this, 'bUrl')"></div>
+                <label class="small fw-bold text-muted mb-1">Внешняя ссылка (VK и т.д.)</label>
+                <input type="text" id="bLinkUrl" class="form-control bg-light border mb-3 p-2 text-primary fw-bold" placeholder="https://vk.com/..." value="${b ? b.link_url || '' : ''}">
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Цвет плашки</label><input type="color" id="bColor" class="form-control bg-light border w-100 p-1" value="${b ? b.bg_color : '#ffffff'}"></div>
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Куда ведет клик</label><select id="bLink" class="form-select bg-light border p-2 fw-bold">${catOptions}</select></div>
+                </div>
+            </div>
+        `, 'Опубликовать', async () => { await apiCall('banners', 'POST', { id: document.getElementById('bId').value, title: document.getElementById('bTitle').value, subtitle: document.getElementById('bSub').value, img_url: document.getElementById('bUrl').value, link_url: document.getElementById('bLinkUrl').value, bg_color: document.getElementById('bColor').value, link_cat: document.getElementById('bLink').value }); loadSettings(); }); 
+    }
+    
+    function openPromoModal(p = null) { 
+        openModal(p ? 'Настройка промокода' : 'Новый промокод', `
+            <input type="hidden" id="prId" value="${p ? p.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Код</label>
+            <input type="text" id="prCode" class="form-control bg-light border mb-3 p-2 fw-bold text-danger" value="${p ? p.code : ''}">
+            <div class="row g-2 mb-3">
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Скидка в %</label><input type="number" id="prPerc" class="form-control bg-light border p-2" value="${p ? p.discount_percent : '0'}"></div>
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Скидка в рублях</label><input type="number" id="prRub" class="form-control bg-light border p-2" value="${p ? p.discount_rub : '0'}"></div>
+            </div>
+            <label class="small fw-bold text-muted mb-1">Минимальная сумма заказа (₽)</label>
+            <input type="number" id="prMin" class="form-control bg-light border mb-3 p-2" value="${p ? p.min_sum : '0'}">
+            <div class="form-check form-switch mb-3 border p-3 rounded-3 bg-white">
+                <input class="form-check-input" type="checkbox" id="prSysadmin" ${p && p.is_sysadmin_only == 1 ? 'checked' : ''}>
+                <label class="form-check-label small fw-bold" for="prSysadmin">Код Сисадмина (Оплата балансом)</label>
+            </div>
+            <label class="small fw-bold text-muted mb-1">Статус</label>
+            <select id="prActive" class="form-select bg-light border p-2"><option value="1" ${p && p.is_active==1 ? 'selected' : ''}>Включен</option><option value="0" ${p && p.is_active==0 ? 'selected' : ''}>Выключен</option></select>
+        `, 'Сохранить', async () => { await apiCall('promocodes', 'POST', { id: document.getElementById('prId').value, code: document.getElementById('prCode').value, discount_percent: document.getElementById('prPerc').value, discount_rub: document.getElementById('prRub').value, min_sum: document.getElementById('prMin').value, is_active: document.getElementById('prActive').value, is_sysadmin_only: document.getElementById('prSysadmin').checked ? 1 : 0 }); loadSettings(); }); 
+    }
+
+    async function deleteEntity(entity, id, callback) { 
+        let payload = {id: id}; 
+        if (entity === 'orders') { 
+            const pin = prompt('Введите PIN:'); if (pin === null) return; payload.pin = pin; 
+        } else { if(!confirm('Точно удалить?')) return; } 
+        const res = await fetch(`/api/admin/${entity}`, { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }); 
+        const data = await res.json(); 
+        if (data.error) { alert("Ошибка: " + data.error); } else { callback(); } 
+    }
+
+    window.onload = () => { loadOrders(); };
+</script>
+</body>
+</html>

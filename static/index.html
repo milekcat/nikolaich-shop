@@ -328,7 +328,7 @@
                         {% if p.images %}<img src="{{ p.images[0] }}" loading="lazy">{% else %}<div class="text-white small fw-bold opacity-50">Без фото</div>{% endif %}
                     </div>
                     <div class="p-rating">★ {{ p.dyn_rating }} <span class="text-white-50" style="font-size:10px;">({{ p.rev_count }})</span></div>
-                    <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
+                    <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                     <div class="p-unit">за 1 {{ p.unit }}</div>
                     <div class="p-name">{{ p.name }}</div>
                     <button class="btn-add mt-auto" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>

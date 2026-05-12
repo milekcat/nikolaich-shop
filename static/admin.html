@@ -118,7 +118,7 @@
             <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" onclick="openWheelSectorModal()"><i class="bi bi-plus-lg"></i> Добавить сектор</button>
         </div>
         <div class="alert alert-warning border-0 small py-2 mb-3 shadow-sm rounded-3">
-            <i class="bi bi-info-circle-fill me-1"></i> Настройка призов для Колеса Фортуны. Если <i>Остаток = 0</i>, сектор отключается.
+            <i class="bi bi-info-circle-fill me-1"></i> Здесь настраиваются призы. Включайте и выключайте офферы (например, Perfluence) с помощью галочки.
         </div>
         <div class="card-ui p-0 overflow-hidden border-0">
             <div class="table-responsive">
@@ -127,8 +127,8 @@
                         <tr>
                             <th>Иконка / Название</th>
                             <th>Тип приза</th>
-                            <th>Шанс (Вес)</th>
-                            <th>Остаток</th>
+                            <th>Шанс / Остаток</th>
+                            <th>Статус</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
@@ -725,8 +725,8 @@
             return `<tr>
                 <td data-label="Название"><div class="d-flex align-items-center"><div style="width:30px; height:30px; background:${s.color}; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:10px; border: 1px solid #ddd;">${s.icon}</div><span class="fw-bold">${s.title}</span></div></td>
                 <td data-label="Тип приза">${typeStr} <span class="text-muted small">(${s.value})</span></td>
-                <td data-label="Шанс (Вес)">${s.weight}</td>
-                <td data-label="Остаток"><span class="badge ${s.stock>0 || s.stock===-1 ? 'bg-success' : 'bg-danger'}">${stockStr}</span></td>
+                <td data-label="Шанс / Остаток">${s.weight} / <span class="badge ${s.stock>0 || s.stock===-1 ? 'bg-success' : 'bg-danger'}">${stockStr}</span></td>
+                <td data-label="Статус"><span class="badge ${s.is_active === 1 ? 'bg-primary' : 'bg-secondary'}">${s.is_active === 1 ? 'Вкл' : 'Выкл'}</span></td>
                 <td data-label="Действия">
                     <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openWheelSectorModal(${JSON.stringify(s).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick="deleteEntity('wheel_sectors', ${s.id}, loadWheelSectors)"><i class="bi bi-trash"></i></button>
@@ -755,7 +755,7 @@
             </div>
             
             <div class="p-3 bg-light border rounded-4 mb-3">
-                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-gift-fill me-2"></i>Красивая выдача приза (Партнерка)</h6>
+                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-gift-fill me-2"></i>Для партнерок и рекламы</h6>
                 <label class="small fw-bold text-muted mb-1">Промокод (если нужно выдать код)</label>
                 <input type="text" id="wsPromoCode" class="form-control bg-white border mb-2 p-2 fw-bold text-primary" value="${s ? (s.promo_code || '') : ''}">
                 <label class="small fw-bold text-muted mb-1">Ссылка-баннер (Картинка)</label>
@@ -767,13 +767,20 @@
                 <label class="small fw-bold text-muted mb-1">Куда ведет клик по баннеру / кнопке</label>
                 <input type="text" id="wsPartnerLink" class="form-control bg-white border mb-2 p-2 text-success fw-bold" value="${s ? (s.partner_link || '') : ''}" placeholder="https://...">
                 <label class="small fw-bold text-muted mb-1">Описание приза (Для карточки)</label>
-                <textarea id="wsDescription" class="form-control bg-white border p-2" rows="2">${s ? (s.description || '') : ''}</textarea>
+                <textarea id="wsDescription" class="form-control bg-white border mb-2 p-2" rows="2">${s ? (s.description || '') : ''}</textarea>
+                <label class="small fw-bold text-muted mb-1">ERID (Маркировка рекламы)</label>
+                <input type="text" id="wsErid" class="form-control bg-white border p-2 text-muted" style="font-size: 12px;" value="${s ? (s.erid || '') : ''}" placeholder="2Vtzqw...">
             </div>
 
             <div class="row g-2 mb-3">
                 <div class="col-4"><label class="small fw-bold text-muted mb-1">Вес (Шанс)</label><input type="number" id="wsWeight" class="form-control bg-light border p-2 text-primary fw-bold" value="${s ? s.weight : '10'}"></div>
                 <div class="col-4"><label class="small fw-bold text-muted mb-1">Остаток (-1 = ∞)</label><input type="number" id="wsStock" class="form-control bg-light border p-2" value="${s ? s.stock : '-1'}"></div>
                 <div class="col-4"><label class="small fw-bold text-muted mb-1">Цвет сектора</label><input type="color" id="wsColor" class="form-control bg-light border p-1 w-100" value="${s ? s.color : '#ffffff'}"></div>
+            </div>
+            
+            <div class="form-check form-switch mb-2 border p-3 rounded-3 bg-white">
+                <input class="form-check-input" type="checkbox" id="wsActive" ${(!s || s.is_active == 1) ? 'checked' : ''}>
+                <label class="form-check-label small fw-bold" for="wsActive">Включить сектор в Колесе Фортуны</label>
             </div>
         `, 'Сохранить', async () => {
             await apiCall('wheel_sectors', 'POST', {
@@ -788,7 +795,9 @@
                 promo_code: document.getElementById('wsPromoCode').value,
                 banner_url: document.getElementById('wsBannerUrl').value,
                 partner_link: document.getElementById('wsPartnerLink').value,
-                description: document.getElementById('wsDescription').value
+                description: document.getElementById('wsDescription').value,
+                erid: document.getElementById('wsErid').value,
+                is_active: document.getElementById('wsActive').checked ? 1 : 0
             });
             loadWheelSectors();
         });
@@ -1266,7 +1275,11 @@
                 <label class="small fw-bold text-muted mb-1">Мелкий текст</label>
                 <input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
                 <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label>
-                <div class="input-group mb-2 shadow-sm"><input type="text" id="bUrl" class="form-control bg-white border" value="${b ? b.img_url : ''}"><button class="btn btn-dark" type="button" onclick="document.getElementById('upBnImg').click()"><i class="bi bi-upload"></i></button><input type="file" id="upBnImg" style="display:none" onchange="uploadDesignBg(this, 'bUrl')"></div>
+                <div class="input-group mb-2 shadow-sm">
+                    <input type="text" id="bUrl" class="form-control bg-white border" value="${b ? b.img_url : ''}">
+                    <button class="btn btn-dark" type="button" onclick="document.getElementById('upBnImg').click()"><i class="bi bi-upload"></i></button>
+                    <input type="file" id="upBnImg" style="display:none" onchange="uploadDesignBg(this, 'bUrl')">
+                </div>
                 <label class="small fw-bold text-muted mb-1">Внешняя ссылка (VK и т.д.)</label>
                 <input type="text" id="bLinkUrl" class="form-control bg-light border mb-3 p-2 text-primary fw-bold" placeholder="https://vk.com/..." value="${b ? b.link_url || '' : ''}">
                 <div class="row g-2 mb-3">

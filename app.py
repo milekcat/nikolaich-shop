@@ -8,6 +8,7 @@ import random
 import os
 import hashlib
 from flask import Flask, render_template, request, jsonify, session
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = 'nikolaich_erp_v55_final'
@@ -129,7 +130,7 @@ def init_db():
             try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
             except: pass
             
-        for col in ['banner_url TEXT DEFAULT ""', 'partner_link TEXT DEFAULT ""', 'promo_code TEXT DEFAULT ""', 'description TEXT DEFAULT ""']:
+        for col in ['banner_url TEXT DEFAULT ""', 'partner_link TEXT DEFAULT ""', 'promo_code TEXT DEFAULT ""', 'description TEXT DEFAULT ""', 'is_active INTEGER DEFAULT 1', 'erid TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE wheel_sectors ADD COLUMN {col}')
             except: pass
             try: c.execute(f'ALTER TABLE user_prizes ADD COLUMN {col}')
@@ -314,7 +315,7 @@ def wheel_data():
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
     if not user: return jsonify({"error": "unauthorized"})
     
-    sectors = get_db_query("SELECT id, title, type, color, icon FROM wheel_sectors WHERE stock != 0 ORDER BY id ASC")
+    sectors = get_db_query("SELECT id, title, type, color, icon FROM wheel_sectors WHERE stock != 0 AND is_active = 1 ORDER BY id ASC")
     prizes = get_db_query("SELECT * FROM user_prizes WHERE user_id=? AND is_used=0 AND expires_at > ? ORDER BY id DESC", 
                           (user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                           
@@ -343,7 +344,7 @@ def wheel_spin():
         loss_setting = conn.execute("SELECT value FROM settings WHERE key_name='wheel_loss_threshold'").fetchone()
         loss_threshold = int(loss_setting['value']) if loss_setting and str(loss_setting['value']).isdigit() else 0
         
-        sectors = conn.execute("SELECT * FROM wheel_sectors WHERE stock != 0 ORDER BY id ASC").fetchall()
+        sectors = conn.execute("SELECT * FROM wheel_sectors WHERE stock != 0 AND is_active = 1 ORDER BY id ASC").fetchall()
         if not sectors: return jsonify({"error": "Колесо не настроено"})
         
         force_cheap = False
@@ -377,11 +378,11 @@ def wheel_spin():
         if winner_sector['type'] != 'empty':
             exp = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
             conn.execute("""INSERT INTO user_prizes 
-                (user_id, title, type, value, expires_at, banner_url, partner_link, promo_code, description) 
-                VALUES (?,?,?,?,?,?,?,?,?)""", 
+                (user_id, title, type, value, expires_at, banner_url, partner_link, promo_code, description, erid) 
+                VALUES (?,?,?,?,?,?,?,?,?,?)""", 
                 (user['id'], winner_sector['title'], winner_sector['type'], winner_sector['value'], exp,
                  winner_sector.get('banner_url', ''), winner_sector.get('partner_link', ''), 
-                 winner_sector.get('promo_code', ''), winner_sector.get('description', '')))
+                 winner_sector.get('promo_code', ''), winner_sector.get('description', ''), winner_sector.get('erid', '')))
                          
     sector_angle = 360 / len(sectors)
     target_angle = 360 * 5 + (360 - (winner_index * sector_angle + sector_angle/2))
@@ -1062,8 +1063,8 @@ def admin_crud(entity):
                 else: conn.execute("INSERT INTO promotions (title, promo_type, target_id, discount_val, min_sum, time_start, time_end, active) VALUES (?,?,?,?,?,?,?,?)", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active']))
 
             elif entity == 'wheel_sectors': 
-                if data.get('id'): conn.execute("UPDATE wheel_sectors SET title=?, type=?, value=?, weight=?, stock=?, color=?, icon=?, banner_url=?, partner_link=?, promo_code=?, description=? WHERE id=?", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', ''), data['id']))
-                else: conn.execute("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', '')))
+                if data.get('id'): conn.execute("UPDATE wheel_sectors SET title=?, type=?, value=?, weight=?, stock=?, color=?, icon=?, banner_url=?, partner_link=?, promo_code=?, description=?, is_active=?, erid=? WHERE id=?", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', ''), data.get('is_active', 1), data.get('erid', ''), data['id']))
+                else: conn.execute("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description, is_active, erid) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', ''), data.get('is_active', 1), data.get('erid', '')))
 
             elif entity == 'settings':
                 for key, val in data.items(): conn.execute("INSERT INTO settings (key_name, value) VALUES (?,?) ON CONFLICT(key_name) DO UPDATE SET value=?", (key, val, val))
@@ -1138,6 +1139,19 @@ def admin_chat_send():
 def admin_all_chats():
     if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
     return jsonify([get_db_query("SELECT id, phone, full_name, social_link FROM users WHERE id=?", (u['user_id'],), fetch_one=True) for u in get_db_query("SELECT DISTINCT user_id FROM chat_messages ORDER BY id DESC") if u])
+
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if not session.get('is_admin'): return jsonify({"error": "Unauthorized"}), 403
+    if 'file' not in request.files: return jsonify({"error": "No file"})
+    f = request.files['file']
+    if f.filename == '': return jsonify({"error": "Empty file"})
+    
+    ext = f.filename.split('.')[-1]
+    fname = f"{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(UPLOAD_FOLDER, fname)
+    f.save(path)
+    return jsonify({"url": f"/{path}"})
 
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', port=8085)

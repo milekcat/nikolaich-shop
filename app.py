@@ -110,11 +110,13 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS wheel_sectors (
             id INTEGER PRIMARY KEY, title TEXT, type TEXT, value TEXT, weight INTEGER DEFAULT 10, 
             stock INTEGER DEFAULT -1, color TEXT DEFAULT "#ffffff", icon TEXT DEFAULT "🎁",
-            banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "")''')
+            banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "",
+            is_active INTEGER DEFAULT 1, erid TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS user_prizes (
             id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT, type TEXT, value TEXT, 
             expires_at TIMESTAMP, is_used INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "")''')
+            banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "",
+            erid TEXT DEFAULT "")''')
 
         # Миграция
         for col in ['is_on_main INTEGER DEFAULT 0']:
@@ -163,12 +165,12 @@ def init_db():
 
         if c.execute("SELECT COUNT(*) FROM wheel_sectors").fetchone()[0] == 0:
             defaults = [
-                ('Скидка 5%', 'discount', '5', 30, -1, '#ffc107', '🏷️', '', '', '', 'Скидка на весь ассортимент'),
-                ('СберПрайм 30 дней', 'partner', 'SBER30', 20, -1, '#00d65f', '🏦', 'https://example.com/sber.png', 'https://sber.ru', 'SBER30', 'Крутой подарок от партнера'),
-                ('Пусто', 'empty', '', 40, -1, '#e0e0e0', '😢', '', '', '', ''),
-                ('Супер приз', 'product', 'Корзина продуктов', 5, 2, '#ff9800', '🎁', '', '', '', 'Свяжитесь с админом для получения')
+                ('Скидка 5%', 'discount', '5', 30, -1, '#ffc107', '🏷️', '', '', '', 'Скидка на весь ассортимент', 1, ''),
+                ('СберПрайм 30 дней', 'partner', 'SBER30', 20, -1, '#00d65f', '🏦', 'https://example.com/sber.png', 'https://sber.ru', 'SBER30', 'Крутой подарок от партнера', 1, 'erid:12345'),
+                ('Пусто', 'empty', '', 40, -1, '#e0e0e0', '😢', '', '', '', '', 1, ''),
+                ('Супер приз', 'product', 'Корзина продуктов', 5, 2, '#ff9800', '🎁', '', '', '', 'Свяжитесь с админом для получения', 1, '')
             ]
-            c.executemany("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description) VALUES (?,?,?,?,?,?,?,?,?,?,?)", defaults)
+            c.executemany("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description, is_active, erid) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", defaults)
     conn.commit()
 
 init_db()
@@ -315,6 +317,7 @@ def wheel_data():
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
     if not user: return jsonify({"error": "unauthorized"})
     
+    # Отдаем только активные сектора
     sectors = get_db_query("SELECT id, title, type, color, icon FROM wheel_sectors WHERE stock != 0 AND is_active = 1 ORDER BY id ASC")
     prizes = get_db_query("SELECT * FROM user_prizes WHERE user_id=? AND is_used=0 AND expires_at > ? ORDER BY id DESC", 
                           (user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -344,6 +347,7 @@ def wheel_spin():
         loss_setting = conn.execute("SELECT value FROM settings WHERE key_name='wheel_loss_threshold'").fetchone()
         loss_threshold = int(loss_setting['value']) if loss_setting and str(loss_setting['value']).isdigit() else 0
         
+        # Берем только активные
         sectors = conn.execute("SELECT * FROM wheel_sectors WHERE stock != 0 AND is_active = 1 ORDER BY id ASC").fetchall()
         if not sectors: return jsonify({"error": "Колесо не настроено"})
         

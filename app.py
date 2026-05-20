@@ -166,23 +166,33 @@ def paykeeper_webhook():
     pk_id = data.get('id', '')
     orderid = data.get('orderid', '')
     key = data.get('key', '')
+    
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     secret = settings.get('pk_secret', '')
+    
     valid_hash = hashlib.md5(f"{pk_id}{secret}".encode('utf-8')).hexdigest()
     if valid_hash == key:
+        # 1. Обновляем статус заказа на нашем сайте
         with sqlite3.connect('shop.db') as conn: 
             conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (orderid,))
+            
         order = get_db_query("SELECT * FROM orders WHERE id=?", (orderid,), fetch_one=True)
         if order:
             user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
-            if user and user['social_link']: send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{orderid} получена! Начинаем комплектацию.")
+            if user and user['social_link']: 
+                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{orderid} получена! Начинаем комплектацию.")
             
-            # Отправка чека в СБИС
-            if order.get('receipt_payload'):
-                send_receipt_to_sbis(orderid, order['receipt_payload'], settings)
-
             admin_vk = settings.get('admin_vk_id', '').strip()
-            if admin_vk: send_vk_message(None, None, f"💰 Заказ #{orderid} УСПЕШНО ОПЛАЧЕН онлайн!\nСумма: {order['final_total']} ₽\nЧек направлен в СБИС.", custom_vk_id=admin_vk)
+            if admin_vk: 
+                send_vk_message(None, None, f"💰 Заказ #{orderid} оплачен онлайн! Направляем данные в СБИС.", custom_vk_id=admin_vk)
+        
+        # 2. Пересылаем оригинальный запрос от PayKeeper напрямую в СБИС
+        try:
+            sbis_url = "https://online.sbis.ru/acquiring/service/sbp/"
+            requests.post(sbis_url, data=data, timeout=10)
+        except Exception as e:
+            print(f"Ошибка трансляции чека в СБИС: {str(e)}")
+            
         return f"OK {valid_hash}"
     return "Error: Hash mismatch"
 

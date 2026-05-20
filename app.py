@@ -177,6 +177,7 @@ def paykeeper_webhook():
             user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
             if user and user['social_link']: send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{orderid} получена! Начинаем комплектацию.")
             
+            # Отправка чека в СБИС
             if order.get('receipt_payload'):
                 send_receipt_to_sbis(orderid, order['receipt_payload'], settings)
 

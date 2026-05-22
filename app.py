@@ -9,6 +9,7 @@ import os
 import hashlib
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
+from yookassa import Configuration, Payment
 
 app = Flask(__name__)
 app.secret_key = 'nikolaich_erp_v55_final'
@@ -20,6 +21,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 VK_TOKEN = "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
 VK_API_VERSION = "5.131"
+
+# Настройка ЮKassa (замени ключи на свои боевые или тяни из .env)
+Configuration.account_id = os.getenv('YOOKASSA_SHOP_ID', 'твой_shop_id')
+Configuration.secret_key = os.getenv('YOOKASSA_SECRET_KEY', 'live_d-b1l-24CoA-QawS3XVkfv1zT0i-ljsH4-fvYI0tYzQ')
 
 def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
     if custom_vk_id:
@@ -79,7 +84,7 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, link_url TEXT DEFAULT "", active INTEGER DEFAULT 1)')
         c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0, password TEXT DEFAULT "", role TEXT DEFAULT "client", comm_type TEXT DEFAULT "fixed", comm_val REAL DEFAULT 0, tips_link TEXT DEFAULT "", tips_qr TEXT DEFAULT "", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, tickets_balance INTEGER DEFAULT 0, last_daily_bonus TIMESTAMP DEFAULT NULL)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", address TEXT DEFAULT "", delivery_time TEXT DEFAULT "Как можно скорее", comment TEXT DEFAULT "", courier_id INTEGER DEFAULT 0, is_paid_to_courier INTEGER DEFAULT 0, is_paid_to_sysadmin INTEGER DEFAULT 0, courier_rating INTEGER DEFAULT 0, courier_comment TEXT DEFAULT "", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, gift_claimed INTEGER DEFAULT 0, receipt_payload TEXT DEFAULT "")''')
+        c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", address TEXT DEFAULT "", delivery_time TEXT DEFAULT "Как можно скорее", comment TEXT DEFAULT "", courier_id INTEGER DEFAULT 0, is_paid_to_courier INTEGER DEFAULT 0, is_paid_to_sysadmin INTEGER DEFAULT 0, courier_rating INTEGER DEFAULT 0, courier_comment TEXT DEFAULT "", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, gift_claimed INTEGER DEFAULT 0, receipt_payload TEXT DEFAULT "", yookassa_payment_id TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY, user_id INTEGER, is_incoming INTEGER, text TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS promocodes (id INTEGER PRIMARY KEY, code TEXT UNIQUE, discount_percent REAL DEFAULT 0, discount_rub REAL DEFAULT 0, min_sum REAL DEFAULT 0, is_active INTEGER DEFAULT 1, is_sysadmin_only INTEGER DEFAULT 0)''')
         c.execute('''CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, product_id INTEGER, user_id INTEGER, rating INTEGER, text TEXT, date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, is_approved INTEGER DEFAULT 1)''')
@@ -108,16 +113,16 @@ def init_db():
             except: pass
             try: c.execute(f'ALTER TABLE user_prizes ADD COLUMN {col}')
             except: pass
-        for col in ['gift_claimed INTEGER DEFAULT 0', 'receipt_payload TEXT DEFAULT ""']:
+        for col in ['gift_claimed INTEGER DEFAULT 0', 'receipt_payload TEXT DEFAULT ""', 'yookassa_payment_id TEXT DEFAULT ""']:
             try: c.execute(f'ALTER TABLE orders ADD COLUMN {col}')
             except: pass
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
-                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('pk_server', ''), ('pk_secret', ''), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1')
+                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('pk_server', ''), ('pk_secret', ''), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1'), ('store_locked', '0')
             ])
 
-        new_settings = [ ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'), ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'), ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), ('yandex_delivery_token', ''), ('sbis_api_token', '') ]
+        new_settings = [ ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'), ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'), ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), ('yandex_delivery_token', ''), ('sbis_api_token', ''), ('store_locked', '0') ]
         for key, val in new_settings:
             if c.execute("SELECT COUNT(*) FROM settings WHERE key_name=?", (key,)).fetchone()[0] == 0:
                 c.execute("INSERT INTO settings (key_name, value) VALUES (?, ?)", (key, val))
@@ -160,41 +165,36 @@ def award_tickets(conn, order_id, user_id, final_total, items_json="{}"):
     if wheel_tix > 0:
         conn.execute("UPDATE users SET tickets_balance = tickets_balance + ? WHERE id=?", (wheel_tix, user_id))
 
-@app.route('/api/paykeeper_webhook', methods=['POST'])
-def paykeeper_webhook():
-    data = request.form
-    pk_id = data.get('id', '')
-    orderid = data.get('orderid', '')
-    key = data.get('key', '')
+
+@app.route('/api/yookassa_webhook', methods=['POST'])
+def yookassa_webhook():
+    event_data = request.json
+    if not event_data: return jsonify({"status": "error", "message": "Empty payload"}), 400
     
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    secret = settings.get('pk_secret', '')
+    event_type = event_data.get('event')
+    payment_object = event_data.get('object', {})
+    order_id = payment_object.get('metadata', {}).get('order_id')
     
-    valid_hash = hashlib.md5(f"{pk_id}{secret}".encode('utf-8')).hexdigest()
-    if valid_hash == key:
-        # 1. Обновляем статус заказа на нашем сайте
+    if event_type == 'payment.succeeded' and order_id:
         with sqlite3.connect('shop.db') as conn: 
-            conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (orderid,))
+            conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (order_id,))
             
-        order = get_db_query("SELECT * FROM orders WHERE id=?", (orderid,), fetch_one=True)
+        order = get_db_query("SELECT * FROM orders WHERE id=?", (order_id,), fetch_one=True)
         if order:
             user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
             if user and user['social_link']: 
-                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{orderid} получена! Начинаем комплектацию.")
+                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{order_id} через ЮKassa получена! Начинаем комплектацию.")
             
+            settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
             admin_vk = settings.get('admin_vk_id', '').strip()
             if admin_vk: 
-                send_vk_message(None, None, f"💰 Заказ #{orderid} оплачен онлайн! Направляем данные в СБИС.", custom_vk_id=admin_vk)
+                send_vk_message(None, None, f"💰 Заказ #{order_id} успешно оплачен (ЮKassa)! Направляем фискальные данные в СБИС.", custom_vk_id=admin_vk)
         
-        # 2. Пересылаем оригинальный запрос от PayKeeper напрямую в СБИС
-        try:
-            sbis_url = "https://online.sbis.ru/acquiring/service/sbp/"
-            requests.post(sbis_url, data=data, timeout=10)
-        except Exception as e:
-            print(f"Ошибка трансляции чека в СБИС: {str(e)}")
-            
-        return f"OK {valid_hash}"
-    return "Error: Hash mismatch"
+            # Отправляем чек в СБИС после успешной оплаты
+            if order.get('receipt_payload'):
+                send_receipt_to_sbis(order_id, order['receipt_payload'], settings)
+                
+    return jsonify({"status": "ok"}), 200
 
 @app.route('/api/vk_webhook', methods=['POST'])
 def vk_webhook():
@@ -322,10 +322,16 @@ def wheel_daily():
 
 @app.route('/')
 def index():
+    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+    
+    # Секретный замок: блокировка витрины для клиентов
+    if settings.get('store_locked') == '1' and not session.get('is_admin'):
+        return render_template('locked.html', settings=settings) # Убедись, что есть шаблон locked.html
+        
     auth_val = session.get('user_identifier')
     auth_type = session.get('auth_type', 'phone')
     user = get_user_by_identifier(auth_val, is_vk=(auth_type=='vk')) if auth_val else None
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+    
     cats = get_db_query("SELECT * FROM categories ORDER BY sort_order")
     prods = get_db_query("SELECT p.*, c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1")
     favs = [f['product_id'] for f in get_db_query("SELECT product_id FROM favorites WHERE user_id=?", (user['id'],))] if user else []
@@ -642,7 +648,7 @@ def checkout():
     
     admin_vk = settings.get('admin_vk_id', '').strip()
     if admin_vk:
-        admin_msg = f"🔥 НОВЫЙ ЗАКАЗ #{order_id}!\n👤 Клиент: {user.get('full_name', phone) if user else phone}\n📞 Телефон: {phone}\n💰 Сумма: {calc['final_total']} ₽ ({'Онлайн' if p_type == 'online' else 'При получении'})\n🚚 {d_type.upper()} ({d_time})\n"
+        admin_msg = f"🔥 НОВЫЙ ЗАКАЗ #{order_id}!\n👤 Клиент: {user.get('full_name', phone) if user else phone}\n📞 Телефон: {phone}\n💰 Сумма: {calc['final_total']} ₽ ({'Онлайн (ЮKassa)' if p_type == 'online' else 'При получении'})\n🚚 {d_type.upper()} ({d_time})\n"
         if address: admin_msg += f"📍 Адрес: {address}\n"
         if comment: admin_msg += f"📝 Комментарий: {comment}\n"
         admin_msg += f"\n🛒 Состав:\n{cart_summary_text}"
@@ -651,12 +657,30 @@ def checkout():
     if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
         
     if p_type == 'online':
-        pk_server = settings.get('pk_server', '').strip().rstrip('/')
-        if pk_server: 
-            client_fio_safe = user.get('full_name', '').strip() if user and user.get('full_name') else phone
-            short_cart = cart_summary_text.replace('\n', ', ')[:200] + "..." if len(cart_summary_text) > 200 else cart_summary_text.replace('\n', ', ')
-            return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": f"{pk_server}/create/", "sum": f"{calc['final_total']}", "orderid": str(order_id), "clientid": client_fio_safe, "client_email": client_email, "client_phone": phone, "name": f"Заказ #{order_id}: {short_cart}", "service_name": f"Продукты (Заказ #{order_id})", "receipt": receipt_json}})
-        else: return jsonify({"status": "error", "error": "PayKeeper не настроен."}), 400
+        # Интеграция ЮKassa напрямую
+        try:
+            payment = Payment.create({
+                "amount": {
+                    "value": str(calc['final_total']),
+                    "currency": "RUB"
+                },
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": f"https://nikolaich.shop/payment/success?order_id={order_id}"
+                },
+                "capture": True,
+                "description": f"Заказ #{order_id} в Магазине у Николаича",
+                "metadata": {
+                    "order_id": str(order_id)
+                }
+            })
+            with sqlite3.connect('shop.db') as conn:
+                conn.execute("UPDATE orders SET yookassa_payment_id=? WHERE id=?", (payment.id, order_id))
+                
+            return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": payment.confirmation.confirmation_url}})
+            
+        except Exception as e:
+            return jsonify({"status": "error", "error": f"Ошибка инициализации платежа: {str(e)}"}), 500
             
     return jsonify({"status": "ok", "order_id": order_id})
 
@@ -726,6 +750,31 @@ def admin_login():
 def admin_logout(): 
     session.pop('is_admin', None)
     return jsonify({"status": "ok"})
+
+# --- Дополнительная логика администратора (Замок и Статусы доставки) ---
+
+@app.route('/api/admin/secret_lock', methods=['POST'])
+def admin_secret_lock():
+    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
+    action = request.json.get('action')
+    with sqlite3.connect('shop.db') as conn:
+        if action == 'lock':
+            conn.execute("INSERT INTO settings (key_name, value) VALUES ('store_locked', '1') ON CONFLICT(key_name) DO UPDATE SET value='1'")
+            return jsonify({"status": "locked"})
+        elif action == 'unlock':
+            conn.execute("INSERT INTO settings (key_name, value) VALUES ('store_locked', '0') ON CONFLICT(key_name) DO UPDATE SET value='0'")
+            return jsonify({"status": "unlocked"})
+    return jsonify({"error": "Неверное действие"}), 400
+
+@app.route('/api/admin/delivery_status', methods=['GET'])
+def admin_delivery_status():
+    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
+    # Вывод данных о стоимости активных доставок в реальном времени
+    active_deliveries = get_db_query("SELECT id, final_total, delivery_cost, address, courier_id FROM orders WHERE delivery_type='courier' AND status IN ('Собран', 'В пути')")
+    total_delivery_costs = sum(float(d['delivery_cost']) for d in active_deliveries)
+    return jsonify({"active_count": len(active_deliveries), "total_delivery_costs": total_delivery_costs, "deliveries": active_deliveries})
+
+# ------------------------------------------------------------------------
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():

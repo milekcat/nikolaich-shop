@@ -70,7 +70,13 @@
 <div class="main-content">
     
     <div id="orders" class="tab">
-        <h3 class="fw-bold mb-4">Управление заказами</h3>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0">Управление заказами</h3>
+            <button class="btn btn-info fw-bold rounded-pill px-4 shadow-sm text-white" onclick="checkDeliveryStatus()"><i class="bi bi-truck me-1"></i> Мониторинг доставок</button>
+        </div>
+        
+        <div id="deliveryStatsContainer" class="alert alert-info border-0 shadow-sm rounded-4 mb-4" style="display:none;"></div>
+
         <div class="card-ui p-0 overflow-hidden border-0">
             <div class="table-responsive">
                 <table class="table table-hover m-0 align-middle">
@@ -337,14 +343,6 @@
                         <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
                         <label class="small fw-bold text-muted mb-1">Реквизиты (Для ручного перевода)</label>
                         <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
-                        
-                        <div class="p-3 border border-success rounded-4 bg-success bg-opacity-10 mb-4">
-                            <h5 class="fw-bold mb-3 text-success"><i class="bi bi-credit-card-fill me-2"></i>Эквайринг (PayKeeper)</h5>
-                            <label class="small fw-bold text-muted mb-1">URL сервера PayKeeper</label>
-                            <input type="text" id="setPkServer" class="form-control bg-white border border-success mb-2 p-2">
-                            <label class="small fw-bold text-muted mb-1">Секретное слово</label>
-                            <input type="password" id="setPkSecret" class="form-control bg-white border border-success mb-2 p-2">
-                        </div>
 
                         <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
                         <label class="small fw-bold text-muted mb-1">Текст Оферты</label>
@@ -353,6 +351,16 @@
                         <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="4"></textarea>
 
                         <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Безопасность и Доступ</h5>
+                        
+                        <div class="p-3 border border-danger rounded-4 bg-danger bg-opacity-10 mb-4">
+                            <h6 class="fw-bold mb-3 text-danger"><i class="bi bi-door-closed-fill me-2"></i>Секретный замок магазина</h6>
+                            <p class="small fw-bold text-muted mb-3">Закрывает витрину для посетителей (показывает заглушку, пока вы обновляете ассортимент или отдыхаете).</p>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-danger fw-bold w-50 shadow-sm" onclick="toggleStoreLock('lock')">🔒 Закрыть магазин</button>
+                                <button class="btn btn-success fw-bold w-50 shadow-sm" onclick="toggleStoreLock('unlock')">🔓 Открыть магазин</button>
+                            </div>
+                        </div>
+
                         <label class="small fw-bold text-muted mb-1">VK ID Админа (Для уведомлений)</label>
                         <input type="text" id="setAdminVkId" class="form-control bg-light border mb-3 p-2 fw-bold text-primary">
                         <label class="small fw-bold text-muted mb-1">Секретный код VK</label>
@@ -595,6 +603,43 @@
         document.body.style.cursor = 'default';
     }
 
+    /* ФУНКЦИИ СЕКРЕТНОГО ЗАМКА И ДОСТАВКИ */
+    function toggleStoreLock(action) {
+        if (!confirm(action === 'lock' ? 'Точно закрыть магазин от покупателей?' : 'Открыть магазин?')) return;
+        fetch('/api/admin/secret_lock', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: action })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) alert(data.error);
+            else alert('Статус магазина изменен: ' + data.status);
+        });
+    }
+
+    function checkDeliveryStatus() {
+        fetch('/api/admin/delivery_status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            const container = document.getElementById('deliveryStatsContainer');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Активных доставок: ${data.active_count}</h6>
+                        <span class="small">Общая стоимость активной логистики: <b class="text-success">${data.total_delivery_costs} ₽</b></span>
+                    </div>
+                    <button class="btn-close" onclick="document.getElementById('deliveryStatsContainer').style.display='none'"></button>
+                </div>
+            `;
+        });
+    }
+
     /* ХАБ АКЦИЙ */
     async function loadPromotions() {
         const data = await apiCall('promotions');
@@ -829,7 +874,7 @@
         document.getElementById('tableOrders').innerHTML = data.map(o => {
             const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger fw-bold"><i class="bi bi-geo-alt"></i> ${o.address}</span>` : '';
             let typeStr = o.delivery_type === 'pickup' ? '<span class="badge bg-warning text-dark">Самовывоз</span>' : (o.delivery_type === 'courier' ? 'Магазин' : 'Яндекс');
-            let payStr = o.payment_type === 'online' ? '<span class="text-success fw-bold">PayKeeper</span>' : (o.payment_type === 'transfer' ? 'Перевод' : 'Наличные');
+            let payStr = o.payment_type === 'online' ? '<span class="text-success fw-bold">ЮKassa</span>' : (o.payment_type === 'transfer' ? 'Перевод' : 'Наличные');
             
             return `<tr>
                 <td data-label="Заказ / Время"><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div><div class="small fw-bold text-primary mt-1">🕒 ${o.delivery_time}</div>${o.comment ? `<div class="small mt-1 text-warning bg-dark rounded p-1">📝 ${o.comment}</div>` : ''}</td>
@@ -1181,8 +1226,6 @@
             document.getElementById('setAdminPin').value = settings.admin_pin || '0000'; 
             document.getElementById('setOfertaText').value = settings.oferta_text || '';
             document.getElementById('setPrivacyText').value = settings.privacy_text || ''; 
-            document.getElementById('setPkServer').value = settings.pk_server || '';
-            document.getElementById('setPkSecret').value = settings.pk_secret || ''; 
             
             document.getElementById('setWheelActive').value = settings.wheel_active || '1';
             document.getElementById('setWheelLossThreshold').value = settings.wheel_loss_threshold || '0';
@@ -1226,8 +1269,6 @@
             admin_pin: document.getElementById('setAdminPin').value, 
             oferta_text: document.getElementById('setOfertaText').value, 
             privacy_text: document.getElementById('setPrivacyText').value, 
-            pk_server: document.getElementById('setPkServer').value, 
-            pk_secret: document.getElementById('setPkSecret').value,
             wheel_active: document.getElementById('setWheelActive').value,
             wheel_loss_threshold: document.getElementById('setWheelLossThreshold').value,
             delivery_enabled: document.getElementById('setDelEnabled').value,

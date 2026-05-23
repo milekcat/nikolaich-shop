@@ -13,13 +13,12 @@ from werkzeug.utils import secure_filename
 from yookassa import Configuration, Payment
 from dotenv import load_dotenv
 
-# Загружаем переменные из файла .env
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'nikolaich_erp_v55_final'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Лимит загрузки 16 МБ для Flask
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -27,7 +26,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 VK_TOKEN = "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
 VK_API_VERSION = "5.131"
 
-# Настройка ЮKassa (тянем ключи строго из .env)
 Configuration.account_id = os.getenv('YOOKASSA_SHOP_ID')
 Configuration.secret_key = os.getenv('YOOKASSA_SECRET_KEY')
 
@@ -124,7 +122,7 @@ def init_db():
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
-                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('pk_server', ''), ('pk_secret', ''), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1'), ('store_locked', '0')
+                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1'), ('store_locked', '0')
             ])
 
         new_settings = [ ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'), ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'), ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), ('yandex_delivery_token', ''), ('sbis_api_token', ''), ('store_locked', '0') ]
@@ -195,7 +193,6 @@ def yookassa_webhook():
             if admin_vk: 
                 send_vk_message(None, None, f"💰 Заказ #{order_id} успешно оплачен (ЮKassa)! Направляем фискальные данные в СБИС.", custom_vk_id=admin_vk)
         
-            # Отправляем чек в СБИС после успешной оплаты
             if order.get('receipt_payload'):
                 send_receipt_to_sbis(order_id, order['receipt_payload'], settings)
                 
@@ -329,9 +326,8 @@ def wheel_daily():
 def index():
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     
-    # Секретный замок: блокировка витрины для клиентов
     if settings.get('store_locked') == '1' and not session.get('is_admin'):
-        return render_template('locked.html', settings=settings) # Убедись, что есть шаблон locked.html
+        return render_template('locked.html', settings=settings)
         
     auth_val = session.get('user_identifier')
     auth_type = session.get('auth_type', 'phone')
@@ -662,34 +658,34 @@ def checkout():
     if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
         
     if p_type == 'online':
-        # Подготавливаем чек (строго по документации ЮKassa)
+        # 100% валидный чек для ЮKassa по ФЗ-54 (FFD 1.2)
         yookassa_items = []
         for i in receipt_items:
             yookassa_items.append({
-                "description": i["name"][:128].strip(),
+                "description": str(i["name"])[:128].strip(),
                 "quantity": str(i["quantity"]),
                 "amount": {
                     "value": f"{i['price']:.2f}",
                     "currency": "RUB"
                 },
-                "vat_code": 1, # 1 - Без НДС (совпадает с настройками СБИС для спецрежимов)
+                "vat_code": 1,
                 "payment_mode": "full_prepayment",
-                "payment_subject": "service" if i["item_type"] == "service" else "commodity"
+                "payment_subject": "service" if i["item_type"] == "service" else "commodity",
+                "measure": "piece" # Обязательный параметр для ФФД 1.2
             })
 
-        # Данные покупателя для чека
+        # Телефон в формате +79000000000 для ОФД
         customer_data = {}
         if email:
             customer_data["email"] = email
-        else:
-            # ЮKassa требует формат телефона ITU-T E.164, например +79000000000
-            phone_clean = re.sub(r'\D', '', phone)
-            if phone_clean.startswith('8'): 
-                phone_clean = '7' + phone_clean[1:]
+        phone_clean = re.sub(r'\D', '', phone)
+        if phone_clean.startswith('8'): phone_clean = '7' + phone_clean[1:]
+        if len(phone_clean) >= 11:
             customer_data["phone"] = f"+{phone_clean}"
+        elif not email:
+            customer_data["email"] = "client@nikolaich.shop"
 
         try:
-            # Создаем платеж
             payment_request = {
                 "amount": {
                     "value": f"{calc['final_total']:.2f}",
@@ -710,22 +706,16 @@ def checkout():
             
             payment = Payment.create(payment_request)
             
-            # Проверяем, есть ли ссылка
             if payment.confirmation and payment.confirmation.confirmation_url:
                 confirm_url = payment.confirmation.confirmation_url
-                print(f"DEBUG: Success! URL generated: {confirm_url}")
-                
                 with sqlite3.connect('shop.db') as conn:
                     conn.execute("UPDATE orders SET yookassa_payment_id=? WHERE id=?", (payment.id, order_id))
-                    
                 return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": confirm_url}})
             else:
-                print(f"CRITICAL ERROR: ЮKassa вернула платеж без URL. Объект: {payment}")
-                return jsonify({"status": "error", "error": "ЮKassa не вернула ссылку на оплату"}), 500
+                return jsonify({"status": "error", "error": "ЮKassa не вернула ссылку"}), 500
             
         except Exception as e:
-            print(f"CRITICAL ERROR (Exception): {str(e)}")
-            return jsonify({"status": "error", "error": f"Ошибка ЮKassa: {str(e)}"}), 500
+            return jsonify({"status": "error", "error": f"Сбой ЮKassa: {str(e)}"}), 500
 
 @app.route('/api/order/claim_gift', methods=['POST'])
 def claim_order_gift():
@@ -794,8 +784,6 @@ def admin_logout():
     session.pop('is_admin', None)
     return jsonify({"status": "ok"})
 
-# --- Дополнительная логика администратора (Замок и Статусы доставки) ---
-
 @app.route('/api/admin/secret_lock', methods=['POST'])
 def admin_secret_lock():
     if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
@@ -812,12 +800,9 @@ def admin_secret_lock():
 @app.route('/api/admin/delivery_status', methods=['GET'])
 def admin_delivery_status():
     if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    # Вывод данных о стоимости активных доставок в реальном времени
     active_deliveries = get_db_query("SELECT id, final_total, delivery_cost, address, courier_id FROM orders WHERE delivery_type='courier' AND status IN ('Собран', 'В пути')")
     total_delivery_costs = sum(float(d['delivery_cost']) for d in active_deliveries)
     return jsonify({"active_count": len(active_deliveries), "total_delivery_costs": total_delivery_costs, "deliveries": active_deliveries})
-
-# ------------------------------------------------------------------------
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():

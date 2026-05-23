@@ -661,7 +661,22 @@ def checkout():
     if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
         
     if p_type == 'online':
-        # Интеграция ЮKassa напрямую
+        # 1. Подготавливаем чек в строгом формате ЮKassa
+        yookassa_items = []
+        for i in receipt_items:
+            yookassa_items.append({
+                "description": i["name"][:128], # Название товара (макс 128 символов)
+                "quantity": str(i["quantity"]),
+                "amount": {
+                    "value": str(i["price"]),
+                    "currency": "RUB"
+                },
+                "vat_code": 1,  # 1 - ставка "Без НДС". Измени, если у ИП другая налоговая ставка.
+                "payment_mode": "full_prepayment",
+                "payment_subject": "service" if i["item_type"] == "service" else "commodity"
+            })
+
+        # 2. Инициализируем платеж с передачей чека
         try:
             payment = Payment.create({
                 "amount": {
@@ -676,6 +691,12 @@ def checkout():
                 "description": f"Заказ #{order_id} в Магазине у Николаича",
                 "metadata": {
                     "order_id": str(order_id)
+                },
+                "receipt": {
+                    "customer": {
+                        "email": client_email
+                    },
+                    "items": yookassa_items
                 }
             })
             with sqlite3.connect('shop.db') as conn:
@@ -685,8 +706,6 @@ def checkout():
             
         except Exception as e:
             return jsonify({"status": "error", "error": f"Ошибка инициализации платежа: {str(e)}"}), 500
-            
-    return jsonify({"status": "ok", "order_id": order_id})
 
 @app.route('/api/order/claim_gift', methods=['POST'])
 def claim_order_gift():

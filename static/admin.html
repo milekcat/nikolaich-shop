@@ -1,961 +1,1391 @@
-# -*- coding: utf-8 -*-
-import sqlite3
-import json
-import requests
-import uuid
-import datetime
-import random
-import os
-import hashlib
-from flask import Flask, render_template, request, jsonify, session
-from werkzeug.utils import secure_filename
-from yookassa import Configuration, Payment
-from dotenv import load_dotenv
-
-# Загружаем переменные из файла .env
-load_dotenv()
-
-app = Flask(__name__)
-app.secret_key = 'nikolaich_erp_v55_final'
-app.permanent_session_lifetime = datetime.timedelta(days=30)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Лимит загрузки 16 МБ для Flask
-
-UPLOAD_FOLDER = 'static/uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-VK_TOKEN = "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
-VK_API_VERSION = "5.131"
-
-# Настройка ЮKassa (тянем ключи строго из .env)
-Configuration.account_id = os.getenv('YOOKASSA_SHOP_ID')
-Configuration.secret_key = os.getenv('YOOKASSA_SECRET_KEY')
-
-def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
-    if custom_vk_id:
-        vk_id = custom_vk_id
-    else:
-        if not user_vk_link or "vk.com" not in user_vk_link: 
-            return "Нет ссылки на VK."
-        try:
-            domain = user_vk_link.split('/')[-1].split('?')[0]
-            vk_id = None
-            if domain.startswith('id') and domain[2:].isdigit(): 
-                vk_id = domain[2:]
-            else:
-                req_url = f"https://api.vk.com/method/utils.resolveScreenName?screen_name={domain}&access_token={VK_TOKEN}&v={VK_API_VERSION}"
-                r_id = requests.get(req_url).json()
-                if r_id.get('response') and r_id['response']['type'] == 'user': 
-                    vk_id = r_id['response']['object_id']
-            if not vk_id: return "Не удалось распознать ID."
-            if db_user_id:
-                with sqlite3.connect('shop.db') as conn:
-                    conn.execute("UPDATE users SET vk_id=? WHERE id=?", (str(vk_id), db_user_id))
-        except Exception as e:
-            return f"Сбой парсинга: {str(e)}"
-    try:
-        if db_user_id and not custom_vk_id:
-            with sqlite3.connect('shop.db') as conn:
-                conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (db_user_id, text))
-        payload = {"user_id": vk_id, "random_id": random.randint(1, 2147483647), "message": text, "access_token": VK_TOKEN, "v": VK_API_VERSION}
-        res = requests.post("https://api.vk.com/method/messages.send", data=payload).json()
-        if 'error' in res:
-            if res['error'].get('error_code') == 901: return "Клиент запретил сообщения."
-            return f"Ошибка ВК: {res['error'].get('error_msg')}"
-        return "ok"
-    except Exception as e: return f"Сбой отправки: {str(e)}"
-
-def send_receipt_to_sbis(order_id, receipt_data, settings):
-    sbis_token = settings.get('sbis_api_token', '').strip()
-    if not sbis_token:
-        print(f"⚠️ СБИС не фискализировал заказ #{order_id}: отсутствует токен доступа.")
-        return False
-    url = "https://online.sbis.ru/acquiring/service/sbp/"
-    headers = {"Content-Type": "application/json; charset=utf-8", "X-SBIS-AccessToken": sbis_token}
-    try:
-        payload = {"order_id": str(order_id), "timestamp": datetime.datetime.now().isoformat(), "receipt": json.loads(receipt_data)}
-        res = requests.post(url, json=payload, headers=headers, timeout=10)
-        return res.status_code == 200
-    except Exception as e:
-        print(f"❌ Ошибка СБИС: {str(e)}")
-        return False
-
-def init_db():
-    with sqlite3.connect('shop.db') as conn:
-        c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS settings (key_name TEXT PRIMARY KEY, value TEXT)')
-        c.execute('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT, icon TEXT, sort_order INTEGER, is_hidden INTEGER DEFAULT 0, is_on_main INTEGER DEFAULT 0)')
-        c.execute('''CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, desc TEXT, price REAL DEFAULT 0, old_price REAL DEFAULT 0, stock INTEGER DEFAULT 0, category_id INTEGER, images TEXT DEFAULT "[]", unit TEXT DEFAULT "шт", step REAL DEFAULT 1, active INTEGER DEFAULT 1, stickers TEXT DEFAULT "[]", rating REAL DEFAULT 5.0, variations TEXT DEFAULT "", ticket_bonus INTEGER DEFAULT 0)''')
-        c.execute('CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY, title TEXT, subtitle TEXT, img_url TEXT, bg_color TEXT, link_cat INTEGER, link_url TEXT DEFAULT "", active INTEGER DEFAULT 1)')
-        c.execute('''CREATE TABLE IF NOT EXISTS homepage_blocks (id INTEGER PRIMARY KEY, title TEXT, block_type TEXT, category_id INTEGER, sort_order INTEGER, active INTEGER DEFAULT 1)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0, password TEXT DEFAULT "", role TEXT DEFAULT "client", comm_type TEXT DEFAULT "fixed", comm_val REAL DEFAULT 0, tips_link TEXT DEFAULT "", tips_qr TEXT DEFAULT "", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, tickets_balance INTEGER DEFAULT 0, last_daily_bonus TIMESTAMP DEFAULT NULL)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", address TEXT DEFAULT "", delivery_time TEXT DEFAULT "Как можно скорее", comment TEXT DEFAULT "", courier_id INTEGER DEFAULT 0, is_paid_to_courier INTEGER DEFAULT 0, is_paid_to_sysadmin INTEGER DEFAULT 0, courier_rating INTEGER DEFAULT 0, courier_comment TEXT DEFAULT "", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, gift_claimed INTEGER DEFAULT 0, receipt_payload TEXT DEFAULT "", yookassa_payment_id TEXT DEFAULT "")''')
-        c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY, user_id INTEGER, is_incoming INTEGER, text TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS promocodes (id INTEGER PRIMARY KEY, code TEXT UNIQUE, discount_percent REAL DEFAULT 0, discount_rub REAL DEFAULT 0, min_sum REAL DEFAULT 0, is_active INTEGER DEFAULT 1, is_sysadmin_only INTEGER DEFAULT 0)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, product_id INTEGER, user_id INTEGER, rating INTEGER, text TEXT, date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, is_approved INTEGER DEFAULT 1)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS contests (id INTEGER PRIMARY KEY, title TEXT, description TEXT, img_url TEXT, min_sum REAL DEFAULT 1500, active INTEGER DEFAULT 1)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, contest_id INTEGER, user_id INTEGER, order_id INTEGER, ticket_number TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS sysadmin_logs (id INTEGER PRIMARY KEY, amount REAL, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS promotions (id INTEGER PRIMARY KEY, title TEXT, promo_type TEXT, target_id INTEGER DEFAULT 0, discount_val REAL DEFAULT 0, min_sum REAL DEFAULT 0, time_start TEXT DEFAULT "", time_end TEXT DEFAULT "", active INTEGER DEFAULT 1)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS wheel_sectors (id INTEGER PRIMARY KEY, title TEXT, type TEXT, value TEXT, weight INTEGER DEFAULT 10, stock INTEGER DEFAULT -1, color TEXT DEFAULT "#ffffff", icon TEXT DEFAULT "🎁", banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "", is_active INTEGER DEFAULT 1, erid TEXT DEFAULT "")''')
-        c.execute('''CREATE TABLE IF NOT EXISTS user_prizes (id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT, type TEXT, value TEXT, expires_at TIMESTAMP, is_used INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, banner_url TEXT DEFAULT "", partner_link TEXT DEFAULT "", promo_code TEXT DEFAULT "", description TEXT DEFAULT "", erid TEXT DEFAULT "")''')
-
-        for col in ['is_on_main INTEGER DEFAULT 0']:
-            try: c.execute(f'ALTER TABLE categories ADD COLUMN {col}')
-            except: pass
-        for col in ['link_url TEXT DEFAULT ""']:
-            try: c.execute(f'ALTER TABLE banners ADD COLUMN {col}')
-            except: pass
-        for col in ['tickets_balance INTEGER DEFAULT 0', 'last_daily_bonus TIMESTAMP DEFAULT NULL', 'wheel_spins INTEGER DEFAULT 0']:
-            try: c.execute(f'ALTER TABLE users ADD COLUMN {col}')
-            except: pass
-        for col in ['ticket_bonus INTEGER DEFAULT 0']:
-            try: c.execute(f'ALTER TABLE products ADD COLUMN {col}')
-            except: pass
-        for col in ['banner_url TEXT DEFAULT ""', 'partner_link TEXT DEFAULT ""', 'promo_code TEXT DEFAULT ""', 'description TEXT DEFAULT ""', 'is_active INTEGER DEFAULT 1', 'erid TEXT DEFAULT ""']:
-            try: c.execute(f'ALTER TABLE wheel_sectors ADD COLUMN {col}')
-            except: pass
-            try: c.execute(f'ALTER TABLE user_prizes ADD COLUMN {col}')
-            except: pass
-        for col in ['gift_claimed INTEGER DEFAULT 0', 'receipt_payload TEXT DEFAULT ""', 'yookassa_payment_id TEXT DEFAULT ""']:
-            try: c.execute(f'ALTER TABLE orders ADD COLUMN {col}')
-            except: pass
-
-        if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
-            c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
-                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('pk_server', ''), ('pk_secret', ''), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1'), ('store_locked', '0')
-            ])
-
-        new_settings = [ ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'), ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'), ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), ('yandex_delivery_token', ''), ('sbis_api_token', ''), ('store_locked', '0') ]
-        for key, val in new_settings:
-            if c.execute("SELECT COUNT(*) FROM settings WHERE key_name=?", (key,)).fetchone()[0] == 0:
-                c.execute("INSERT INTO settings (key_name, value) VALUES (?, ?)", (key, val))
-    conn.commit()
-
-init_db()
-
-def get_db_query(query, args=(), fetch_one=False):
-    with sqlite3.connect('shop.db') as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.execute(query, args)
-        if fetch_one: 
-            res = cur.fetchone()
-            return dict(res) if res else None
-        return [dict(row) for row in cur.fetchall()]
-
-def get_user_by_identifier(identifier, is_vk=False):
-    if not identifier: return None
-    field = "vk_id" if is_vk else "phone"
-    return get_db_query(f"SELECT * FROM users WHERE {field}=?", (identifier,), fetch_one=True)
-
-def award_tickets(conn, order_id, user_id, final_total, items_json="{}"):
-    contest = conn.execute("SELECT id, min_sum FROM contests WHERE active=1 LIMIT 1").fetchone()
-    if contest and float(final_total) >= float(contest[1]):
-        exists = conn.execute("SELECT COUNT(*) FROM tickets WHERE order_id=?", (order_id,)).fetchone()[0]
-        if exists == 0:
-            t_count = int(float(final_total) // float(contest[1]))
-            for _ in range(t_count):
-                t_num = f"{random.randint(100000, 999999)}"
-                conn.execute("INSERT INTO tickets (contest_id, user_id, order_id, ticket_number) VALUES (?,?,?,?)", (contest[0], user_id, order_id, t_num))
-    
-    wheel_tix = int(float(final_total) // 500)
-    items = json.loads(items_json) if items_json else {}
-    for k, v in items.items():
-        if '_gift' in k: continue
-        pid = k.split('_')[0]
-        p = conn.execute("SELECT ticket_bonus FROM products WHERE id=?", (pid,)).fetchone()
-        if p and p[0]: wheel_tix += (int(p[0]) * int(v.get('qty', 1)))
-            
-    if wheel_tix > 0:
-        conn.execute("UPDATE users SET tickets_balance = tickets_balance + ? WHERE id=?", (wheel_tix, user_id))
-
-
-@app.route('/api/yookassa_webhook', methods=['POST'])
-def yookassa_webhook():
-    event_data = request.json
-    if not event_data: return jsonify({"status": "error", "message": "Empty payload"}), 400
-    
-    event_type = event_data.get('event')
-    payment_object = event_data.get('object', {})
-    order_id = payment_object.get('metadata', {}).get('order_id')
-    
-    if event_type == 'payment.succeeded' and order_id:
-        with sqlite3.connect('shop.db') as conn: 
-            conn.execute("UPDATE orders SET status='Оплачен', payment_type='online' WHERE id=?", (order_id,))
-            
-        order = get_db_query("SELECT * FROM orders WHERE id=?", (order_id,), fetch_one=True)
-        if order:
-            user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
-            if user and user['social_link']: 
-                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{order_id} через ЮKassa получена! Начинаем комплектацию.")
-            
-            settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-            admin_vk = settings.get('admin_vk_id', '').strip()
-            if admin_vk: 
-                send_vk_message(None, None, f"💰 Заказ #{order_id} успешно оплачен (ЮKassa)! Направляем фискальные данные в СБИС.", custom_vk_id=admin_vk)
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Николаич ERP | Центр Управления</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #f4f5f7; display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+        .sidebar { width: 280px; background: #fff; border-right: 1px solid #e5e5ea; padding: 25px; display: flex; flex-direction: column; overflow-y: auto; z-index: 2000;}
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; background: #f4f5f7; }
+        .card-ui { background: #fff; border-radius: 20px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 24px; border: 1px solid #f0f0f0; }
+        .nav-link { color: #8e8e93; font-weight: 600; border-radius: 12px; margin-bottom: 5px; cursor: pointer; padding: 12px 18px; transition: all 0.2s ease;}
+        .nav-link:hover { background: #fafafa; color: #1d1d1f; }
+        .nav-link.active { background: #f2f2f7; color: #000; }
+        .sub-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .sub-nav-item { cursor: pointer; font-weight: 600; color: #8e8e93; padding: 8px 18px; border-radius: 20px; transition: 0.2s;}
+        .sub-nav-item:hover { color: #000; }
+        .sub-nav-item.active { background: #000; color: #fff; }
+        .img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 8px; border: 1px solid #eee;}
+        .table th { font-weight: 600; color: #8e8e93; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eee; }
+        .table td { vertical-align: middle; border-bottom: 1px solid #f8f9fa; }
+        .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+        .chat-client { align-self: flex-start; background: #fff; color: black; border: 1px solid #eee; border-bottom-left-radius: 4px; }
+        .chat-admin { align-self: flex-end; background: #00b853; color: white; border-bottom-right-radius: 4px; }
         
-            # Отправляем чек в СБИС после успешной оплаты
-            if order.get('receipt_payload'):
-                send_receipt_to_sbis(order_id, order['receipt_payload'], settings)
+        .roulette-box { background: linear-gradient(135deg, #1d1d1f, #2c3e50); color: #fff; border-radius: 24px; padding: 40px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.3); border: 2px solid #f1c40f;}
+        .roulette-number { font-size: 70px; font-weight: 900; letter-spacing: 8px; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.3); font-variant-numeric: tabular-nums; background: rgba(0,0,0,0.4); padding: 20px; border-radius: 20px; display: inline-block; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;}
+        .roulette-winner { animation: pulseWinner 1.5s infinite alternate; color: #f1c40f !important; text-shadow: 0 0 30px rgba(241, 196, 15, 0.8) !important; border-color: #f1c40f !important;}
+        @keyframes pulseWinner { 0% { transform: scale(1); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); } 100% { transform: scale(1.05); box-shadow: 0 0 30px rgba(241, 196, 15, 0.4), inset 0 0 30px rgba(241, 196, 15, 0.2); } }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; bottom: 0; left: 0; width: 100%; height: 75px; flex-direction: row; padding: 0 5px; border-right: none; border-top: 1px solid #e5e5ea; background: #fff; padding-bottom: calc(env(safe-area-inset-bottom) + 5px); justify-content: space-around; align-items: center;}
+            .sidebar h4, .sidebar .text-muted, .sidebar .btn-outline-danger { display: none !important; }
+            .sidebar .nav { flex-direction: row !important; width: 100%; justify-content: space-between; overflow-x: auto;}
+            .nav-link { flex: 0 0 auto; text-align: center; font-size: 10px; padding: 5px 10px; margin: 0; border-radius: 8px; display: flex; flex-direction: column; align-items: center;}
+            .nav-link i { font-size: 20px !important; margin: 0 0 2px 0 !important; }
+            .main-content { padding: 15px; padding-bottom: 100px; }
+            .card-ui { padding: 15px; }
+            .table-responsive table { border: 0; }
+            .table-responsive thead { display: none; }
+            .table-responsive tr { display: block; border: 1px solid #eee; border-radius: 16px; margin-bottom: 15px; background: #fff; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
+            .table-responsive td { display: block; text-align: left; font-size: 14px; border-bottom: 1px dashed #f0f0f0; padding: 10px 0; }
+            .table-responsive td:last-child { border-bottom: 0; }
+            .table-responsive td::before { content: attr(data-label); font-weight: 700; color: #8e8e93; display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; }
+        }
+    </style>
+</head>
+<body>
+
+<audio id="dingSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+<div class="sidebar">
+    <h4 class="fw-bold text-success mb-4 ms-2"><i class="bi bi-shop me-2"></i> Николаич</h4>
+    <nav class="nav flex-column gap-1 w-100">
+        <a class="nav-link active" onclick="showTab('orders', this)"><i class="bi bi-cart3 me-2 fs-5"></i> Заказы</a>
+        <a class="nav-link" onclick="showTab('crm', this)"><i class="bi bi-people me-2 fs-5"></i> CRM</a>
+        <a class="nav-link text-primary fw-bold" onclick="showTab('sysadmin_logs', this)"><i class="bi bi-shield-lock-fill me-2 fs-5"></i> Финансы</a>
+        <a class="nav-link text-danger fw-bold" onclick="showTab('promotions_hub', this)"><i class="bi bi-tags-fill me-2 fs-5"></i> Акции</a>
+        <a class="nav-link text-warning fw-bold" onclick="showTab('wheel', this)"><i class="bi bi-bullseye me-2 fs-5"></i> Колесо Фортуны</a>
+        <a class="nav-link" onclick="showTab('contests', this)"><i class="bi bi-ticket-perforated me-2 fs-5"></i> Ручной Розыгрыш</a>
+        <a class="nav-link" onclick="showTab('warehouse', this)"><i class="bi bi-box-seam me-2 fs-5"></i> Склад</a>
+        <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Сайт</a>
+    </nav>
+    <button class="btn btn-outline-danger mt-auto mb-2 fw-bold rounded-pill shadow-sm" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i> Выход</button>
+    <div class="small text-muted text-center fw-bold">ERP System v55.0 (Mobile)</div>
+</div>
+
+<div class="main-content">
+    
+    <div id="orders" class="tab">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0">Управление заказами</h3>
+            <button class="btn btn-info fw-bold rounded-pill px-4 shadow-sm text-white" onclick="checkDeliveryStatus()"><i class="bi bi-truck me-1"></i> Мониторинг доставок</button>
+        </div>
+        
+        <div id="deliveryStatsContainer" class="alert alert-info border-0 shadow-sm rounded-4 mb-4" style="display:none;"></div>
+
+        <div class="card-ui p-0 overflow-hidden border-0">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Заказ / Время</th>
+                            <th>Логистика & Оплата</th>
+                            <th>Сумма</th>
+                            <th>Статус / Курьер</th>
+                            <th>Управление</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableOrders"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="promotions_hub" class="tab" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0 text-danger"><i class="bi bi-tags-fill me-2"></i>Хаб Акций</h3>
+            <button class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm" onclick="openPromotionModal()"><i class="bi bi-plus-lg me-1"></i> Создать механику</button>
+        </div>
+        <div class="card-ui p-0 overflow-hidden border-0">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Название / Тип</th>
+                            <th>Условия (Время / Сумма)</th>
+                            <th>Выгода</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablePromotions"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div id="wheel" class="tab" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0 text-warning"><i class="bi bi-bullseye me-2"></i>Сектора Колеса</h3>
+            <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" onclick="openWheelSectorModal()"><i class="bi bi-plus-lg"></i> Добавить сектор</button>
+        </div>
+        <div class="alert alert-warning border-0 small py-2 mb-3 shadow-sm rounded-3">
+            <i class="bi bi-info-circle-fill me-1"></i> Здесь настраиваются призы. Включайте и выключайте офферы (например, Perfluence) с помощью галочки.
+        </div>
+        <div class="card-ui p-0 overflow-hidden border-0">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Иконка / Название</th>
+                            <th>Тип приза</th>
+                            <th>Шанс / Остаток</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableWheelSectors"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="sysadmin_logs" class="tab" style="display:none">
+        <h3 class="fw-bold mb-4 text-primary"><i class="bi bi-shield-lock-fill me-2"></i>Прозрачная история начислений</h3>
+        <div class="alert alert-info border-0 rounded-4 shadow-sm mb-4">
+            <p class="m-0 small fw-bold">Защищено от удаления. Все начисления (1%) и списания (покупки) фиксируются автоматически.</p>
+        </div>
+        <div class="card-ui p-0 overflow-hidden border-primary border-2">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID Транзакции</th>
+                            <th>Дата и время</th>
+                            <th>Сумма (₽)</th>
+                            <th>Основание</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableSysadminLogs"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div id="crm" class="tab" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0">Клиенты и Чаты</h3>
+            <button class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm" onclick="openAllChatsModal()"><i class="bi bi-chat-dots-fill me-2"></i> Чаты</button>
+        </div>
+        <div class="card-ui" style="border: 2px solid #007aff; background: #f8fbff;">
+            <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-broadcast"></i> VK Рассылка</h5>
+            <textarea id="broadcastText" class="form-control bg-white border mb-3 p-3 shadow-sm rounded-4" rows="3" placeholder="Напишите сообщение..."></textarea>
+            <button class="btn btn-primary fw-bold px-4 py-2 rounded-pill shadow-sm w-100" onclick="sendBroadcast()"><i class="bi bi-send-fill me-1"></i> Отправить всем</button>
+        </div>
+        <div class="card-ui p-0 overflow-hidden mt-4 border-0">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Телефон / ФИО</th>
+                            <th>Статус / Роль</th>
+                            <th>VK Ссылка</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableUsers"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="contests" class="tab" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0 text-secondary"><i class="bi bi-ticket-perforated me-2"></i>Ручные Розыгрыши</h3>
+            <button class="btn btn-secondary fw-bold rounded-pill px-4 shadow-sm" onclick="openContestModal()"><i class="bi bi-plus-lg"></i> Создать</button>
+        </div>
+        <div class="card-ui p-0 overflow-hidden border-0">
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Название / Условия</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableContests"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="warehouse" class="tab" style="display:none">
+        <h3 class="fw-bold mb-4">Склад и Каталог</h3>
+        <div class="sub-nav overflow-auto" style="white-space: nowrap;">
+            <div class="sub-nav-item active" onclick="toggleSub('bProducts', ['bCategories'], this)">Товары</div>
+            <div class="sub-nav-item" onclick="toggleSub('bCategories', ['bProducts'], this)">Категории</div>
+        </div>
+        
+        <div id="bProducts" class="card-ui p-0 overflow-hidden border-0">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold m-0">Список товаров</h6>
+                <button class="btn btn-dark btn-sm fw-bold rounded-pill px-3" onclick="openProductModal()"><i class="bi bi-plus-lg"></i> Добавить</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Фото / Название</th>
+                            <th>Стикеры</th>
+                            <th>Цена</th>
+                            <th>Ед. изм / Шаг</th>
+                            <th>Остаток</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableProducts"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="bCategories" class="card-ui p-0 overflow-hidden border-0" style="display:none;">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold m-0">Управление Категориями</h6>
+                <button class="btn btn-dark btn-sm fw-bold rounded-pill px-3" onclick="openCategoryModal()"><i class="bi bi-plus-lg"></i> Создать</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Иконка / Название</th>
+                            <th>Сортировка</th>
+                            <th>Ограничение</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableCategories"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="site" class="tab" style="display:none">
+        <h3 class="fw-bold mb-4">Настройки Сайта</h3>
+        <div class="sub-nav overflow-auto" style="white-space: nowrap;">
+            <div class="sub-nav-item active" onclick="toggleSub('bSiteBlocks', ['bSiteBanners', 'bSiteGlobal', 'bSitePromos'], this)">Блоки</div>
+            <div class="sub-nav-item" onclick="toggleSub('bSiteBanners', ['bSiteBlocks', 'bSiteGlobal', 'bSitePromos'], this)">Баннеры</div>
+            <div class="sub-nav-item" onclick="toggleSub('bSitePromos', ['bSiteBlocks', 'bSiteBanners', 'bSiteGlobal'], this)">Промокоды</div>
+            <div class="sub-nav-item" onclick="toggleSub('bSiteGlobal', ['bSiteBlocks', 'bSiteBanners', 'bSitePromos'], this)">Настройки</div>
+        </div>
+
+        <div id="bSiteBlocks" class="card-ui p-0 overflow-hidden border-0">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold m-0">Блоки на главной</h6>
+                <button class="btn btn-dark btn-sm fw-bold rounded-pill px-3" onclick="openBlockModal()"><i class="bi bi-plus-lg"></i></button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Заголовок блока</th>
+                            <th>Тип блока</th>
+                            <th>Сортировка</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBlocks"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="bSiteBanners" class="card-ui p-0 overflow-hidden border-0" style="display:none;">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold m-0">Рекламные баннеры</h6>
+                <button class="btn btn-dark btn-sm fw-bold rounded-pill px-3" onclick="openBannerModal()"><i class="bi bi-plus-lg"></i></button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Текст на баннере</th>
+                            <th>Цвет фона</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBanners"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="bSitePromos" class="card-ui p-0 overflow-hidden border-0" style="display:none;">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold m-0">Промокоды</h6>
+                <button class="btn btn-dark btn-sm fw-bold rounded-pill px-3" onclick="openPromoModal()"><i class="bi bi-plus-lg"></i></button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Код</th>
+                            <th>Скидка</th>
+                            <th>Условия</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablePromos"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="bSiteGlobal" style="display:none;">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card-ui h-100">
+                        <h5 class="fw-bold mb-4">Основные настройки</h5>
+                        <label class="small fw-bold text-muted mb-1">Название магазина</label>
+                        <input type="text" id="setShopName" class="form-control bg-light border mb-3 p-2">
+                        <label class="small fw-bold text-muted mb-1">Текст в подвале (Футер)</label>
+                        <textarea id="setFooterText" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
+                        <label class="small fw-bold text-muted mb-1">Реквизиты (Для ручного перевода)</label>
+                        <textarea id="setPayment" class="form-control bg-light border mb-4 p-2" rows="2"></textarea>
+
+                        <h5 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Юридические документы</h5>
+                        <label class="small fw-bold text-muted mb-1">Текст Оферты</label>
+                        <textarea id="setOfertaText" class="form-control bg-light border mb-3 p-2" rows="4"></textarea>
+                        <label class="small fw-bold text-muted mb-1">Политика конфиденциальности</label>
+                        <textarea id="setPrivacyText" class="form-control bg-light border mb-4 p-2" rows="4"></textarea>
+
+                        <h5 class="fw-bold mt-4 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>Безопасность и Доступ</h5>
+                        
+                        <div class="p-3 border border-danger rounded-4 bg-danger bg-opacity-10 mb-4">
+                            <h6 class="fw-bold mb-3 text-danger"><i class="bi bi-door-closed-fill me-2"></i>Секретный замок магазина</h6>
+                            <p class="small fw-bold text-muted mb-3">Закрывает витрину для посетителей (показывает заглушку, пока вы обновляете ассортимент или отдыхаете).</p>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-danger fw-bold w-50 shadow-sm" onclick="toggleStoreLock('lock')">🔒 Закрыть магазин</button>
+                                <button class="btn btn-success fw-bold w-50 shadow-sm" onclick="toggleStoreLock('unlock')">🔓 Открыть магазин</button>
+                            </div>
+                        </div>
+
+                        <label class="small fw-bold text-muted mb-1">VK ID Админа (Для уведомлений)</label>
+                        <input type="text" id="setAdminVkId" class="form-control bg-light border mb-3 p-2 fw-bold text-primary">
+                        <label class="small fw-bold text-muted mb-1">Секретный код VK</label>
+                        <input type="text" id="setVkCode" class="form-control bg-light border mb-3 p-2">
+                        <label class="small fw-bold text-muted mb-1">PIN-код Администратора</label>
+                        <input type="text" id="setAdminPin" class="form-control bg-light border mb-4 p-2 fw-bold text-danger">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card-ui mb-4" style="border: 2px solid #ffc107;">
+                        <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-sliders me-2"></i>Интерфейс витрины</h5>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="small fw-bold text-muted mb-1">Баннер PWA</label>
+                                <select id="setPWABanner" class="form-select bg-light border p-2 fw-bold"><option value="1">🟢 Включен</option><option value="0">🔴 Выключен</option></select>
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold text-muted mb-1">Замочек 18+</label>
+                                <select id="setLockIcon" class="form-select bg-light border p-2 fw-bold"><option value="1">🟢 Включен</option><option value="0">🔴 Выключен</option></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-ui mb-4 shadow-sm" style="border: 2px solid #e67e22;">
+                        <h5 class="fw-bold mb-3" style="color: #e67e22;"><i class="bi bi-bullseye me-2"></i>Колесо Фортуны</h5>
+                        <label class="small fw-bold text-muted mb-1">Статус на витрине</label>
+                        <select id="setWheelActive" class="form-select bg-light border mb-3 p-2 fw-bold"><option value="1">🟢 Включено</option><option value="0">🔴 Скрыто</option></select>
+                        <label class="small fw-bold text-muted mb-1">Прокрутов до шанса выиграть (0=откл)</label>
+                        <input type="number" id="setWheelLossThreshold" class="form-control bg-light border mb-2 p-2 fw-bold text-danger">
+                    </div>
+
+                    <div class="card-ui mb-4" style="border: 2px solid #0dcaf0;">
+                        <h5 class="fw-bold mb-3 text-info"><i class="bi bi-palette me-2"></i>Фоны сайта</h5>
+                        <label class="small fw-bold text-muted mb-1">Основной фон</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgMain" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgMain').click()">Загрузить</button><input type="file" id="uploadBgMain" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgMain')"></div>
+                        <label class="small fw-bold text-muted mb-1 mt-2">Шапка</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgHeader" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgHeader').click()">Загрузить</button><input type="file" id="uploadBgHeader" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgHeader')"></div>
+                        <label class="small fw-bold text-muted mb-1 mt-2">Лента Категорий</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCat" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCat').click()">Загрузить</button><input type="file" id="uploadBgCat" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCat')"></div>
+                        <label class="small fw-bold text-muted mb-1 mt-2">Карточки Товаров</label>
+                        <div class="input-group mb-1 shadow-sm"><input type="text" id="setBgCard" class="form-control bg-white border"><button class="btn btn-dark" type="button" onclick="document.getElementById('uploadBgCard').click()">Загрузить</button><input type="file" id="uploadBgCard" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'setBgCard')"></div>
+                    </div>
+
+                    <div class="card-ui mb-4" style="border: 2px solid #8e8e93;">
+                        <h5 class="fw-bold mb-4"><i class="bi bi-truck me-2"></i>Комплектация и Логистика</h5>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Доставка?</label><select id="setDelEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Вкл</option><option value="0">🔴 Выкл</option></select></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Самовывоз?</label><select id="setPickEnabled" class="form-select bg-light border p-2"><option value="1">🟢 Вкл</option><option value="0">🔴 Выкл</option></select></div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Открыто с</label><input type="time" id="setWorkStart" class="form-control bg-light border p-2 fw-bold"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Закрыто с</label><input type="time" id="setWorkEnd" class="form-control bg-light border p-2 fw-bold text-danger"></div>
+                        </div>
+                        <label class="small fw-bold text-muted mb-1">Предзаказы ночью?</label>
+                        <select id="setPreorderEnabled" class="form-select bg-light border mb-3 p-2 fw-bold">
+                            <option value="1">✅ Принимать на завтра</option>
+                            <option value="0">⛔ Блокировать полностью</option>
+                        </select>
+                        <div class="row mb-3">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Мин. ДОСТАВКА</label><input type="number" id="setMinOrder" class="form-control bg-light border p-2"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Мин. САМОВЫВОЗ</label><input type="number" id="setMinPickup" class="form-control bg-light border p-2 text-primary fw-bold"></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Сборка пакета</label><input type="number" id="setPackageCost" class="form-control bg-light border p-2"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Цена доставки курьером</label><input type="number" id="setCourierCost" class="form-control bg-light border p-2"></div>
+                        </div>
+                        <div class="row mb-4">
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Бесплатно от (₽)</label><input type="number" id="setFreeDelivery" class="form-control bg-light border p-2"></div>
+                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Режим работы</label><select id="setHighDemand" class="form-select bg-light border p-2 fw-bold"><option value="0">🟢 Обычный</option><option value="1">🔴 Высокий спрос</option></select></div>
+                        </div>
+
+                        <div class="p-3 border border-dark rounded-4 bg-light mb-2">
+                            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-taxi-front-fill me-2"></i>Яндекс API (Доставка / Зоны)</h6>
+                            <label class="small fw-bold text-muted mb-1">Yandex Delivery Token</label>
+                            <input type="text" id="setYandexToken" class="form-control bg-white border border-dark mb-2 p-2">
+                            <label class="small fw-bold text-muted mb-1">Yandex Maps API Key</label>
+                            <input type="text" id="setYandexMapsKey" class="form-control bg-white border border-dark mb-2 p-2">
+                            <label class="small fw-bold text-muted mb-1">Координаты зоны доставки (GeoJSON)</label>
+                            <textarea id="setDeliveryPolygon" class="form-control bg-white border border-dark mb-2 p-2" rows="3" placeholder="[ [lat, lng], [lat, lng] ]"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-success w-100 fw-bold py-3 mt-3 rounded-4 shadow shadow-sm fs-5" onclick="saveSettings()">Сохранить все настройки</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="universalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px;">
+            <div class="p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold m-0" id="modalTitle">Заголовок</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div id="modalBody"></div>
+            </div>
+            <div class="position-sticky bottom-0 bg-white p-4" style="z-index: 1055; border-top: 1px solid #f0f0f0; border-radius: 0 0 24px 24px;">
+                <button class="btn btn-success w-100 py-3 fw-bold rounded-4 shadow-sm" id="modalBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rouletteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px; background: #fff;">
+            <div class="p-4 text-center">
+                <h3 class="fw-bold mb-2">Розыгрыш приза!</h3>
+                <p class="text-muted small mb-4 fw-bold" id="rouletteTicketsInfo"></p>
+                <div class="roulette-box mb-4 mx-auto" style="max-width: 400px;">
+                    <div id="rouletteNumber" class="roulette-number">000000</div>
+                </div>
+                <div id="rouletteWinnerInfo" class="alert alert-success border-0 shadow-sm rounded-4 mb-4" style="display:none; padding: 20px;">
+                    <h4 class="fw-bold text-success mb-3"><i class="bi bi-trophy-fill me-2"></i> ПОБЕДИТЕЛЬ!</h4>
+                    <div class="fw-bold fs-5 mb-1" id="rWinnerName"></div>
+                    <div class="fw-bold text-dark" id="rWinnerPhone"></div>
+                </div>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-dark fw-bold rounded-pill px-4" data-bs-dismiss="modal">Закрыть</button>
+                    <button class="btn btn-warning fw-bold rounded-pill px-5 shadow" id="rouletteBtn" onclick="startRoulette()"><i class="bi bi-play-circle-fill me-2"></i> КРУТИТЬ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="allChatsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px; overflow:hidden;">
+            <div class="row g-0 h-100" style="min-height: 600px;">
+                <div class="col-md-4 bg-light p-0 border-end d-flex flex-column">
+                    <div class="p-3 border-bottom bg-white fw-bold"><i class="bi bi-inbox me-2 text-primary"></i>Все диалоги</div>
+                    <div id="chatUserList" class="flex-grow-1 overflow-auto p-2"></div>
+                </div>
+                <div class="col-md-8 d-flex flex-column bg-white position-relative">
+                    <div class="p-3 border-bottom bg-white fw-bold d-flex justify-content-between"><span id="activeChatName">Выберите диалог</span><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div id="globalChatMessages" class="flex-grow-1 p-4 overflow-auto" style="background: #fdfbf7; max-height: 500px; display:flex; flex-direction:column; gap:12px;"></div>
+                    <div class="p-3 border-top bg-white d-flex gap-2">
+                        <input type="text" id="globalChatInput" class="form-control bg-light border-0 rounded-pill px-4" placeholder="Ответить клиенту..." onkeypress="if(event.key === 'Enter') sendGlobalChatMsg()">
+                        <button class="btn btn-primary rounded-circle shadow-sm" style="width: 45px; height: 45px;" onclick="sendGlobalChatMsg()"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="orderChatModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px; overflow:hidden;">
+            <div class="row g-0 h-100" style="min-height: 600px;">
+                <div class="col-md-5 bg-light p-4 border-end d-flex flex-column">
+                    <div class="d-flex justify-content-between mb-3"><h4 class="fw-bold m-0" id="ocTitle">Заказ</h4><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div id="ocInfo" class="mb-4 small" style="line-height: 1.6;"></div>
+                    <div class="mb-4"><label class="small fw-bold text-muted mb-1">Сменить статус</label><select id="ocStatus" class="form-select fw-bold border-2 p-2 shadow-sm" onchange="sendOrderMsg('status', this.value)"></select></div>
+                    <div class="mt-auto">
+                        <h6 class="fw-bold mb-2 text-muted small">Быстрые сообщения</h6>
+                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="sendOrderMsg('req')"><i class="bi bi-credit-card text-primary me-2"></i> Реквизиты оплаты</button>
+                        <button class="btn btn-light border w-100 mb-2 fw-bold text-start" onclick="promptTaxi()"><i class="bi bi-taxi-front text-warning me-2"></i> Тариф Яндекс.Логистики</button>
+                        <button class="btn btn-success shadow-sm w-100 fw-bold text-start" onclick="sendOrderMsg('paid')"><i class="bi bi-check-circle me-2"></i> Деньги получены</button>
+                    </div>
+                </div>
+                <div class="col-md-7 d-flex flex-column bg-white position-relative">
+                    <div class="p-3 border-bottom bg-white fw-bold shadow-sm z-1"><i class="bi bi-chat-dots text-primary me-2"></i>Связь с клиентом</div>
+                    <div id="ocMessages" class="flex-grow-1 p-4 overflow-auto" style="background: #fdfbf7; max-height: 500px; display:flex; flex-direction:column; gap:12px;"></div>
+                    <div class="p-3 border-top bg-white d-flex gap-2">
+                        <input type="text" id="ocInput" class="form-control bg-light border-0 rounded-pill px-4" placeholder="Написать сообщение..." onkeypress="if(event.key === 'Enter') sendOrderMsg('custom', document.getElementById('ocInput').value)">
+                        <button class="btn btn-primary rounded-circle shadow-sm" style="width: 45px; height: 45px;" onclick="sendOrderMsg('custom', document.getElementById('ocInput').value)"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let categoriesList = []; 
+    let currentProductImages = []; 
+    let currentActiveOrder = null; 
+    let activeCouriers = [];
+    let productsList = []; 
+    let lastOrdersCount = 0; 
+    let currentGlobalChatUserId = null;
+    
+    setInterval(async () => {
+        try {
+            const data = await apiCall('orders');
+            if(data && data.length > lastOrdersCount) {
+                if(lastOrdersCount > 0) document.getElementById('dingSound').play().catch(e => console.log(e));
+                lastOrdersCount = data.length;
+                if(document.getElementById('orders').style.display === 'block') loadOrders();
+            }
+        } catch(e){}
+    }, 15000);
+
+    function showTab(id, btn) {
+        document.querySelectorAll('.tab').forEach(t => t.style.display = 'none'); 
+        document.getElementById(id).style.display = 'block';
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active')); 
+        btn.classList.add('active');
+        
+        if(id === 'orders') loadOrders();
+        if(id === 'crm') loadUsers();
+        if(id === 'warehouse') loadWarehouse();
+        if(id === 'site') loadSettings();
+        if(id === 'promotions_hub') loadPromotions(); 
+        if(id === 'wheel') loadWheelSectors(); 
+        if(id === 'contests') loadContests(); 
+        if(id === 'sysadmin_logs') loadSysadminLogs();
+    }
+
+    function toggleSub(showId, hideIds, btn) {
+        document.getElementById(showId).style.display = 'block';
+        hideIds.forEach(id => document.getElementById(id).style.display = 'none');
+        document.querySelectorAll('.sub-nav-item').forEach(b => b.classList.remove('active')); 
+        btn.classList.add('active');
+    }
+
+    async function apiCall(endpoint, method = 'GET', bodyData = null) {
+        const options = { method: method, headers: {'Content-Type': 'application/json'} };
+        if (bodyData) options.body = JSON.stringify(bodyData);
+        try {
+            const response = await fetch(`/api/admin/${endpoint}`, options);
+            if (response.status === 403) { window.location.reload(); return null; }
+            return await response.json();
+        } catch (e) { return null; }
+    }
+
+    function openModal(title, htmlBody, btnText, saveCallback) {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalBody').innerHTML = htmlBody;
+        const btn = document.getElementById('modalBtn');
+        btn.innerText = btnText;
+        const newBtn = btn.cloneNode(true); 
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.onclick = () => { 
+            saveCallback(); 
+            bootstrap.Modal.getInstance(document.getElementById('universalModal')).hide(); 
+        };
+        new bootstrap.Modal(document.getElementById('universalModal')).show();
+    }
+
+    async function logoutAdmin() { 
+        await fetch('/api/admin/logout', {method: 'POST'}); 
+        window.location.reload(); 
+    }
+
+    async function uploadDesignBg(input, targetId) {
+        if(!input.files || input.files.length === 0) return;
+        const formData = new FormData(); 
+        formData.append('file', input.files[0]);
+        document.body.style.cursor = 'wait';
+        try {
+            const res = await fetch('/api/upload', {method: 'POST', body: formData});
+            const data = await res.json();
+            if(data.url) document.getElementById(targetId).value = data.url;
+        } catch(e) { alert("Ошибка загрузки"); }
+        document.body.style.cursor = 'default';
+    }
+
+    /* ФУНКЦИИ СЕКРЕТНОГО ЗАМКА И ДОСТАВКИ */
+    function toggleStoreLock(action) {
+        if (!confirm(action === 'lock' ? 'Точно закрыть магазин от покупателей?' : 'Открыть магазин?')) return;
+        fetch('/api/admin/secret_lock', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: action })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) alert(data.error);
+            else alert('Статус магазина изменен: ' + data.status);
+        });
+    }
+
+    function checkDeliveryStatus() {
+        fetch('/api/admin/delivery_status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            const container = document.getElementById('deliveryStatsContainer');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Активных доставок: ${data.active_count}</h6>
+                        <span class="small">Общая стоимость активной логистики: <b class="text-success">${data.total_delivery_costs} ₽</b></span>
+                    </div>
+                    <button class="btn-close" onclick="document.getElementById('deliveryStatsContainer').style.display='none'"></button>
+                </div>
+            `;
+        });
+    }
+
+    /* ХАБ АКЦИЙ */
+    async function loadPromotions() {
+        const data = await apiCall('promotions');
+        const wh = await apiCall('warehouse');
+        if(wh) { categoriesList = wh.categories; productsList = wh.products; }
+        if(!data) return;
+        
+        document.getElementById('tablePromotions').innerHTML = data.map(p => {
+            let typeName = ""; let conditions = ""; let benefit = "";
+            if (p.promo_type === 'happy_hours') { 
+                typeName = '<span class="badge bg-primary">Счастливые часы</span>'; 
+                conditions = `⏰ ${p.time_start} - ${p.time_end}`;
+                benefit = `<span class="text-success fw-bold">-${p.discount_val}%</span>`;
+            } else if (p.promo_type === 'gift') { 
+                typeName = '<span class="badge bg-success">Подарок новичку</span>'; 
+                conditions = `Сумма от ${p.min_sum} ₽`;
+                benefit = `🎁 Товар ID: ${p.target_id}`;
+            } else if (p.promo_type === '1plus1') { 
+                typeName = '<span class="badge bg-warning text-dark">1+1=3</span>'; 
+                conditions = `Категория ID: ${p.target_id || 'Все'}`;
+                benefit = `🎁 Бесплатно 1 шт.`;
+            }
+            
+            return `<tr>
+                <td data-label="Название / Тип"><div class="fw-bold fs-6">${p.title}</div>${typeName}</td>
+                <td data-label="Условия">${conditions}</td>
+                <td data-label="Выгода">${benefit}</td>
+                <td data-label="Статус">${p.active ? '<span class="badge bg-success">Активна</span>' : '<span class="badge bg-secondary">Выкл</span>'}</td>
+                <td data-label="Действия">
+                    <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openPromotionModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick="deleteEntity('promotions', ${p.id}, loadPromotions)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openPromotionModal(p = null) {
+        const catOptions = `<option value="0">--- Ко всему каталогу ---</option>` + categoriesList.map(c => `<option value="${c.id}" ${p && p.target_id==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+        const prodOptions = productsList.map(pr => `<option value="${pr.id}" ${p && p.target_id==pr.id ? 'selected' : ''}>${pr.name}</option>`).join('');
+        
+        openModal(p ? 'Редактировать механику' : 'Новая механика', `
+            <input type="hidden" id="promoId" value="${p ? p.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Название (Для вас)</label>
+            <input type="text" id="promoTitle" class="form-control bg-light border mb-3 p-2 fw-bold" value="${p ? p.title : ''}" placeholder="Например: Вечерняя выпечка">
+            
+            <label class="small fw-bold text-muted mb-1">Тип механики</label>
+            <select id="promoType" class="form-select bg-light border p-2 fw-bold mb-3" onchange="togglePromoFields()">
+                <option value="happy_hours" ${p && p.promo_type=='happy_hours' ? 'selected' : ''}>⏰ Счастливые часы (Скидка в % по времени)</option>
+                <option value="gift" ${p && p.promo_type=='gift' ? 'selected' : ''}>🎁 Подарок новичкам (Товар бесплатно от суммы)</option>
+                <option value="1plus1" ${p && p.promo_type=='1plus1' ? 'selected' : ''}>🛒 1+1=3 (Третий товар бесплатно)</option>
+            </select>
+            
+            <div id="promoFields_happy_hours" style="display: ${!p || p.promo_type=='happy_hours' ? 'block' : 'none'};">
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Время С (ЧЧ:ММ)</label><input type="time" id="promoTimeStart" class="form-control bg-light border p-2" value="${p ? p.time_start : '20:00'}"></div>
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Время ДО (ЧЧ:ММ)</label><input type="time" id="promoTimeEnd" class="form-control bg-light border p-2" value="${p ? p.time_end : '22:00'}"></div>
+                </div>
+                <label class="small fw-bold text-muted mb-1">К какой категории применять?</label>
+                <select id="promoCatTarget" class="form-select bg-light border mb-3 p-2">${catOptions}</select>
+                <label class="small fw-bold text-muted mb-1">Скидка (%)</label>
+                <input type="number" id="promoDiscount" class="form-control bg-light border mb-3 p-2 fw-bold text-success" value="${p ? p.discount_val : '15'}">
+            </div>
+            
+            <div id="promoFields_gift" style="display: ${p && p.promo_type=='gift' ? 'block' : 'none'};">
+                <div class="alert alert-success border-0 small py-2 mb-3"><i class="bi bi-info-circle-fill me-1"></i> Работает только для клиентов, у которых 0 завершенных заказов.</div>
+                <label class="small fw-bold text-muted mb-1">Минимальная сумма чека для подарка (₽)</label>
+                <input type="number" id="promoMinSum" class="form-control bg-light border mb-3 p-2 fw-bold" value="${p ? p.min_sum : '1000'}">
+                <label class="small fw-bold text-muted mb-1">Какой товар подарить?</label>
+                <select id="promoProdTarget" class="form-select bg-light border mb-3 p-2">${prodOptions}</select>
+            </div>
+            
+            <div id="promoFields_1plus1" style="display: ${p && p.promo_type=='1plus1' ? 'block' : 'none'};">
+                <div class="alert alert-warning border-0 small py-2 mb-3"><i class="bi bi-info-circle-fill me-1"></i> Если клиент добавляет 3 одинаковых товара из категории ниже, система отнимет цену одного из них.</div>
+                <label class="small fw-bold text-muted mb-1">Для какой категории работает?</label>
+                <select id="promoCat1plus1" class="form-select bg-light border mb-3 p-2">${catOptions}</select>
+            </div>
+
+            <label class="small fw-bold text-muted mb-1">Статус акции</label>
+            <select id="promoActive" class="form-select bg-light border p-2">
+                <option value="1" ${p && p.active==1 ? 'selected' : ''}>Включена</option>
+                <option value="0" ${p && p.active==0 ? 'selected' : ''}>Выключена</option>
+            </select>
+        `, 'Сохранить', async () => { 
+            const type = document.getElementById('promoType').value;
+            let target_id = 0, discount_val = 0, min_sum = 0, time_start = "", time_end = "";
+            
+            if (type === 'happy_hours') {
+                target_id = document.getElementById('promoCatTarget').value;
+                discount_val = document.getElementById('promoDiscount').value;
+                time_start = document.getElementById('promoTimeStart').value;
+                time_end = document.getElementById('promoTimeEnd').value;
+            } else if (type === 'gift') {
+                target_id = document.getElementById('promoProdTarget').value;
+                min_sum = document.getElementById('promoMinSum').value;
+            } else if (type === '1plus1') {
+                target_id = document.getElementById('promoCat1plus1').value;
+            }
+
+            await apiCall('promotions', 'POST', { 
+                id: document.getElementById('promoId').value, 
+                title: document.getElementById('promoTitle').value, 
+                promo_type: type, 
+                target_id: target_id,
+                discount_val: discount_val,
+                min_sum: min_sum,
+                time_start: time_start,
+                time_end: time_end,
+                active: document.getElementById('promoActive').value
+            }); 
+            loadPromotions(); 
+        }); 
+    }
+
+    window.togglePromoFields = function() {
+        const type = document.getElementById('promoType').value;
+        document.getElementById('promoFields_happy_hours').style.display = type === 'happy_hours' ? 'block' : 'none';
+        document.getElementById('promoFields_gift').style.display = type === 'gift' ? 'block' : 'none';
+        document.getElementById('promoFields_1plus1').style.display = type === '1plus1' ? 'block' : 'none';
+    }
+
+    /* КОЛЕСО ФОРТУНЫ (АДМИНКА И ПОДАРКИ) */
+    async function loadWheelSectors() {
+        const data = await apiCall('wheel_sectors');
+        if(!data) return;
+        document.getElementById('tableWheelSectors').innerHTML = data.map(s => {
+            let typeStr = {'discount': 'Скидка (%)', 'partner': 'Промокод партнера', 'empty': 'Пусто (Без приза)', 'product': 'Товар/Подарок'}[s.type] || s.type;
+            let stockStr = s.stock === -1 ? 'Бесконечно' : s.stock;
+            return `<tr>
+                <td data-label="Название"><div class="d-flex align-items-center"><div style="width:30px; height:30px; background:${s.color}; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:10px; border: 1px solid #ddd;">${s.icon}</div><span class="fw-bold">${s.title}</span></div></td>
+                <td data-label="Тип приза">${typeStr} <span class="text-muted small">(${s.value})</span></td>
+                <td data-label="Шанс / Остаток">${s.weight} / <span class="badge ${s.stock>0 || s.stock===-1 ? 'bg-success' : 'bg-danger'}">${stockStr}</span></td>
+                <td data-label="Статус"><span class="badge ${s.is_active === 1 ? 'bg-primary' : 'bg-secondary'}">${s.is_active === 1 ? 'Вкл' : 'Выкл'}</span></td>
+                <td data-label="Действия">
+                    <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openWheelSectorModal(${JSON.stringify(s).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick="deleteEntity('wheel_sectors', ${s.id}, loadWheelSectors)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openWheelSectorModal(s = null) {
+        openModal(s ? 'Редактировать сектор' : 'Новый сектор', `
+            <input type="hidden" id="wsId" value="${s ? s.id : ''}">
+            <div class="row g-2 mb-2">
+                <div class="col-8"><label class="small fw-bold text-muted mb-1">Название (видит клиент)</label><input type="text" id="wsTitle" class="form-control bg-light border p-2 fw-bold" value="${s ? s.title : ''}" placeholder="Скидка 10%"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Эмодзи</label><input type="text" id="wsIcon" class="form-control bg-light border p-2 text-center" value="${s ? s.icon : '🎁'}"></div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Тип приза</label>
+                    <select id="wsType" class="form-select bg-light border p-2">
+                        <option value="discount" ${s && s.type=='discount'?'selected':''}>Скидка (%)</option>
+                        <option value="partner" ${s && s.type=='partner'?'selected':''}>Промокод партнера / Реклама</option>
+                        <option value="product" ${s && s.type=='product'?'selected':''}>Товар / Подарок</option>
+                        <option value="empty" ${s && s.type=='empty'?'selected':''}>Пустой сектор (Мимо)</option>
+                    </select>
+                </div>
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Значение (Сумма, Текст)</label><input type="text" id="wsValue" class="form-control bg-light border p-2" value="${s ? s.value : ''}" placeholder="10 или SBER500"></div>
+            </div>
+            
+            <div class="p-3 bg-light border rounded-4 mb-3">
+                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-gift-fill me-2"></i>Для партнерок и рекламы</h6>
+                <label class="small fw-bold text-muted mb-1">Промокод (если нужно выдать код)</label>
+                <input type="text" id="wsPromoCode" class="form-control bg-white border mb-2 p-2 fw-bold text-primary" value="${s ? (s.promo_code || '') : ''}">
+                <label class="small fw-bold text-muted mb-1">Ссылка-баннер (Картинка)</label>
+                <div class="input-group mb-2 shadow-sm">
+                    <input type="text" id="wsBannerUrl" class="form-control bg-white border" value="${s ? (s.banner_url || '') : ''}" placeholder="https://...">
+                    <button class="btn btn-dark" type="button" onclick="document.getElementById('uploadWsBanner').click()"><i class="bi bi-upload"></i></button>
+                    <input type="file" id="uploadWsBanner" style="display:none" accept="image/*" onchange="uploadDesignBg(this, 'wsBannerUrl')">
+                </div>
+                <label class="small fw-bold text-muted mb-1">Куда ведет клик по баннеру / кнопке</label>
+                <input type="text" id="wsPartnerLink" class="form-control bg-white border mb-2 p-2 text-success fw-bold" value="${s ? (s.partner_link || '') : ''}" placeholder="https://...">
+                <label class="small fw-bold text-muted mb-1">Описание приза (Для карточки)</label>
+                <textarea id="wsDescription" class="form-control bg-white border mb-2 p-2" rows="2">${s ? (s.description || '') : ''}</textarea>
+                <label class="small fw-bold text-muted mb-1">ERID (Маркировка рекламы)</label>
+                <input type="text" id="wsErid" class="form-control bg-white border p-2 text-muted" style="font-size: 12px;" value="${s ? (s.erid || '') : ''}" placeholder="2Vtzqw...">
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Вес (Шанс)</label><input type="number" id="wsWeight" class="form-control bg-light border p-2 text-primary fw-bold" value="${s ? s.weight : '10'}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Остаток (-1 = ∞)</label><input type="number" id="wsStock" class="form-control bg-light border p-2" value="${s ? s.stock : '-1'}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Цвет сектора</label><input type="color" id="wsColor" class="form-control bg-light border p-1 w-100" value="${s ? s.color : '#ffffff'}"></div>
+            </div>
+            
+            <div class="form-check form-switch mb-2 border p-3 rounded-3 bg-white">
+                <input class="form-check-input" type="checkbox" id="wsActive" ${(!s || s.is_active == 1) ? 'checked' : ''}>
+                <label class="form-check-label small fw-bold" for="wsActive">Включить сектор в Колесе Фортуны</label>
+            </div>
+        `, 'Сохранить', async () => {
+            await apiCall('wheel_sectors', 'POST', {
+                id: document.getElementById('wsId').value,
+                title: document.getElementById('wsTitle').value,
+                icon: document.getElementById('wsIcon').value,
+                type: document.getElementById('wsType').value,
+                value: document.getElementById('wsValue').value,
+                weight: parseInt(document.getElementById('wsWeight').value) || 10,
+                stock: parseInt(document.getElementById('wsStock').value) || -1,
+                color: document.getElementById('wsColor').value,
+                promo_code: document.getElementById('wsPromoCode').value,
+                banner_url: document.getElementById('wsBannerUrl').value,
+                partner_link: document.getElementById('wsPartnerLink').value,
+                description: document.getElementById('wsDescription').value,
+                erid: document.getElementById('wsErid').value,
+                is_active: document.getElementById('wsActive').checked ? 1 : 0
+            });
+            loadWheelSectors();
+        });
+    }
+
+    /* ЛОГИ СИСАДМИНА */
+    async function loadSysadminLogs() {
+        const data = await apiCall('sysadmin_logs'); 
+        if(!data) return;
+        document.getElementById('tableSysadminLogs').innerHTML = data.map(log => {
+            const colorClass = log.amount > 0 ? 'text-success' : 'text-danger';
+            const sign = log.amount > 0 ? '+' : '';
+            return `<tr>
+                <td data-label="Транзакция" class="fw-bold">#${log.id}</td>
+                <td data-label="Время" class="text-muted small">${log.created_at}</td>
+                <td data-label="Сумма" class="fw-bold fs-6 ${colorClass}">${sign}${log.amount} ₽</td>
+                <td data-label="Основание">${log.description}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    /* ЗАКАЗЫ И КУРЬЕРЫ */
+    function getCourId(orderId) { let el = document.getElementById('cour_' + orderId); return el ? el.value : 0; }
+    
+    async function loadOrders() {
+        const data = await apiCall('orders'); activeCouriers = await apiCall('couriers') || []; 
+        if(!data) return; lastOrdersCount = data.length;
+        
+        document.getElementById('tableOrders').innerHTML = data.map(o => {
+            const addressHtml = (o.delivery_type !== 'pickup' && o.address) ? `<br><span class="text-danger fw-bold"><i class="bi bi-geo-alt"></i> ${o.address}</span>` : '';
+            let typeStr = o.delivery_type === 'pickup' ? '<span class="badge bg-warning text-dark">Самовывоз</span>' : (o.delivery_type === 'courier' ? 'Магазин' : 'Яндекс');
+            let payStr = o.payment_type === 'online' ? '<span class="text-success fw-bold">ЮKassa</span>' : (o.payment_type === 'transfer' ? 'Перевод' : 'Наличные');
+            
+            return `<tr>
+                <td data-label="Заказ / Время"><div class="fw-bold fs-6">#${o.id}</div><div class="small text-muted">${o.full_name || o.phone}</div><div class="small fw-bold text-primary mt-1">🕒 ${o.delivery_time}</div>${o.comment ? `<div class="small mt-1 text-warning bg-dark rounded p-1">📝 ${o.comment}</div>` : ''}</td>
+                <td data-label="Логистика & Оплата" class="small">Компл.: <b>${typeStr}</b><br>Оплата: <b>${payStr}</b>${addressHtml}</td>
+                <td data-label="Сумма" class="fw-bold text-success fs-6">${o.final_total} ₽</td>
+                <td data-label="Статус / Курьер">
+                    <select class="form-select form-select-sm fw-bold border-2 mb-1 ${o.status=='Выполнен'?'bg-success text-white':''}" onchange="changeOrderStatus(${o.id}, this.value, getCourId(${o.id}))">
+                        ${['Новый', 'Ожидает оплаты', 'Оплачен', 'Собран', 'В пути', 'Выполнен', 'Отменен'].map(s => `<option value="${s}" ${o.status===s ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                    ${o.delivery_type === 'courier' ? `
+                    <select class="form-select form-select-sm border" id="cour_${o.id}" onchange="changeOrderStatus(${o.id}, '${o.status}', this.value)" ${o.status=='Выполнен'?'disabled':''}>
+                        <option value="0">--- Курьер не назначен ---</option>
+                        ${activeCouriers.map(c => `<option value="${c.id}" ${o.courier_id==c.id ? 'selected' : ''}>${c.full_name || c.phone}</option>`).join('')}
+                    </select>` : ''}
+                </td>
+                <td data-label="Управление">
+                    <button class="btn btn-primary fw-bold rounded-pill px-3 shadow-sm btn-sm mb-1 w-100" onclick="openOrderManage(${o.id})"><i class="bi bi-chat-dots me-1"></i> Чат</button>
+                    <button class="btn btn-outline-danger fw-bold rounded-pill px-3 shadow-sm btn-sm w-100" onclick="deleteEntity('orders', ${o.id}, loadOrders)"><i class="bi bi-trash"></i> Удалить</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+    
+    async function changeOrderStatus(orderId, status, courierId) { await apiCall('orders', 'POST', {id: orderId, status: status, courier_id: courierId}); loadOrders(); }
+    
+    async function openOrderManage(orderId) { 
+        currentActiveOrder = orderId; 
+        const res = await apiCall('order_chat/' + orderId); 
+        if(!res || res.error) return alert("Ошибка загрузки заказа");
+        const o = res.order; const u = res.user; const msgs = res.messages; currentGlobalChatUserId = u.id;
+        
+        document.getElementById('ocTitle').innerText = `Заказ #${o.id}`;
+        let itemsHtml = Object.values(o.items).map(i => `<li>${i.name} — ${i.qty}${i.unit}</li>`).join('');
+        document.getElementById('ocInfo').innerHTML = `<b>Клиент:</b> ${u.full_name || u.phone}<br><b>Сумма чека:</b> ${o.final_total} ₽<br><b>Адрес:</b> ${o.address || '-'}<br><b class="mt-2 d-block">Состав:</b><ul>${itemsHtml}</ul>`;
+        
+        const statuses = ['Новый', 'Ожидает оплаты', 'Оплачен', 'Собран', 'В пути', 'Выполнен', 'Отменен'];
+        document.getElementById('ocStatus').innerHTML = statuses.map(s => `<option value="${s}" ${o.status===s ? 'selected' : ''}>${s}</option>`).join('');
+        
+        renderOrderChatMessages(msgs, 'ocMessages'); 
+        new bootstrap.Modal(document.getElementById('orderChatModal')).show();
+    }
+    
+    function renderOrderChatMessages(msgs, boxId) {
+        const box = document.getElementById(boxId); 
+        if(msgs.length === 0) { box.innerHTML = '<div class="text-center text-muted small mt-5">Нет сообщений.</div>'; return; }
+        box.innerHTML = msgs.map(m => { 
+            const time = m.created_at.split(' ')[1].substring(0,5); 
+            if(m.is_incoming === 1) return `<div class="chat-bubble chat-client"><b>Клиент:</b><br>${m.text}<div class="text-end small text-muted mt-1" style="font-size:10px;">${time}</div></div>`; 
+            return `<div class="chat-bubble chat-admin"><b>Вы:</b><br>${m.text}<div class="text-end small text-white-50 mt-1" style="font-size:10px;">${time}</div></div>`; 
+        }).join(''); 
+        box.scrollTop = box.scrollHeight;
+    }
+    
+    async function sendOrderMsg(type, customVal = '') { 
+        if(!currentActiveOrder) return; if(type === 'custom' && !customVal.trim()) return; 
+        document.getElementById('ocInput').value = ''; 
+        const res = await apiCall('chat_send', 'POST', {order_id: currentActiveOrder, msg_type: type, text: type==='custom'?customVal:'', status: type==='status'?customVal:'', custom_val: type==='taxi'?customVal:''}); 
+        if(res && res.status === 'ok') { 
+            if(type === 'status') { loadOrders(); alert("Статус обновлен!"); } 
+            else { const refresh = await apiCall('order_chat/' + currentActiveOrder); renderOrderChatMessages(refresh.messages, 'ocMessages'); } 
+        }
+    }
+    function promptTaxi() { const price = prompt("Тариф Яндекс.Логистики (₽):"); if(price) sendOrderMsg('taxi', price); }
+
+    /* CRM */
+    async function loadUsers() {
+        const data = await apiCall('users'); if(!data) return;
+        document.getElementById('tableUsers').innerHTML = data.map(u => {
+            let roleHtml = '';
+            if (u.age_verified == 1) { roleHtml += `<button class="btn btn-sm btn-danger fw-bold rounded-pill mb-1 px-2 shadow-sm" onclick="approveVip(${u.id})"><i class="bi bi-shield-check me-1"></i> Одобрить 18+</button><br>`; } 
+            else if (u.age_verified == 2) { roleHtml += '<span class="badge bg-success mb-1"><i class="bi bi-shield-lock-fill"></i> Доступ 18+</span> '; }
+            if (u.role === 'sysadmin') roleHtml += `<span class="badge bg-dark">Сисадмин</span>`; 
+            else if (u.role === 'courier') roleHtml += `<span class="badge bg-primary">Курьер (${u.comm_type=='fixed'?u.comm_val+'₽':u.comm_val+'%'})</span>`; 
+            else roleHtml += `<span class="badge bg-secondary">Клиент</span>`;
+            
+            return `<tr>
+                <td data-label="Телефон / ФИО"><div class="fw-bold">${u.phone}</div><div class="small text-muted">${u.full_name || 'Без имени'}</div></td>
+                <td data-label="Статус / Роль">${roleHtml}<br><span class="small fw-bold text-success">Баланс: ${u.balance || 0} ₽</span><br><span class="small fw-bold text-warning">Билетов: ${u.tickets_balance || 0}</span></td>
+                <td data-label="VK Ссылка"><a href="${u.social_link}" target="_blank" class="small text-decoration-none fw-bold">${u.social_link ? 'VK Профиль' : '-'}</a></td>
+                <td data-label="Действия"><button class="btn btn-sm btn-light border rounded-pill px-3 w-100 shadow-sm" onclick='openUserModal(${JSON.stringify(u).replace(/'/g, "&apos;")})'>Настройки</button></td>
+            </tr>`;
+        }).join('');
+    }
+    
+    async function approveVip(userId) { if(!confirm("Одобрить доступ в 18+?")) return; await apiCall('users', 'POST', { id: userId, age_verified: 2 }); loadUsers(); }
+    
+    function openUserModal(u) {
+        openModal('Карточка пользователя', `
+            <input type="hidden" id="uId" value="${u.id}">
+            <label class="small fw-bold text-muted mb-1">ФИО</label><input type="text" id="uFio" class="form-control bg-light border mb-2 p-2" value="${u.full_name}">
+            <label class="small fw-bold text-muted mb-1">Телефон</label><input type="tel" id="uPhone" class="form-control bg-light border mb-2 p-2" value="${u.phone}">
+            <label class="small fw-bold text-muted mb-1">Ссылка VK</label><input type="text" id="uSocial" class="form-control bg-light border mb-2 p-2" value="${u.social_link}">
+            <label class="small fw-bold text-muted mb-1">Пароль для входа</label><input type="text" id="uPass" class="form-control bg-light border mb-3 p-2 text-danger fw-bold" placeholder="Не менять" value="${u.password || ''}">
+            
+            <div class="p-3 bg-white border border-primary rounded-3 mb-3">
+                <label class="small fw-bold text-primary mb-1">Системная роль</label>
+                <select id="uRole" class="form-select bg-light border mb-3 p-2 fw-bold" onchange="document.getElementById('courSettings').style.display = this.value === 'courier' ? 'block' : 'none'">
+                    <option value="client" ${u.role=='client'?'selected':''}>Обычный Клиент</option>
+                    <option value="courier" ${u.role=='courier'?'selected':''}>Курьер (Доставка)</option>
+                    <option value="sysadmin" ${u.role=='sysadmin'?'selected':''}>Сисадмин (Полный доступ)</option>
+                </select>
                 
-    return jsonify({"status": "ok"}), 200
-
-@app.route('/api/vk_webhook', methods=['POST'])
-def vk_webhook():
-    data = request.json
-    if not data: return 'ok'
-    if data.get('type') == 'confirmation':
-        settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-        return settings.get('vk_confirm_code', '00000000')
-    elif data.get('type') == 'message_new':
-        obj = data['object']['message']
-        vk_id = str(obj['from_id'])
-        user = get_db_query("SELECT id FROM users WHERE vk_id=?", (vk_id,), fetch_one=True)
-        if user:
-            with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], obj['text']))
-    return 'ok'
-
-@app.route('/api/auth/vk', methods=['POST'])
-def auth_vk():
-    data = request.json
-    access_token = data.get('access_token')
-    if not access_token: return jsonify({"error": "No token"}), 400
-    vk_res = requests.get(f"https://api.vk.com/method/users.get?access_token={access_token}&v={VK_API_VERSION}").json()
-    if 'error' in vk_res: return jsonify({"error": "VK API error"}), 400
-    vk_data = vk_res['response'][0]
-    vk_id = str(vk_data['id'])
-    full_name = f"{vk_data.get('first_name', '')} {vk_data.get('last_name', '')}".strip()
-    social_link = f"https://vk.com/id{vk_id}"
-    user = get_user_by_identifier(vk_id, is_vk=True)
-    with sqlite3.connect('shop.db') as conn:
-        if not user: conn.execute("INSERT INTO users (phone, full_name, social_link, vk_id, ref_code) VALUES (?, ?, ?, ?, ?)", (f"vk_{vk_id}", full_name, social_link, vk_id, f"REF-{uuid.uuid4().hex[:6].upper()}"))
-        elif not user['full_name']: conn.execute("UPDATE users SET full_name=?, social_link=? WHERE id=?", (full_name, social_link, user['id']))
-    session.permanent = True
-    session['user_identifier'] = vk_id
-    session['auth_type'] = 'vk'
-    return jsonify({"status": "ok"})
-
-@app.route('/api/auth/shadow', methods=['POST'])
-def auth_shadow():
-    phone = request.json.get('phone')
-    password = request.json.get('password', '')
-    user = get_user_by_identifier(phone)
-    if user:
-        if user['password'] and user['password'] != password: return jsonify({"error": "Неверный пароль."}), 403
-    else:
-        with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO users (phone, password, ref_code) VALUES (?, ?, ?)", (phone, password, f"REF-{uuid.uuid4().hex[:6].upper()}"))
-    session.permanent = True
-    session['user_identifier'] = phone
-    session['auth_type'] = 'phone'
-    return jsonify({"status": "ok"})
-
-@app.route('/api/auth/logout', methods=['POST'])
-def auth_logout(): 
-    session.clear()
-    return jsonify({"status": "ok"})
-
-@app.route('/api/wheel/data', methods=['GET'])
-def wheel_data():
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify({"error": "unauthorized"})
-    sectors = get_db_query("SELECT id, title, type, color, icon FROM wheel_sectors WHERE stock != 0 AND is_active = 1 ORDER BY id ASC")
-    prizes = get_db_query("SELECT * FROM user_prizes WHERE user_id=? AND is_used=0 AND expires_at > ? ORDER BY id DESC", (user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    is_active = get_db_query("SELECT value FROM settings WHERE key_name='wheel_active'", fetch_one=True)
-    wheel_active = int(is_active['value']) if is_active else 1
-    return jsonify({"sectors": sectors, "tickets": user['tickets_balance'], "prizes": prizes, "wheel_active": wheel_active})
-
-@app.route('/api/wheel/spin', methods=['POST'])
-def wheel_spin():
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify({"error": "unauthorized"})
-    with sqlite3.connect('shop.db') as conn:
-        conn.row_factory = sqlite3.Row
-        try: conn.execute("ALTER TABLE users ADD COLUMN wheel_spins INTEGER DEFAULT 0")
-        except: pass
-        curr_user = conn.execute("SELECT tickets_balance, wheel_spins FROM users WHERE id=?", (user['id'],)).fetchone()
-        if not curr_user or curr_user['tickets_balance'] < 1: return jsonify({"error": "Недостаточно билетов"})
-        
-        conn.execute("UPDATE users SET tickets_balance = tickets_balance - 1, wheel_spins = IFNULL(wheel_spins, 0) + 1 WHERE id=?", (user['id'],))
-        current_spin = (curr_user['wheel_spins'] or 0) + 1
-        loss_setting = conn.execute("SELECT value FROM settings WHERE key_name='wheel_loss_threshold'").fetchone()
-        loss_threshold = int(loss_setting['value']) if loss_setting and str(loss_setting['value']).isdigit() else 0
-        
-        sectors = conn.execute("SELECT * FROM wheel_sectors WHERE stock != 0 AND is_active = 1 ORDER BY id ASC").fetchall()
-        if not sectors: return jsonify({"error": "Колесо не настроено"})
-        
-        force_cheap = False
-        if loss_threshold > 0 and (current_spin % loss_threshold != 0): force_cheap = True 
+                <div id="courSettings" style="display: ${u.role=='courier'?'block':'none'}">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6"><label class="small fw-bold text-muted mb-1">Тип зарплаты</label><select id="uCommType" class="form-select bg-light border p-2"><option value="fixed" ${u.comm_type=='fixed'?'selected':''}>Фикса (₽)</option><option value="percent" ${u.comm_type=='percent'?'selected':''}>Процент (%)</option></select></div>
+                        <div class="col-6"><label class="small fw-bold text-muted mb-1">Ставка (Сумма)</label><input type="number" id="uCommVal" class="form-control bg-light border p-2 fw-bold" value="${u.comm_val || 0}"></div>
+                    </div>
+                </div>
+            </div>
             
-        total_weight = sum(s['weight'] for s in sectors if not force_cheap or s['type'] in ['empty', 'discount'])
-        if total_weight <= 0:
-            total_weight = sum(s['weight'] for s in sectors)
-            force_cheap = False
-            
-        rand_val = random.uniform(0, total_weight)
-        curr_weight = 0
-        winner_sector = sectors[0]
-        winner_index = 0
+            <div class="row g-2">
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Баланс (₽)</label><input type="number" id="uBalance" class="form-control bg-light border p-2 fw-bold text-success" value="${u.balance || 0}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Билеты</label><input type="number" id="uTickets" class="form-control bg-light border p-2 fw-bold text-warning" value="${u.tickets_balance || 0}"></div>
+                <div class="col-4"><label class="small fw-bold text-muted mb-1">Доступ к 18+</label><select id="uAge" class="form-select bg-light border p-2"><option value="0" ${u.age_verified==0?'selected':''}>Нет</option><option value="1" ${u.age_verified==1?'selected':''}>На проверке</option><option value="2" ${u.age_verified==2?'selected':''}>Одобрен</option></select></div>
+            </div>
+        `, 'Сохранить', async () => { 
+            await apiCall('users', 'POST', { id: document.getElementById('uId').value, full_name: document.getElementById('uFio').value, phone: document.getElementById('uPhone').value, social_link: document.getElementById('uSocial').value, balance: document.getElementById('uBalance').value, age_verified: document.getElementById('uAge').value, password: document.getElementById('uPass').value, role: document.getElementById('uRole').value, comm_type: document.getElementById('uCommType').value, comm_val: document.getElementById('uCommVal').value, tickets_balance: document.getElementById('uTickets').value }); 
+            loadUsers(); 
+        });
+    }
+
+    async function sendBroadcast() { const text = document.getElementById('broadcastText').value; if(!text) return alert("Сначала напишите текст!"); if(!confirm("Отправить ВСЕМ?")) return; const res = await apiCall('vk_action', 'POST', {msg_type: 'broadcast', custom_val: text}); if(res && res.status === 'ok') { alert(`Успешно!`); document.getElementById('broadcastText').value = ''; } }
+    async function openAllChatsModal() { const data = await apiCall('all_chats'); if(!data) return; document.getElementById('chatUserList').innerHTML = data.map(u => `<div class="p-3 border-bottom" style="cursor:pointer;" onclick="openGlobalChat(${u.id}, '${u.full_name || u.phone}')"><div class="fw-bold">${u.full_name || 'Без имени'}</div><div class="small text-muted">${u.phone}</div></div>`).join(''); new bootstrap.Modal(document.getElementById('allChatsModal')).show(); }
+    async function openGlobalChat(userId, name) { currentGlobalChatUserId = userId; document.getElementById('activeChatName').innerText = name; const res = await apiCall('order_chat/0'); if(res) renderOrderChatMessages(res.messages.filter(m => m.user_id == userId), 'globalChatMessages'); }
+    async function sendGlobalChatMsg() { const text = document.getElementById('globalChatInput').value.trim(); if(!text || !currentGlobalChatUserId) return; document.getElementById('globalChatInput').value = ''; await apiCall('vk_action', 'POST', {msg_type: 'direct', custom_val: text, target_id: currentGlobalChatUserId}); openGlobalChat(currentGlobalChatUserId, document.getElementById('activeChatName').innerText); }
+
+    /* СКЛАД И НАСТРОЙКИ */
+    async function loadWarehouse() {
+        const data = await apiCall('warehouse'); if(!data) return; categoriesList = data.categories;
         
-        for idx, s in enumerate(sectors):
-            if force_cheap and s['type'] not in ['empty', 'discount']: continue
-            curr_weight += s['weight']
-            if rand_val <= curr_weight:
-                winner_sector = s
-                winner_index = idx
-                break
-                
-        if winner_sector['stock'] > 0: conn.execute("UPDATE wheel_sectors SET stock = stock - 1 WHERE id=?", (winner_sector['id'],))
-        if winner_sector['type'] != 'empty':
-            exp = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
-            conn.execute("""INSERT INTO user_prizes (user_id, title, type, value, expires_at, banner_url, partner_link, promo_code, description, erid) VALUES (?,?,?,?,?,?,?,?,?,?)""", 
-                (user['id'], winner_sector['title'], winner_sector['type'], winner_sector['value'], exp, winner_sector.get('banner_url', ''), winner_sector.get('partner_link', ''), winner_sector.get('promo_code', ''), winner_sector.get('description', ''), winner_sector.get('erid', '')))
-                         
-    sector_angle = 360 / len(sectors)
-    target_angle = 360 * 5 + (360 - (winner_index * sector_angle + sector_angle/2))
-    return jsonify({"status": "ok", "target_angle": target_angle, "prize": dict(winner_sector), "tickets_left": curr_user['tickets_balance'] - 1})
-
-@app.route('/api/wheel/daily', methods=['POST'])
-def wheel_daily():
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify({"error": "unauthorized"})
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
-    last_bonus = user.get('last_daily_bonus', '')
-    if last_bonus and last_bonus.startswith(today): return jsonify({"error": "Бонус сегодня уже получен"})
-    with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE users SET tickets_balance = tickets_balance + 1, last_daily_bonus=? WHERE id=?", (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user['id']))
-    return jsonify({"status": "ok", "tickets": user['tickets_balance'] + 1})
-
-@app.route('/')
-def index():
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+        document.getElementById('tableProducts').innerHTML = data.products.map(p => {
+            return `<tr>
+            <td data-label="Фото / Название">
+                <div class="d-flex align-items-center">${p.images && p.images.length > 0 ? `<img src="${p.images[0]}" class="img-preview">` : ''}
+                <div><span class="fw-bold">${p.name}</span><br><span class="badge bg-secondary mt-1">${p.cat_name}</span></div></div>
+            </td>
+            <td data-label="Стикеры">${p.stickers.map(s => `<span class="badge bg-warning text-dark me-1">${s}</span>`).join('')}</td>
+            <td data-label="Цена"><div class="fw-bold text-success">${p.price} ₽</div>${p.old_price > 0 ? `<small class="text-danger text-decoration-line-through">${p.old_price} ₽</small>` : ''}</td>
+            <td data-label="Ед. изм / Шаг">${p.unit} <span class="text-muted small">(${p.step})</span></td>
+            <td data-label="Остаток"><span class="badge ${p.stock < 10 ? 'bg-danger' : 'bg-dark'}">${p.stock}</span></td>
+            <td data-label="Действия">
+                <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openProductModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("product", ${p.id}, loadWarehouse)'><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>`}).join('');
+        
+        document.getElementById('tableCategories').innerHTML = categoriesList.map(c => `<tr>
+            <td data-label="Иконка / Название" class="fw-bold fs-6">${c.icon} ${c.name}</td>
+            <td data-label="Сортировка">${c.sort_order}</td>
+            <td data-label="Ограничение">${c.is_hidden ? '<span class="badge bg-danger">VIP 18+</span>' : '<span class="badge bg-light text-dark">Открытая</span>'}</td>
+            <td data-label="Действия">
+                <button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openCategoryModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("category", ${c.id}, loadWarehouse)'><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>`).join('');
+    }
     
-    # Секретный замок: блокировка витрины для клиентов
-    if settings.get('store_locked') == '1' and not session.get('is_admin'):
-        return render_template('locked.html', settings=settings) # Убедись, что есть шаблон locked.html
+    async function uploadPhotos() { 
+        const files = document.getElementById('pFileUpload').files; 
+        document.getElementById('uploadStatus').innerText = "Загрузка..."; 
+        for(let i=0; i<files.length; i++) { 
+            const formData = new FormData(); formData.append('file', files[i]); 
+            try { 
+                const res = await fetch('/api/upload', {method: 'POST', body: formData}); 
+                const data = await res.json(); 
+                if(data.url) currentProductImages.push(data.url); 
+            } catch(e) {} 
+        } 
+        document.getElementById('uploadStatus').innerText = ""; renderPhotoPreviews(); 
+    }
+    
+    function renderPhotoPreviews() { 
+        const box = document.getElementById('pPhotoPreviewBox'); 
+        if(box) box.innerHTML = currentProductImages.map((url, idx) => `<div style="position:relative; display:inline-block; margin-right:10px; margin-bottom:10px;"><img src="${url}" class="img-preview"><button class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0" style="padding: 0 5px; transform: translate(30%, -30%); font-size:10px;" onclick="currentProductImages.splice(${idx}, 1); renderPhotoPreviews(); event.stopPropagation();">X</button></div>`).join(''); 
+    }
+
+    function openProductModal(p = null) {
+        currentProductImages = p && p.images ? [...p.images] : []; 
+        let pStickers = p && p.stickers ? p.stickers.join(', ') : ''; 
+        const catOptions = categoriesList.map(c => `<option value="${c.id}" ${p && p.category_id==c.id ? 'selected' : ''}>${c.name}</option>`).join('');
         
-    auth_val = session.get('user_identifier')
-    auth_type = session.get('auth_type', 'phone')
-    user = get_user_by_identifier(auth_val, is_vk=(auth_type=='vk')) if auth_val else None
+        openModal(p ? 'Редактирование товара' : 'Новый товар', `
+            <input type="hidden" id="pId" value="${p ? p.id : ''}">
+            <div class="row">
+                <div class="col-md-12 border-end pe-md-4">
+                    <label class="small fw-bold text-muted mb-1">Название</label>
+                    <input type="text" id="pName" class="form-control bg-light border mb-2 p-2 fw-bold" placeholder="Стейк Рибай" value="${p ? p.name : ''}">
+                    <label class="small fw-bold text-muted mb-1">Описание</label>
+                    <textarea id="pDesc" class="form-control bg-light border mb-3 p-2" rows="2">${p ? p.desc : ''}</textarea>
+                    
+                    <div class="p-3 bg-white border border-primary rounded-4 shadow-sm mb-3">
+                        <label class="small fw-bold text-primary mb-2"><i class="bi bi-camera-fill me-1"></i>Загрузить фото</label>
+                        <input type="file" id="pFileUpload" class="form-control bg-light border mb-2 p-2 fw-bold text-primary" multiple accept="image/*" capture="environment" onchange="uploadPhotos()">
+                        <div id="uploadStatus" class="small text-primary mb-2 fw-bold"></div>
+                        <div id="pPhotoPreviewBox" class="d-flex flex-wrap pb-2"></div>
+                    </div>
+
+                    <label class="small fw-bold text-muted mb-1">Стикеры (через запятую)</label>
+                    <input type="text" id="pStickers" class="form-control bg-white border border-warning mb-3 p-2 fw-bold" placeholder="Хит, Острое" value="${pStickers}">
+                    <label class="small fw-bold text-muted mb-1">Категория</label>
+                    <select id="pCat" class="form-select bg-light border mb-3 p-2 fw-bold">${catOptions}</select>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><label class="small fw-bold text-muted mb-1">Цена (₽)</label><input type="number" id="pPrice" class="form-control bg-light border p-2 fw-bold text-success" value="${p ? p.price : ''}"></div>
+                        <div class="col-6"><label class="small fw-bold text-muted mb-1">Старая цена</label><input type="number" id="pOld" class="form-control bg-light border p-2 text-danger fw-bold" placeholder="0 = нет скидки" value="${p ? p.old_price : '0'}"></div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Остаток</label><input type="number" id="pStock" class="form-control bg-light border p-2" value="${p ? p.stock : '10'}"></div>
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Ед. изм</label><input type="text" id="pUnit" class="form-control bg-light border p-2" placeholder="шт, кг" value="${p ? p.unit : 'шт'}"></div>
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Шаг</label><input type="number" step="0.1" id="pStep" class="form-control bg-light border p-2" value="${p ? p.step : '1'}"></div>
+                        <div class="col-3"><label class="small fw-bold text-muted mb-1">Билеты</label><input type="number" id="pTicket" class="form-control bg-light border p-2 text-primary fw-bold" value="${p ? (p.ticket_bonus || 0) : '0'}" placeholder="+0"></div>
+                    </div>
+                </div>
+            </div>
+        `, 'Сохранить товар', async () => { 
+            const stickersArr = document.getElementById('pStickers').value ? document.getElementById('pStickers').value.split(',').map(s => s.trim()).filter(s => s) : []; 
+            await apiCall('product', 'POST', { 
+                id: document.getElementById('pId').value, name: document.getElementById('pName').value, desc: document.getElementById('pDesc').value, price: document.getElementById('pPrice').value, old_price: document.getElementById('pOld').value, stock: document.getElementById('pStock').value, category_id: document.getElementById('pCat').value, images: currentProductImages, unit: document.getElementById('pUnit').value, step: document.getElementById('pStep').value, stickers: stickersArr, ticket_bonus: document.getElementById('pTicket').value
+            }); loadWarehouse(); 
+        }); 
+        setTimeout(renderPhotoPreviews, 100);
+    }
     
-    cats = get_db_query("SELECT * FROM categories ORDER BY sort_order")
-    prods = get_db_query("SELECT p.*, c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1")
-    favs = [f['product_id'] for f in get_db_query("SELECT product_id FROM favorites WHERE user_id=?", (user['id'],))] if user else []
-    rev_dict = {r['product_id']: {'avg': round(r['avg_rating'], 1), 'count': r['c']} for r in get_db_query("SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as c FROM reviews WHERE is_approved=1 GROUP BY product_id")}
-    current_time = datetime.datetime.now().strftime("%H:%M")
-    promotions = get_db_query("SELECT * FROM promotions WHERE active=1 AND promo_type='happy_hours'")
-    for p in prods: 
-        p['images'] = json.loads(p['images']) if p['images'] else []
-        p['stickers'] = json.loads(p['stickers']) if p.get('stickers') else []
-        p['is_fav'] = p['id'] in favs
-        p['dyn_rating'] = rev_dict.get(p['id'], {}).get('avg', 5.0)
-        p['rev_count'] = rev_dict.get(p['id'], {}).get('count', 0)
-        p['variations'] = p.get('variations', '')
-        for promo in promotions:
-            if promo['time_start'] <= current_time <= promo['time_end']:
-                if promo['target_id'] == 0 or promo['target_id'] == p['category_id']:
-                    p['old_price'] = p['price']
-                    p['price'] = p['price'] - (p['price'] * (promo['discount_val'] / 100))
-                    if '🔥 Скидка' not in p['stickers']: p['stickers'].append('🔥 Скидка')
-    banners = get_db_query("SELECT * FROM banners WHERE active=1")
-    blocks = get_db_query("SELECT * FROM homepage_blocks WHERE active=1 ORDER BY sort_order")
-    active_contest = get_db_query("SELECT * FROM contests WHERE active=1 LIMIT 1", fetch_one=True)
-    return render_template('index.html', settings=settings, categories=cats, products=prods, banners=banners, blocks=blocks, user=user, active_contest=active_contest)
+    function openCategoryModal(c = null) { 
+        openModal(c ? 'Изменить категорию' : 'Новая категория', `
+            <input type="hidden" id="cId" value="${c ? c.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Название</label>
+            <input type="text" id="cName" class="form-control bg-light border mb-3 p-2 fw-bold" value="${c ? c.name : ''}">
+            <div class="row g-2 mb-3">
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Эмодзи иконка</label><input type="text" id="cIcon" class="form-control bg-light border p-2" value="${c ? c.icon : '🛒'}"></div>
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Порядок вывода</label><input type="number" id="cSort" class="form-control bg-light border p-2" value="${c ? c.sort_order : '1'}"></div>
+            </div>
+            <div class="p-3 bg-light border rounded-4 mb-3">
+                <label class="small fw-bold text-muted mb-1">Вывод категории (UI)</label>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" id="cOnMain" ${c && c.is_on_main == 1 ? 'checked' : ''}>
+                    <label class="form-check-label fw-bold small" for="cOnMain">Вывести на главную плиткой</label>
+                </div>
+            </div>
+            <label class="small fw-bold text-muted mb-1">Ограничение доступа (18+)</label>
+            <select id="cHidden" class="form-select bg-light border p-2">
+                <option value="0" ${c && c.is_hidden==0 ? 'selected' : ''}>Открытая (Обычный товар)</option>
+                <option value="1" ${c && c.is_hidden==1 ? 'selected' : ''}>VIP 18+ (Только самовывоз для гостей)</option>
+            </select>
+        `, 'Сохранить', async () => { 
+            await apiCall('category', 'POST', { id: document.getElementById('cId').value, name: document.getElementById('cName').value, icon: document.getElementById('cIcon').value, sort_order: document.getElementById('cSort').value, is_hidden: document.getElementById('cHidden').value, is_on_main: document.getElementById('cOnMain').checked ? 1 : 0 }); 
+            loadWarehouse(); 
+        }); 
+    }
 
-@app.route('/api/user/vip_request', methods=['POST'])
-def request_vip():
-    data = request.json
-    phone = data.get('phone', '').strip()
-    fio = data.get('fio', '').strip()
-    social = data.get('social', '').strip()
-    if not phone: return jsonify({"error": "Укажите телефон"}), 400
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    with sqlite3.connect('shop.db') as conn:
-        if user: conn.execute("UPDATE users SET phone=?, full_name=?, social_link=?, age_verified=1 WHERE id=?", (phone, fio, social, user['id']))
-        else:
-            exist = get_user_by_identifier(phone)
-            if exist: conn.execute("UPDATE users SET full_name=?, social_link=?, age_verified=1 WHERE id=?", (fio, social, exist['id']))
-            else: conn.execute("INSERT INTO users (phone, full_name, social_link, age_verified, ref_code) VALUES (?,?,?,1,?)", (phone, fio, social, f"REF-{uuid.uuid4().hex[:6].upper()}"))
-            session.permanent = True
-            session['user_identifier'] = phone
-            session['auth_type'] = 'phone'
-    return jsonify({"status": "ok"})
+    /* === СТАРЫЕ РУЧНЫЕ КОНКУРСЫ === */
+    async function loadContests() {
+        const data = await apiCall('contests');
+        if(!data) return;
+        document.getElementById('tableContests').innerHTML = data.map(c => `
+            <tr>
+                <td data-label="Название / Условия">
+                    <div class="fw-bold">${c.title}</div>
+                    <div class="small text-muted">${c.description}</div>
+                    <div class="badge bg-light text-dark border mt-1">От ${c.min_sum} ₽</div>
+                </td>
+                <td data-label="Статус">${c.active ? '<span class="badge bg-success">Активен</span>' : '<span class="badge bg-secondary">Выкл</span>'}</td>
+                <td data-label="Действия">
+                    <button class="btn btn-sm btn-warning fw-bold rounded-pill px-3" onclick="openRoulette(${c.id})"><i class="bi bi-play-circle-fill"></i> Запуск</button>
+                    <button class="btn btn-sm btn-light border rounded-pill ms-1" onclick='openContestModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick="deleteEntity('contests', ${c.id}, loadContests)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
 
-@app.route('/api/user/cabinet', methods=['GET'])
-def user_cabinet():
-    auth_val = session.get('user_identifier')
-    if not auth_val: return jsonify({"error": "unauthorized"})
-    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify({"error": "user not found"})
-    tickets = get_db_query("SELECT t.ticket_number, c.title FROM tickets t JOIN contests c ON t.contest_id = c.id WHERE t.user_id=? ORDER BY t.id DESC", (user['id'],))
-    available_orders = []
-    my_orders = []
-    if user.get('role') == 'courier': 
-        my_orders = get_db_query("SELECT o.*, u.full_name as client_name, u.phone as client_phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.courier_id=? AND o.status != 'Отменен' ORDER BY o.id DESC LIMIT 30", (user['id'],))
-        available_orders = get_db_query("SELECT o.*, u.full_name as client_name, u.phone as client_phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.status='Собран' AND (o.courier_id=0 OR o.courier_id IS NULL) AND o.delivery_type='courier' ORDER BY o.id DESC")
-        for o in my_orders: o['items'] = json.loads(o['items'])
-        for o in available_orders: o['items'] = json.loads(o['items'])
-        orders = my_orders
-    else: 
-        orders = get_db_query("SELECT o.*, c.tips_link as c_tips, c.tips_qr as c_tips_qr, c.full_name as c_name FROM orders o LEFT JOIN users c ON o.courier_id = c.id WHERE o.user_id=? ORDER BY o.id DESC", (user['id'],))
-        for o in orders: o['items'] = json.loads(o['items'])
-    return jsonify({"user": user, "orders": orders, "available_orders": available_orders, "my_orders": my_orders, "tickets": tickets})
+    function openContestModal(c = null) {
+        openModal(c ? 'Редактировать конкурс' : 'Новый конкурс', `
+            <input type="hidden" id="conId" value="${c ? c.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Заголовок</label>
+            <input type="text" id="conTitle" class="form-control mb-2 fw-bold" value="${c ? c.title : ''}" placeholder="Новогодний розыгрыш">
+            <label class="small fw-bold text-muted mb-1">Описание</label>
+            <textarea id="conDesc" class="form-control mb-2" rows="2">${c ? c.description : ''}</textarea>
+            <label class="small fw-bold text-muted mb-1">Мин. сумма чека для получения билета (₽)</label>
+            <input type="number" id="conMin" class="form-control mb-3 fw-bold text-success" value="${c ? c.min_sum : '1500'}">
+            <label class="small fw-bold text-muted mb-1">Статус</label>
+            <select id="conActive" class="form-select border">
+                <option value="1" ${c && c.active==1 ? 'selected' : ''}>Включен</option>
+                <option value="0" ${c && c.active==0 ? 'selected' : ''}>Выключен</option>
+            </select>
+        `, 'Сохранить', async () => {
+            await apiCall('contests', 'POST', {
+                id: document.getElementById('conId').value,
+                title: document.getElementById('conTitle').value,
+                description: document.getElementById('conDesc').value,
+                min_sum: document.getElementById('conMin').value,
+                active: document.getElementById('conActive').value,
+                img_url: ""
+            });
+            loadContests();
+        });
+    }
 
-@app.route('/api/user/update', methods=['POST'])
-def user_update():
-    auth_val = session.get('user_identifier')
-    if not auth_val: return jsonify({"error": "unauthorized"})
-    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    data = request.json
-    addresses = json.loads(user['addresses']) if user['addresses'] else []
-    if data.get('new_address') and data.get('new_address') not in addresses: addresses.append(data['new_address'])
-    if data.get('remove_address') and data.get('remove_address') in addresses: addresses.remove(data['remove_address'])
-    with sqlite3.connect('shop.db') as conn:
-        query = "UPDATE users SET full_name=?, social_link=?, addresses=?, phone=?, tips_link=?, tips_qr=? "
-        params = [data.get('full_name', user['full_name']), data.get('social_link', user['social_link']), json.dumps(addresses), data.get('phone', user['phone']), data.get('tips_link', user.get('tips_link', '')), data.get('tips_qr', user.get('tips_qr', ''))]
-        if data.get('password'): query += ", password=? "; params.append(data['password'])
-        query += "WHERE id=?"
-        params.append(user['id'])
-        conn.execute(query, tuple(params))
-    return jsonify({"status": "ok"})
+    let currentRouletteTickets = [];
+    async function openRoulette(contestId) {
+        const data = await apiCall(`tickets?contest_id=${contestId}`);
+        currentRouletteTickets = data || [];
+        document.getElementById('rouletteTicketsInfo').innerText = `Всего билетов участвует: ${currentRouletteTickets.length}`;
+        resetRoulette();
+        new bootstrap.Modal(document.getElementById('rouletteModal')).show();
+    }
+    function resetRoulette() {
+        document.getElementById('rouletteNumber').innerText = '000000';
+        document.getElementById('rouletteNumber').classList.remove('roulette-winner');
+        document.getElementById('rouletteWinnerInfo').style.display = 'none';
+        document.getElementById('rouletteBtn').disabled = false;
+    }
+    function startRoulette() {
+        if(currentRouletteTickets.length === 0) return alert("В этом конкурсе пока нет ни одного билета!");
+        const btn = document.getElementById('rouletteBtn'); btn.disabled = true;
+        const numEl = document.getElementById('rouletteNumber'); numEl.classList.remove('roulette-winner');
+        document.getElementById('rouletteWinnerInfo').style.display = 'none';
+        let iterations = 0; const maxIterations = 50; 
+        const interval = setInterval(() => {
+            const randomTicket = currentRouletteTickets[Math.floor(Math.random() * currentRouletteTickets.length)];
+            numEl.innerText = randomTicket.ticket_number;
+            iterations++;
+            if (iterations >= maxIterations) {
+                clearInterval(interval);
+                const winner = currentRouletteTickets[Math.floor(Math.random() * currentRouletteTickets.length)];
+                numEl.innerText = winner.ticket_number;
+                numEl.classList.add('roulette-winner'); 
+                document.getElementById('rWinnerName').innerText = `Имя: ${winner.full_name || 'Без имени'}`;
+                document.getElementById('rWinnerPhone').innerText = `Телефон: ${winner.phone}`;
+                document.getElementById('rouletteWinnerInfo').style.display = 'block';
+                document.getElementById('dingSound').play().catch(e => console.log('Audio autoplay blocked'));
+            }
+        }, 60); 
+    }
 
-@app.route('/api/order/rate_delivery', methods=['POST'])
-def rate_delivery():
-    auth_val = session.get('user_identifier')
-    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify({"error": "unauthorized"})
-    data = request.json
-    with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE orders SET courier_rating=?, courier_comment=? WHERE id=? AND user_id=?", (data['rating'], data['comment'], data['order_id'], user['id']))
-    return jsonify({"status": "ok"})
+    /* === СЕТТИНГИ === */
+    async function loadSettings() {
+        const settings = await apiCall('settings');
+        if(settings) { 
+            document.getElementById('setShopName').value = settings.shop_name || ''; 
+            document.getElementById('setFooterText').value = settings.footer_text || ''; 
+            document.getElementById('setPackageCost').value = settings.package_cost || '29'; 
+            document.getElementById('setCourierCost').value = settings.courier_cost || '150';
+            document.getElementById('setFreeDelivery').value = settings.free_delivery_threshold || '3000'; 
+            document.getElementById('setMinOrder').value = settings.min_order_sum || '500';
+            document.getElementById('setMinPickup').value = settings.min_pickup_sum || '0'; 
+            document.getElementById('setHighDemand').value = settings.high_demand || '0';
+            document.getElementById('setPayment').value = settings.payment_details || ''; 
+            document.getElementById('setVkCode').value = settings.vk_confirm_code || '';
+            document.getElementById('setAdminPin').value = settings.admin_pin || '0000'; 
+            document.getElementById('setOfertaText').value = settings.oferta_text || '';
+            document.getElementById('setPrivacyText').value = settings.privacy_text || ''; 
+            
+            document.getElementById('setWheelActive').value = settings.wheel_active || '1';
+            document.getElementById('setWheelLossThreshold').value = settings.wheel_loss_threshold || '0';
+            
+            // Новые настройки
+            document.getElementById('setDelEnabled').value = settings.delivery_enabled || '1';
+            document.getElementById('setPickEnabled').value = settings.pickup_enabled || '1';
+            document.getElementById('setWorkStart').value = settings.work_time_start || '09:00';
+            document.getElementById('setWorkEnd').value = settings.work_time_end || '21:00';
+            document.getElementById('setPreorderEnabled').value = settings.preorder_enabled || '1';
+            document.getElementById('setAdminVkId').value = settings.admin_vk_id || '';
+            document.getElementById('setYandexToken').value = settings.yandex_delivery_token || '';
+            document.getElementById('setYandexMapsKey').value = settings.yandex_maps_apikey || '';
+            document.getElementById('setDeliveryPolygon').value = settings.delivery_polygon || '';
+            
+            document.getElementById('setPWABanner').value = settings.show_pwa_banner || '1';
+            document.getElementById('setLockIcon').value = settings.show_lock_icon || '1';
+            document.getElementById('setBgMain').value = settings.bg_main || ''; 
+            document.getElementById('setBgHeader').value = settings.bg_header || '';
+            document.getElementById('setBgCat').value = settings.bg_cat || ''; 
+            document.getElementById('setBgCard').value = settings.bg_card || '';
+        }
+        const wh = await apiCall('warehouse'); if(wh) { categoriesList = wh.categories; productsList = wh.products; }
+        const banners = await apiCall('banners'); if(banners) document.getElementById('tableBanners').innerHTML = banners.map(b => `<tr><td data-label="Текст">${b.title}</td><td data-label="Цвет фона"><div style="width:24px; height:24px; background:${b.bg_color}; border-radius:6px; border:1px solid #ddd;"></div></td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBannerModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("banners", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
+        const blocks = await apiCall('homepage_blocks'); if(blocks) document.getElementById('tableBlocks').innerHTML = blocks.map(b => `<tr><td data-label="Заголовок">${b.title}</td><td data-label="Тип">${b.block_type === 'sale' ? '<span class="badge bg-danger">Акции</span>' : '<span class="badge bg-primary">Категория</span>'}</td><td data-label="Сортировка">${b.sort_order}</td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openBlockModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("homepage_blocks", ${b.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
+        const promos = await apiCall('promocodes'); if(promos) document.getElementById('tablePromos').innerHTML = promos.map(p => `<tr><td data-label="Код"><div class="fw-bold text-danger">${p.code}</div>${p.is_sysadmin_only ? '<span class="badge bg-dark small">Сисадмин</span>' : ''}</td><td data-label="Скидка">${p.discount_percent}% / ${p.discount_rub} ₽</td><td data-label="Условия">От ${p.min_sum} ₽<br>${p.is_active ? '<span class="text-success small fw-bold">Вкл</span>' : '<span class="text-danger small fw-bold">Выкл</span>'}</td><td data-label="Действия"><button class="btn btn-sm btn-light border me-1 rounded-pill" onclick='openPromoModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'>Изменить</button><button class="btn btn-sm btn-outline-danger border-0 rounded-pill float-end" onclick='deleteEntity("promocodes", ${p.id}, loadSettings)'><i class="bi bi-trash"></i></button></td></tr>`).join('');
+    }
 
-@app.route('/api/courier/action', methods=['POST'])
-def courier_action():
-    auth_val = session.get('user_identifier')
-    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if not user or user.get('role') != 'courier': return jsonify({"error": "access denied"}), 403
-    order_id = request.json.get('order_id')
-    action = request.json.get('action')
-    new_status = request.json.get('status')
-    with sqlite3.connect('shop.db') as conn:
-        conn.row_factory = sqlite3.Row
-        order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
-        if not order: return jsonify({"error": "Order not found"}), 404
-        client = conn.execute("SELECT * FROM users WHERE id=?", (order['user_id'],)).fetchone()
-        if action == 'take':
-            if order['status'] != 'Собран' or order['courier_id'] not in [0, None]: return jsonify({"error": "Извините, этот заказ уже забрал другой курьер или он не готов."}), 400
-            conn.execute("UPDATE orders SET status='В пути', courier_id=? WHERE id=?", (user['id'], order_id))
-            if client and client['social_link']:
-                courier_info = f"Курьер: {user['full_name'] or 'Наш сотрудник'}\nТелефон: {user['phone']}"
-                send_vk_message(client['id'], client['social_link'], f"🚚 Ваш заказ #{order_id} передан курьеру и уже в пути к вам!\n\n{courier_info}")
-        elif action == 'status':
-            if order['courier_id'] != user['id']: return jsonify({"error": "Не ваш заказ"}), 403
-            conn.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
-            if new_status == 'Выполнен':
-                if order['is_paid_to_courier'] == 0:
-                    payout = float(user['comm_val']) if user['comm_type'] == 'fixed' else (float(order['final_total']) * float(user['comm_val']) / 100)
-                    conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, user['id']))
-                    conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
-                    award_tickets(conn, order_id, order['user_id'], order['final_total'], order['items'])
-                if 'is_paid_to_sysadmin' in order.keys() and order['is_paid_to_sysadmin'] == 0:
-                    sysadmin_bonus = float(order['final_total']) * 0.01
-                    conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
-                    conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
-                    conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (sysadmin_bonus, f"Начисление 1% за заказ #{order_id} (Выполнен)"))
-    return jsonify({"status": "ok"})
+    async function saveSettings() { 
+        await apiCall('settings', 'POST', { 
+            shop_name: document.getElementById('setShopName').value, 
+            footer_text: document.getElementById('setFooterText').value, 
+            package_cost: document.getElementById('setPackageCost').value, 
+            courier_cost: document.getElementById('setCourierCost').value, 
+            free_delivery_threshold: document.getElementById('setFreeDelivery').value, 
+            min_order_sum: document.getElementById('setMinOrder').value, 
+            min_pickup_sum: document.getElementById('setMinPickup').value, 
+            high_demand: document.getElementById('setHighDemand').value, 
+            payment_details: document.getElementById('setPayment').value, 
+            vk_confirm_code: document.getElementById('setVkCode').value, 
+            admin_pin: document.getElementById('setAdminPin').value, 
+            oferta_text: document.getElementById('setOfertaText').value, 
+            privacy_text: document.getElementById('setPrivacyText').value, 
+            wheel_active: document.getElementById('setWheelActive').value,
+            wheel_loss_threshold: document.getElementById('setWheelLossThreshold').value,
+            delivery_enabled: document.getElementById('setDelEnabled').value,
+            pickup_enabled: document.getElementById('setPickEnabled').value,
+            work_time_start: document.getElementById('setWorkStart').value,
+            work_time_end: document.getElementById('setWorkEnd').value,
+            preorder_enabled: document.getElementById('setPreorderEnabled').value,
+            admin_vk_id: document.getElementById('setAdminVkId').value,
+            yandex_delivery_token: document.getElementById('setYandexToken').value,
+            yandex_maps_apikey: document.getElementById('setYandexMapsKey').value,
+            delivery_polygon: document.getElementById('setDeliveryPolygon').value,
+            bg_main: document.getElementById('setBgMain').value, 
+            bg_header: document.getElementById('setBgHeader').value,
+            bg_cat: document.getElementById('setBgCat').value, 
+            bg_card: document.getElementById('setBgCard').value,
+            show_pwa_banner: document.getElementById('setPWABanner').value, 
+            show_lock_icon: document.getElementById('setLockIcon').value
+        }); 
+        alert('Все настройки успешно сохранены!'); 
+    }
 
-@app.route('/api/user/fav', methods=['POST'])
-def toggle_fav():
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    prod_id = request.json.get('product_id')
-    with sqlite3.connect('shop.db') as conn:
-        exists = conn.execute("SELECT id FROM favorites WHERE user_id=? AND product_id=?", (user['id'], prod_id)).fetchone()
-        if exists: 
-            conn.execute("DELETE FROM favorites WHERE id=?", (exists[0],))
-            return jsonify({"status": "removed"})
-        else: 
-            conn.execute("INSERT INTO favorites (user_id, product_id) VALUES (?,?)", (user['id'], prod_id))
-            return jsonify({"status": "added"})
-
-@app.route('/api/product/<int:prod_id>/reviews', methods=['GET'])
-def get_product_reviews(prod_id): 
-    return jsonify(get_db_query("SELECT r.rating, r.text, r.date, u.full_name as author FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.product_id=? AND r.is_approved=1 ORDER BY r.id DESC", (prod_id,)))
-
-@app.route('/api/user/add_review', methods=['POST'])
-def add_review():
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    data = request.json
-    with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO reviews (product_id, user_id, rating, text) VALUES (?,?,?,?)", (data['product_id'], user['id'], data['rating'], data['text']))
-    return jsonify({"status": "ok"})
-
-@app.route('/api/cart/calc', methods=['POST'])
-def calc_cart():
-    data = request.json
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    cart_items = data.get('cart', {})
-    has_18 = False
-    base_total = 0
-    gift_added = False
-    free_items_discount = 0
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    if not user and data.get('phone', '').strip(): user = get_user_by_identifier(data.get('phone', '').strip())
-    is_new_user = True
-    if user:
-        orders_count = get_db_query("SELECT COUNT(*) as c FROM orders WHERE user_id=? AND status != 'Отменен'", (user['id'],), fetch_one=True)
-        if orders_count and orders_count['c'] > 0: is_new_user = False
-    promotions = get_db_query("SELECT * FROM promotions WHERE active=1")
-    current_time = datetime.datetime.now().strftime("%H:%M")
-    for p_id_key, item in cart_items.items():
-        base_p_id = str(p_id_key).split('_')[0]
-        prod = get_db_query("SELECT p.*, c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
-        if prod:
-            if prod['is_hidden'] == 1: has_18 = True
-            item_price = float(prod['price'])
-            for promo in promotions:
-                if promo['promo_type'] == 'happy_hours' and promo['time_start'] <= current_time <= promo['time_end']:
-                    if promo['target_id'] == 0 or promo['target_id'] == prod['category_id']:
-                        item_price = item_price - (item_price * (promo['discount_val'] / 100))
-                elif promo['promo_type'] == '1plus1' and (promo['target_id'] == 0 or promo['target_id'] == prod['category_id']):
-                    if item['qty'] >= 3:
-                        free_qty = int(item['qty'] // 3)
-                        free_items_discount += (item_price * free_qty)
-            base_total += (item_price * float(item['qty']))
-    gift_prod = None
-    for promo in promotions:
-        if promo['promo_type'] == 'gift' and is_new_user and base_total >= promo['min_sum']:
-            gift_prod = get_db_query("SELECT id, name, images, unit, step FROM products WHERE id=?", (promo['target_id'],), fetch_one=True)
-            if gift_prod: gift_added = True
-    base_total -= free_items_discount
-    base_total = max(0, base_total)
-    delivery_type = data.get('delivery_type', 'pickup')
-    promo_code = data.get('promo_code', '').strip()
-    is_vip = user and user.get('age_verified') == 2
-    force_pickup_18 = has_18 and not is_vip
-    if force_pickup_18: delivery_type = 'pickup'
-    package_cost = float(settings.get('package_cost', 29)) if base_total > 0 else 0
-    courier_cost = float(settings.get('courier_cost', 150))
-    free_threshold = float(settings.get('free_delivery_threshold', 3000))
-    min_order_delivery = float(settings.get('min_order_sum', 500))
-    min_order_pickup = float(settings.get('min_pickup_sum', 0))
-    delivery_cost = 0
-    if delivery_type == 'courier': delivery_cost = 0 if base_total >= free_threshold else courier_cost
-    discount_rub, sysadmin_pay, promo_status = 0, 0, ""
-    if promo_code:
-        promo_db = get_db_query("SELECT * FROM promocodes WHERE code=? AND is_active=1", (promo_code,), fetch_one=True)
-        if not promo_db: promo_status = "Неверный код"
-        elif base_total < promo_db['min_sum']: promo_status = f"Минимальная сумма {promo_db['min_sum']} ₽"
-        elif promo_db['is_sysadmin_only'] == 1:
-            if user and user.get('role') == 'sysadmin':
-                sysadmin_pay = min(float(user.get('balance', 0)), base_total + package_cost + delivery_cost)
-                promo_status = f"Списано с баланса: {sysadmin_pay:.0f} ₽"
-            else: promo_status = "Код только для Сисадмина"
-        else:
-            discount_rub = float(promo_db['discount_rub']) + (base_total * float(promo_db['discount_percent']) / 100)
-            promo_status = f"Скидка применена!"
-    final_total = max(0, base_total + package_cost + delivery_cost - discount_rub - sysadmin_pay)
-    active_min_order = min_order_pickup if delivery_type == 'pickup' else min_order_delivery
-    return jsonify({"items_total": base_total + free_items_discount, "package_cost": package_cost, "delivery_cost": delivery_cost, "discount": discount_rub + free_items_discount, "sysadmin_pay": sysadmin_pay, "final_total": final_total, "free_threshold": free_threshold, "min_order": active_min_order, "promo_status": promo_status, "force_pickup_18": force_pickup_18, "gift": gift_prod})
-
-@app.route('/api/checkout', methods=['POST'])
-def checkout():
-    data = request.json
-    phone = data.get('phone', '').strip()
-    email = data.get('email', '').strip() 
-    if not phone: return jsonify({"error": "Введите номер телефона!"}), 400
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    with sqlite3.connect('shop.db') as conn:
-        if user and session.get('auth_type') == 'vk':
-            existing_phone_user = get_user_by_identifier(phone)
-            if existing_phone_user and existing_phone_user['id'] != user['id']:
-                conn.execute("UPDATE users SET vk_id=?, social_link=? WHERE id=?", (user['vk_id'], user['social_link'], existing_phone_user['id']))
-                conn.execute("DELETE FROM users WHERE id=?", (user['id'],))
-                user = get_user_by_identifier(phone)
-                session['user_identifier'] = phone
-                session['auth_type'] = 'phone'
-            else: conn.execute("UPDATE users SET phone=? WHERE id=?", (phone, user['id']))
-        elif not user:
-            user = get_user_by_identifier(phone)
-            if not user:
-                conn.execute("INSERT INTO users (phone, social_link, addresses, ref_code) VALUES (?, ?, ?, ?)", (phone, data.get('social_link', ''), json.dumps([data.get('address', '')]), f"REF-{uuid.uuid4().hex[:6].upper()}"))
-                user = get_user_by_identifier(phone)
-            session.permanent = True
-            session['user_identifier'] = phone
-            session['auth_type'] = 'phone'
-
-    cart = data.get('cart', {})
-    calc = data.get('calc')
-    if calc.get('gift'):
-        g = calc['gift']
-        cart[f"{g['id']}_gift"] = {"name": f"🎁 {g['name']}", "price": 0, "qty": g['step'], "unit": g['unit'], "img": json.loads(g['images'])[0] if g['images'] else ''}
-
-    has_18 = False
-    cart_summary_text = ""
-    for p_id_key, item in cart.items():
-        if "_gift" in str(p_id_key): continue
-        base_p_id = str(p_id_key).split('_')[0]
-        db_prod = get_db_query("SELECT p.stock, p.name, c.is_hidden FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
-        if not db_prod or db_prod['stock'] < item['qty']: return jsonify({"error": f"Товара '{item['name']}' недостаточно (остаток: {db_prod['stock'] if db_prod else 0})."}), 400
-        if db_prod['is_hidden'] == 1: has_18 = True
-        cart_summary_text += f"• {item['name']} (x{item['qty']})\n"
-
-    is_vip = user and user.get('age_verified') == 2
-    force_pickup_18 = has_18 and not is_vip
-    d_type = 'pickup' if force_pickup_18 else data.get('delivery_type', 'pickup')
-    p_type = 'cash' if force_pickup_18 else data.get('payment_type', 'cash')
-    address = data.get('address', '') if not force_pickup_18 else ''
-    d_time = data.get('delivery_time', 'Как можно скорее')
-    comment = data.get('comment', '')
-    sysadmin_pay = calc.get('sysadmin_pay', 0)
-    order_status = "Ожидает оплаты" if p_type == 'online' else "Новый"
-
-    receipt_items = []
-    total_cart_sum = sum(float(i['price']) * i['qty'] for k, i in cart.items() if '_gift' not in str(k))
-    total_logistics = calc['package_cost'] + calc['delivery_cost']
-    discount_ratio = calc['final_total'] / (total_cart_sum + total_logistics) if (total_cart_sum + total_logistics) > 0 else 1
+    function openBlockModal(b = null) { 
+        const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.category_id==c.id ? 'selected' : ''}>${c.name}</option>`).join(''); 
+        openModal(b ? 'Настройка блока' : 'Создать блок', `
+            <input type="hidden" id="blId" value="${b ? b.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Название блока на сайте</label>
+            <input type="text" id="blTitle" class="form-control bg-light border mb-3 p-2 fw-bold" placeholder="🔥 Хиты продаж" value="${b ? b.title : ''}">
+            <div class="row g-2 mb-3">
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Тип товаров</label><select id="blType" class="form-select bg-light border p-2 fw-bold" onchange="document.getElementById('blCatWrap').style.display = this.value === 'category' ? 'block' : 'none'"><option value="sale" ${b && b.block_type=='sale' ? 'selected' : ''}>Товары по скидке (Акция)</option><option value="category" ${b && b.block_type=='category' ? 'selected' : ''}>Товары из Категории</option></select></div>
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Порядок вывода</label><input type="number" id="blSort" class="form-control bg-light border p-2" value="${b ? b.sort_order : '1'}"></div>
+            </div>
+            <div id="blCatWrap" style="display: ${b && b.block_type=='category' ? 'block' : 'none'}"><label class="small fw-bold text-muted mb-1">Какую категорию выводить?</label><select id="blCat" class="form-select bg-light border mb-3 p-2">${catOptions}</select></div>
+            <label class="small fw-bold text-muted mb-1">Статус</label>
+            <select id="blActive" class="form-select bg-light border p-2"><option value="1" ${b && b.active==1 ? 'selected' : ''}>Включен (Показывать)</option><option value="0" ${b && b.active==0 ? 'selected' : ''}>Выключен (Скрыть)</option></select>
+        `, 'Сохранить', async () => { await apiCall('homepage_blocks', 'POST', { id: document.getElementById('blId').value, title: document.getElementById('blTitle').value, block_type: document.getElementById('blType').value, category_id: document.getElementById('blCat').value, sort_order: document.getElementById('blSort').value, active: document.getElementById('blActive').value }); loadSettings(); }); 
+    }
     
-    for p_id_key, item in cart.items():
-        if "_gift" in str(p_id_key): continue
-        adjusted_price = round(float(item['price']) * discount_ratio, 2)
-        adjusted_sum = round(adjusted_price * item['qty'], 2)
-        receipt_items.append({"name": item['name'][:128], "price": adjusted_price, "quantity": item['qty'], "sum": adjusted_sum, "tax": "none", "item_type": "goods", "payment_method": "full_prepayment"})
-        
-    if calc['package_cost'] > 0:
-        adj_pkg = round(calc['package_cost'] * discount_ratio, 2)
-        receipt_items.append({"name": "Упаковка заказа", "price": adj_pkg, "quantity": 1, "sum": adj_pkg, "tax": "none", "item_type": "service", "payment_method": "full_prepayment"})
-        
-    if calc['delivery_cost'] > 0:
-        adj_del = round(calc['delivery_cost'] * discount_ratio, 2)
-        receipt_items.append({"name": "Доставка курьером", "price": adj_del, "quantity": 1, "sum": adj_del, "tax": "none", "item_type": "service", "payment_method": "full_prepayment"})
-        
-    current_sum = sum(i['sum'] for i in receipt_items)
-    diff = round(calc['final_total'] - current_sum, 2)
-    if diff != 0 and receipt_items:
-        receipt_items[0]['sum'] = round(receipt_items[0]['sum'] + diff, 2)
-        receipt_items[0]['price'] = round(receipt_items[0]['sum'] / receipt_items[0]['quantity'], 2)
-
-    client_email = email if email else f"{phone.replace('+', '')}@nikolaich.shop"
-    receipt_json = json.dumps({"clientEmail": client_email, "clientPhone": phone, "taxSystem": "usn_income", "items": receipt_items})
-
-    with sqlite3.connect('shop.db') as conn:
-        cur = conn.cursor()
-        for p_id_key, item in cart.items(): 
-            if "_gift" in str(p_id_key): continue
-            base_p_id = str(p_id_key).split('_')[0]
-            cur.execute("UPDATE products SET stock = stock - ? WHERE id=?", (item['qty'], base_p_id))
-            
-        cur.execute("INSERT INTO orders (user_id, items_total, package_cost, delivery_cost, final_total, bonuses_spent, items, delivery_type, payment_type, status, address, delivery_time, comment, receipt_payload) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
-                    (user['id'], calc['items_total'], calc['package_cost'], calc['delivery_cost'], calc['final_total'], sysadmin_pay, json.dumps(cart), d_type, p_type, order_status, address, d_time, comment, receipt_json))
-        order_id = cur.lastrowid
-        
-        if sysadmin_pay > 0: 
-            conn.execute("UPDATE users SET balance = balance - ? WHERE id=?", (sysadmin_pay, user['id']))
-            conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (-sysadmin_pay, f"Оплата заказа #{order_id} промокодом Сисадмина"))
-            
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+    function openBannerModal(b = null) { 
+        const catOptions = categoriesList.map(c => `<option value="${c.id}" ${b && b.link_cat==c.id ? 'selected' : ''}>${c.name}</option>`).join(''); 
+        openModal(b ? 'Настройка баннера' : 'Новый баннер', `
+            <input type="hidden" id="bId" value="${b ? b.id : ''}">
+            <div class="p-3 border rounded bg-white mt-2">
+                <label class="small fw-bold text-muted mb-1">Крупный текст</label>
+                <input type="text" id="bTitle" class="form-control bg-light border mb-2 p-2 fw-bold" value="${b ? b.title : ''}">
+                <label class="small fw-bold text-muted mb-1">Мелкий текст</label>
+                <input type="text" id="bSub" class="form-control bg-light border mb-3 p-2" value="${b ? b.subtitle : ''}">
+                <label class="small fw-bold text-muted mb-1">Ссылка на картинку без фона</label>
+                <div class="input-group mb-2 shadow-sm">
+                    <input type="text" id="bUrl" class="form-control bg-white border" value="${b ? b.img_url : ''}">
+                    <button class="btn btn-dark" type="button" onclick="document.getElementById('upBnImg').click()"><i class="bi bi-upload"></i></button>
+                    <input type="file" id="upBnImg" style="display:none" onchange="uploadDesignBg(this, 'bUrl')">
+                </div>
+                <label class="small fw-bold text-muted mb-1">Внешняя ссылка (VK и т.д.)</label>
+                <input type="text" id="bLinkUrl" class="form-control bg-light border mb-3 p-2 text-primary fw-bold" placeholder="https://vk.com/..." value="${b ? b.link_url || '' : ''}">
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Цвет плашки</label><input type="color" id="bColor" class="form-control bg-light border w-100 p-1" value="${b ? b.bg_color : '#ffffff'}"></div>
+                    <div class="col-6"><label class="small fw-bold text-muted mb-1">Куда ведет клик</label><select id="bLink" class="form-select bg-light border p-2 fw-bold">${catOptions}</select></div>
+                </div>
+            </div>
+        `, 'Опубликовать', async () => { await apiCall('banners', 'POST', { id: document.getElementById('bId').value, title: document.getElementById('bTitle').value, subtitle: document.getElementById('bSub').value, img_url: document.getElementById('bUrl').value, link_url: document.getElementById('bLinkUrl').value, bg_color: document.getElementById('bColor').value, link_cat: document.getElementById('bLink').value }); loadSettings(); }); 
+    }
     
-    admin_vk = settings.get('admin_vk_id', '').strip()
-    if admin_vk:
-        admin_msg = f"🔥 НОВЫЙ ЗАКАЗ #{order_id}!\n👤 Клиент: {user.get('full_name', phone) if user else phone}\n📞 Телефон: {phone}\n💰 Сумма: {calc['final_total']} ₽ ({'Онлайн (ЮKassa)' if p_type == 'online' else 'При получении'})\n🚚 {d_type.upper()} ({d_time})\n"
-        if address: admin_msg += f"📍 Адрес: {address}\n"
-        if comment: admin_msg += f"📝 Комментарий: {comment}\n"
-        admin_msg += f"\n🛒 Состав:\n{cart_summary_text}"
-        send_vk_message(None, None, admin_msg, custom_vk_id=admin_vk)
+    function openPromoModal(p = null) { 
+        openModal(p ? 'Настройка промокода' : 'Новый промокод', `
+            <input type="hidden" id="prId" value="${p ? p.id : ''}">
+            <label class="small fw-bold text-muted mb-1">Код</label>
+            <input type="text" id="prCode" class="form-control bg-light border mb-3 p-2 fw-bold text-danger" value="${p ? p.code : ''}">
+            <div class="row g-2 mb-3">
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Скидка в %</label><input type="number" id="prPerc" class="form-control bg-light border p-2" value="${p ? p.discount_percent : '0'}"></div>
+                <div class="col-6"><label class="small fw-bold text-muted mb-1">Скидка в рублях</label><input type="number" id="prRub" class="form-control bg-light border p-2" value="${p ? p.discount_rub : '0'}"></div>
+            </div>
+            <label class="small fw-bold text-muted mb-1">Минимальная сумма заказа (₽)</label>
+            <input type="number" id="prMin" class="form-control bg-light border mb-3 p-2" value="${p ? p.min_sum : '0'}">
+            <div class="form-check form-switch mb-3 border p-3 rounded-3 bg-white">
+                <input class="form-check-input" type="checkbox" id="prSysadmin" ${p && p.is_sysadmin_only == 1 ? 'checked' : ''}>
+                <label class="form-check-label small fw-bold" for="prSysadmin">Код Сисадмина (Оплата балансом)</label>
+            </div>
+            <label class="small fw-bold text-muted mb-1">Статус</label>
+            <select id="prActive" class="form-select bg-light border p-2"><option value="1" ${p && p.is_active==1 ? 'selected' : ''}>Включен</option><option value="0" ${p && p.is_active==0 ? 'selected' : ''}>Выключен</option></select>
+        `, 'Сохранить', async () => { await apiCall('promocodes', 'POST', { id: document.getElementById('prId').value, code: document.getElementById('prCode').value, discount_percent: document.getElementById('prPerc').value, discount_rub: document.getElementById('prRub').value, min_sum: document.getElementById('prMin').value, is_active: document.getElementById('prActive').value, is_sysadmin_only: document.getElementById('prSysadmin').checked ? 1 : 0 }); loadSettings(); }); 
+    }
 
-    if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
-        
-    if p_type == 'online':
-        # Интеграция ЮKassa напрямую
-        try:
-            payment = Payment.create({
-                "amount": {
-                    "value": str(calc['final_total']),
-                    "currency": "RUB"
-                },
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": f"https://nikolaich.shop/payment/success?order_id={order_id}"
-                },
-                "capture": True,
-                "description": f"Заказ #{order_id} в Магазине у Николаича",
-                "metadata": {
-                    "order_id": str(order_id)
-                }
-            })
-            with sqlite3.connect('shop.db') as conn:
-                conn.execute("UPDATE orders SET yookassa_payment_id=? WHERE id=?", (payment.id, order_id))
-                
-            return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": payment.confirmation.confirmation_url}})
-            
-        except Exception as e:
-            return jsonify({"status": "error", "error": f"Ошибка инициализации платежа: {str(e)}"}), 500
-            
-    return jsonify({"status": "ok", "order_id": order_id})
+    async function deleteEntity(entity, id, callback) { 
+        let payload = {id: id}; 
+        if (entity === 'orders') { 
+            const pin = prompt('Введите PIN Администратора (Защита от случайного удаления):'); if (pin === null) return; payload.pin = pin; 
+        } else { if(!confirm('Точно удалить эту запись навсегда? Отменить действие будет невозможно.')) return; } 
+        const res = await fetch(`/api/admin/${entity}`, { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }); 
+        const data = await res.json(); 
+        if (data.error) { alert("Ошибка: " + data.error); } else { callback(); } 
+    }
 
-@app.route('/api/order/claim_gift', methods=['POST'])
-def claim_order_gift():
-    auth_val = session.get('user_identifier')
-    user = get_user_by_identifier(auth_val, is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify({"error": "unauthorized"})
-    
-    order_id = request.json.get('order_id')
-    with sqlite3.connect('shop.db') as conn:
-        conn.row_factory = sqlite3.Row
-        order = conn.execute("SELECT * FROM orders WHERE id=? AND user_id=?", (order_id, user['id'])).fetchone()
-        if not order: return jsonify({"error": "Заказ не найден"})
-        try: conn.execute("ALTER TABLE orders ADD COLUMN gift_claimed INTEGER DEFAULT 0")
-        except: pass
-        order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
-        if order['gift_claimed'] == 1: return jsonify({"status": "already_claimed"})
-            
-        tickets_to_give = int(float(order['final_total']) // 500)
-        items = json.loads(order['items'])
-        for k, v in items.items():
-            if '_gift' in k: continue
-            pid = k.split('_')[0]
-            p = conn.execute("SELECT ticket_bonus FROM products WHERE id=?", (pid,)).fetchone()
-            if p and p[0]: tickets_to_give += (int(p[0]) * int(v.get('qty', 1)))
-                
-        if order['payment_type'] == 'online' and order['status'] != 'Оплачен': return jsonify({"status": "waiting_payment"})
-        if tickets_to_give > 0: conn.execute("UPDATE users SET tickets_balance = tickets_balance + ? WHERE id=?", (tickets_to_give, user['id']))
-        conn.execute("UPDATE orders SET gift_claimed=1 WHERE id=?", (order_id,))
-        return jsonify({"status": "ok", "tickets": tickets_to_give})
-
-@app.route('/api/chat/send_from_site', methods=['POST'])
-def chat_send_site():
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    text = request.json.get('text', '').strip()
-    if text and user:
-        with sqlite3.connect('shop.db') as conn: conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 1, ?)", (user['id'], text))
-    return jsonify({"status": "ok"})
-
-@app.route('/api/chat/get_from_site', methods=['GET'])
-def chat_get_site():
-    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
-    if not user: return jsonify([])
-    return jsonify(get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)))
-
-@app.route('/robots.txt')
-def robots():
-    text = "User-agent: *\nAllow: /\n\nUser-agent: Perfluence\nVerification: 89813663bd51\n"
-    return text, 200, {'Content-Type': 'text/plain; charset=utf-8'}
-
-@app.route('/admin')
-def admin(): 
-    if not session.get('is_admin'): return render_template('admin_login.html')
-    return render_template('admin.html')
-
-@app.route('/api/admin/login', methods=['POST'])
-def admin_login():
-    pin = request.json.get('pin')
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    if pin == settings.get('admin_pin', '0000'): 
-        session['is_admin'] = True
-        return jsonify({"status": "ok"})
-    return jsonify({"error": "Неверный PIN-код"}), 403
-
-@app.route('/api/admin/logout', methods=['POST'])
-def admin_logout(): 
-    session.pop('is_admin', None)
-    return jsonify({"status": "ok"})
-
-# --- Дополнительная логика администратора (Замок и Статусы доставки) ---
-
-@app.route('/api/admin/secret_lock', methods=['POST'])
-def admin_secret_lock():
-    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    action = request.json.get('action')
-    with sqlite3.connect('shop.db') as conn:
-        if action == 'lock':
-            conn.execute("INSERT INTO settings (key_name, value) VALUES ('store_locked', '1') ON CONFLICT(key_name) DO UPDATE SET value='1'")
-            return jsonify({"status": "locked"})
-        elif action == 'unlock':
-            conn.execute("INSERT INTO settings (key_name, value) VALUES ('store_locked', '0') ON CONFLICT(key_name) DO UPDATE SET value='0'")
-            return jsonify({"status": "unlocked"})
-    return jsonify({"error": "Неверное действие"}), 400
-
-@app.route('/api/admin/delivery_status', methods=['GET'])
-def admin_delivery_status():
-    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    # Вывод данных о стоимости активных доставок в реальном времени
-    active_deliveries = get_db_query("SELECT id, final_total, delivery_cost, address, courier_id FROM orders WHERE delivery_type='courier' AND status IN ('Собран', 'В пути')")
-    total_delivery_costs = sum(float(d['delivery_cost']) for d in active_deliveries)
-    return jsonify({"active_count": len(active_deliveries), "total_delivery_costs": total_delivery_costs, "deliveries": active_deliveries})
-
-# ------------------------------------------------------------------------
-
-@app.route('/api/upload', methods=['POST'])
-def upload_file():
-    if not session.get('is_admin'): return jsonify({"error": "Unauthorized"}), 403
-    if 'file' not in request.files: return jsonify({"error": "No file"})
-    f = request.files['file']
-    if f.filename == '': return jsonify({"error": "Empty file"})
-    ext = f.filename.split('.')[-1]
-    fname = f"{uuid.uuid4().hex}.{ext}"
-    path = os.path.join(UPLOAD_FOLDER, fname)
-    try:
-        f.save(path)
-        return jsonify({"url": f"/{path}"})
-    except Exception as e:
-        print("Upload Error:", str(e))
-        return jsonify({"error": f"Ошибка сохранения: {str(e)}"}), 500
-
-@app.route('/api/admin/<entity>', methods=['GET', 'POST', 'DELETE'])
-def admin_crud(entity):
-    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    
-    if request.method == 'GET':
-        if entity == 'warehouse': 
-            prods = get_db_query("SELECT p.*, c.name as cat_name FROM products p JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC")
-            for p in prods: 
-                p['images'] = json.loads(p['images'])
-                p['stickers'] = json.loads(p['stickers']) if p.get('stickers') else []
-            return jsonify({"products": prods, "categories": get_db_query("SELECT * FROM categories ORDER BY sort_order")})
-        elif entity == 'orders': return jsonify(get_db_query("SELECT o.*, u.phone, u.full_name, u.social_link FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.id DESC"))
-        elif entity == 'users': return jsonify(get_db_query("SELECT * FROM users ORDER BY created_at DESC"))
-        elif entity == 'couriers': return jsonify(get_db_query("SELECT id, full_name, phone FROM users WHERE role='courier'"))
-        elif entity == 'banners': return jsonify(get_db_query("SELECT * FROM banners ORDER BY id DESC"))
-        elif entity == 'settings': return jsonify({s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")})
-        elif entity == 'homepage_blocks': return jsonify(get_db_query("SELECT * FROM homepage_blocks ORDER BY sort_order"))
-        elif entity == 'promocodes': return jsonify(get_db_query("SELECT * FROM promocodes ORDER BY id DESC"))
-        elif entity == 'promotions': return jsonify(get_db_query("SELECT * FROM promotions ORDER BY id DESC"))
-        elif entity == 'reviews': return jsonify(get_db_query("SELECT r.*, u.full_name, u.phone, p.name as prod_name FROM reviews r JOIN users u ON r.user_id = u.id JOIN products p ON r.product_id = p.id ORDER BY r.id DESC"))
-        elif entity == 'contests': return jsonify(get_db_query("SELECT * FROM contests ORDER BY id DESC"))
-        elif entity == 'tickets': return jsonify(get_db_query("SELECT t.*, u.full_name, u.phone FROM tickets t JOIN users u ON t.user_id = u.id WHERE t.contest_id=? ORDER BY t.id DESC", (request.args.get('contest_id'),)))
-        elif entity == 'sysadmin_logs': return jsonify(get_db_query("SELECT * FROM sysadmin_logs ORDER BY id DESC"))
-        elif entity == 'wheel_sectors': return jsonify(get_db_query("SELECT * FROM wheel_sectors ORDER BY id ASC"))
-        
-    data = request.json
-    if request.method == 'DELETE':
-        if entity == 'sysadmin_logs': return jsonify({"error": "Удаление логов финансовой истории запрещено на уровне БД."}), 403
-        table_map = {'product': 'products', 'category': 'categories'}
-        table_name = table_map.get(entity, entity)
-        with sqlite3.connect('shop.db') as conn: conn.execute(f"DELETE FROM {table_name} WHERE id=?", (data['id'],))
-        return jsonify({"status": "ok"})
-    
-    if request.method == 'POST':
-        with sqlite3.connect('shop.db') as conn:
-            if entity == 'product':
-                img_json = json.dumps(data.get('images', []))
-                stickers_json = json.dumps(data.get('stickers', []))
-                variations = data.get('variations', '').strip()
-                try: p_price = float(data.get('price') or 0)
-                except: p_price = 0.0
-                try: p_old = float(data.get('old_price') or 0)
-                except: p_old = 0.0
-                try: p_stock = int(data.get('stock') or 0)
-                except: p_stock = 0
-                try: p_step = float(data.get('step') or 1)
-                except: p_step = 1.0
-                try: p_cat = int(data.get('category_id') or 0)
-                except: p_cat = 0
-                try: p_ticket = int(data.get('ticket_bonus') or 0)
-                except: p_ticket = 0
-
-                if data.get('id'): 
-                    conn.execute("UPDATE products SET name=?, desc=?, price=?, stock=?, category_id=?, images=?, unit=?, step=?, old_price=?, stickers=?, variations=?, ticket_bonus=? WHERE id=?", (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations, p_ticket, data['id']))
-                else: 
-                    conn.execute("INSERT INTO products (name, desc, price, stock, category_id, images, unit, step, old_price, stickers, variations, ticket_bonus) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (data.get('name', ''), data.get('desc', ''), p_price, p_stock, p_cat, img_json, data.get('unit', 'шт'), p_step, p_old, stickers_json, variations, p_ticket))
-            
-            elif entity == 'category':
-                try: c_sort = int(data.get('sort_order') or 1)
-                except: c_sort = 1
-                try: c_hid = int(data.get('is_hidden') or 0)
-                except: c_hid = 0
-                try: c_main = int(data.get('is_on_main') or 0)
-                except: c_main = 0
-                if data.get('id'): conn.execute("UPDATE categories SET name=?, icon=?, sort_order=?, is_hidden=?, is_on_main=? WHERE id=?", (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main, data['id']))
-                else: conn.execute("INSERT INTO categories (name, icon, sort_order, is_hidden, is_on_main) VALUES (?,?,?,?,?)", (data.get('name', ''), data.get('icon', ''), c_sort, c_hid, c_main))
-            
-            elif entity == 'banners':
-                if data.get('id'): conn.execute("UPDATE banners SET title=?, subtitle=?, img_url=?, bg_color=?, link_cat=?, link_url=? WHERE id=?", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', ''), data['id']))
-                else: conn.execute("INSERT INTO banners (title, subtitle, img_url, bg_color, link_cat, link_url) VALUES (?,?,?,?,?,?)", (data['title'], data['subtitle'], data['img_url'], data['bg_color'], data['link_cat'], data.get('link_url', '')))
-            
-            elif entity == 'homepage_blocks':
-                if data.get('id'): conn.execute("UPDATE homepage_blocks SET title=?, block_type=?, category_id=?, sort_order=?, active=? WHERE id=?", (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active'], data['id']))
-                else: conn.execute("INSERT INTO homepage_blocks (title, block_type, category_id, sort_order, active) VALUES (?,?,?,?,?)", (data['title'], data['block_type'], data['category_id'], data['sort_order'], data['active']))
-            
-            elif entity == 'promocodes':
-                if data.get('id'): conn.execute("UPDATE promocodes SET code=?, discount_percent=?, discount_rub=?, min_sum=?, is_active=?, is_sysadmin_only=? WHERE id=?", (data['code'], data['discount_percent'], data['discount_rub'], data['min_sum'], data['is_active'], data['is_sysadmin_only'], data['id']))
-                else: conn.execute("INSERT INTO promocodes (code, discount_percent, discount_rub, min_sum, is_active, is_sysadmin_only) VALUES (?,?,?,?,?,?)", (data['code'], data['discount_percent'], data['discount_rub'], data['min_sum'], data['is_active'], data['is_sysadmin_only']))
-            
-            elif entity == 'promotions':
-                if data.get('id'): conn.execute("UPDATE promotions SET title=?, promo_type=?, target_id=?, discount_val=?, min_sum=?, time_start=?, time_end=?, active=? WHERE id=?", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active'], data['id']))
-                else: conn.execute("INSERT INTO promotions (title, promo_type, target_id, discount_val, min_sum, time_start, time_end, active) VALUES (?,?,?,?,?,?,?,?)", (data['title'], data['promo_type'], data['target_id'], data['discount_val'], data['min_sum'], data['time_start'], data['time_end'], data['active']))
-
-            elif entity == 'wheel_sectors': 
-                if data.get('id'): conn.execute("UPDATE wheel_sectors SET title=?, type=?, value=?, weight=?, stock=?, color=?, icon=?, banner_url=?, partner_link=?, promo_code=?, description=?, is_active=?, erid=? WHERE id=?", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', ''), data.get('is_active', 1), data.get('erid', ''), data['id']))
-                else: conn.execute("INSERT INTO wheel_sectors (title, type, value, weight, stock, color, icon, banner_url, partner_link, promo_code, description, is_active, erid) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", (data['title'], data['type'], data['value'], data['weight'], data['stock'], data['color'], data['icon'], data.get('banner_url', ''), data.get('partner_link', ''), data.get('promo_code', ''), data.get('description', ''), data.get('is_active', 1), data.get('erid', '')))
-
-            elif entity == 'settings':
-                for key, val in data.items(): conn.execute("INSERT INTO settings (key_name, value) VALUES (?,?) ON CONFLICT(key_name) DO UPDATE SET value=?", (key, val, val))
-            
-            elif entity == 'reviews':
-                conn.execute("UPDATE reviews SET rating=?, text=?, is_approved=? WHERE id=?", (data['rating'], data['text'], data['is_approved'], data['id']))
-            
-            elif entity == 'contests':
-                if data.get('id'): conn.execute("UPDATE contests SET title=?, description=?, img_url=?, min_sum=?, active=? WHERE id=?", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active'], data['id']))
-                else: conn.execute("INSERT INTO contests (title, description, img_url, min_sum, active) VALUES (?,?,?,?,?)", (data['title'], data['description'], data['img_url'], data['min_sum'], data['active']))
-            
-            elif entity == 'users':
-                u = get_db_query("SELECT * FROM users WHERE id=?", (data['id'],), fetch_one=True)
-                if u:
-                    conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=?, tickets_balance=? WHERE id=?", 
-                        (data.get('full_name', u.get('full_name')), data.get('phone', u.get('phone')), data.get('social_link', u.get('social_link')), data.get('addresses', u.get('addresses')), 
-                         data.get('age_verified', u.get('age_verified')), data.get('balance', u.get('balance')), data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
-                         data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data.get('tickets_balance', u.get('tickets_balance')), data['id']))
-            
-            elif entity == 'orders':
-                order_id = data.get('id')
-                new_status = data.get('status')
-                cid_raw = data.get('courier_id')
-                new_courier_id = int(cid_raw) if cid_raw and str(cid_raw).isdigit() else 0
-                
-                old_order = conn.execute("SELECT status, final_total, is_paid_to_courier, courier_id, user_id, delivery_type, is_paid_to_sysadmin, items FROM orders WHERE id=?", (order_id,)).fetchone()
-                if old_order:
-                    conn.execute("UPDATE orders SET status=?, courier_id=? WHERE id=?", (new_status, new_courier_id, order_id))
-                    if new_status == 'Выполнен':
-                        if old_order[2] == 0:
-                            if new_courier_id > 0:
-                                courier = conn.execute("SELECT comm_type, comm_val FROM users WHERE id=?", (new_courier_id,)).fetchone()
-                                if courier:
-                                    payout = float(courier[1]) if courier[0] == 'fixed' else (float(old_order[1]) * float(courier[1]) / 100)
-                                    conn.execute("UPDATE users SET balance = balance + ? WHERE id=?", (payout, new_courier_id))
-                            conn.execute("UPDATE orders SET is_paid_to_courier=1 WHERE id=?", (order_id,))
-                            award_tickets(conn, order_id, old_order[4], old_order[1], old_order[7])
-                            
-                        if len(old_order) > 6 and old_order[6] == 0:
-                            sysadmin_bonus = float(old_order[1]) * 0.01
-                            conn.execute("UPDATE users SET balance = balance + ? WHERE role='sysadmin'", (sysadmin_bonus,))
-                            conn.execute("UPDATE orders SET is_paid_to_sysadmin=1 WHERE id=?", (order_id,))
-                            conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (sysadmin_bonus, f"Начисление 1% за заказ #{order_id} (Выполнен)"))
-
-        return jsonify({"status": "ok"})
-
-@app.route('/api/admin/order_chat/<int:order_id>', methods=['GET'])
-def get_order_chat(order_id):
-    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    order = get_db_query("SELECT * FROM orders WHERE id=?", (order_id,), fetch_one=True)
-    user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
-    order['items'] = json.loads(order['items'])
-    return jsonify({"order": order, "user": user, "messages": get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)) if user else []})
-
-@app.route('/api/admin/chat_send', methods=['POST'])
-def admin_chat_send():
-    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    data = request.json
-    order = get_db_query("SELECT * FROM orders WHERE id=?", (data.get('order_id'),), fetch_one=True)
-    user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
-    
-    text = f"💳 Оплата комплектации:\nПереведите по реквизитам:\n{settings.get('payment_details', 'Не указано')}\nПосле перевода отправьте скриншот сюда." if data.get('msg_type') == 'req' else (f"🚕 Николаич проверил тариф Яндекс.Логистики: {data.get('custom_val', '')} ₽." if data.get('msg_type') == 'taxi' else ("✅ Денежку увидел! Ваш заказ передан в комплектацию." if data.get('msg_type') == 'paid' else data.get('text')))
-    full_text = f"👨‍🌾 Николаич:\n{text}"
-    
-    send_vk_message(user['id'], user['social_link'], full_text)
-    with sqlite3.connect('shop.db') as conn: 
-        conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (user['id'], full_text))
-    return jsonify({"status": "ok"})
-
-@app.route('/api/admin/all_chats', methods=['GET'])
-def admin_all_chats():
-    if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
-    return jsonify([get_db_query("SELECT id, phone, full_name, social_link FROM users WHERE id=?", (u['user_id'],), fetch_one=True) for u in get_db_query("SELECT DISTINCT user_id FROM chat_messages ORDER BY id DESC") if u])
-
-if __name__ == '__main__': 
-    app.run(host='0.0.0.0', port=8085)
+    window.onload = () => { loadOrders(); };
+</script>
+</body>
+</html>

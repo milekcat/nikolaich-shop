@@ -661,51 +661,43 @@ def checkout():
     if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
         
     if p_type == 'online':
-        # 1. Подготавливаем чек в строгом формате ЮKassa
+        # Подготавливаем чек
         yookassa_items = []
         for i in receipt_items:
             yookassa_items.append({
-                "description": i["name"][:128], # Название товара (макс 128 символов)
+                "description": i["name"][:128],
                 "quantity": str(i["quantity"]),
-                "amount": {
-                    "value": str(i["price"]),
-                    "currency": "RUB"
-                },
-                "vat_code": 1,  # 1 - ставка "Без НДС". Измени, если у ИП другая налоговая ставка.
+                "amount": {"value": str(i["price"]), "currency": "RUB"},
+                "vat_code": 1,
                 "payment_mode": "full_prepayment",
                 "payment_subject": "service" if i["item_type"] == "service" else "commodity"
             })
 
-        # 2. Инициализируем платеж с передачей чека
         try:
+            # Создаем платеж
             payment = Payment.create({
-                "amount": {
-                    "value": str(calc['final_total']),
-                    "currency": "RUB"
-                },
+                "amount": {"value": str(calc['final_total']), "currency": "RUB"},
                 "confirmation": {
                     "type": "redirect",
                     "return_url": f"https://nikolaich.shop/payment/success?order_id={order_id}"
                 },
                 "capture": True,
-                "description": f"Заказ #{order_id} в Магазине у Николаича",
-                "metadata": {
-                    "order_id": str(order_id)
-                },
-                "receipt": {
-                    "customer": {
-                        "email": client_email
-                    },
-                    "items": yookassa_items
-                }
+                "description": f"Заказ #{order_id}",
+                "metadata": {"order_id": str(order_id)},
+                "receipt": {"customer": {"email": client_email}, "items": yookassa_items}
             })
+            
+            # ВАЖНО: Логируем ссылку, чтобы понять, что мы отправляем
+            print(f"DEBUG: Payment created! ID: {payment.id}, URL: {payment.confirmation.confirmation_url}")
+            
             with sqlite3.connect('shop.db') as conn:
                 conn.execute("UPDATE orders SET yookassa_payment_id=? WHERE id=?", (payment.id, order_id))
                 
             return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": payment.confirmation.confirmation_url}})
             
         except Exception as e:
-            return jsonify({"status": "error", "error": f"Ошибка инициализации платежа: {str(e)}"}), 500
+            print(f"CRITICAL ERROR: {str(e)}") # Логируем ошибку
+            return jsonify({"status": "error", "error": f"Ошибка инициализации: {str(e)}"}), 500
 
 @app.route('/api/order/claim_gift', methods=['POST'])
 def claim_order_gift():

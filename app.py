@@ -10,6 +10,10 @@ import hashlib
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 from yookassa import Configuration, Payment
+from dotenv import load_dotenv
+
+# Загружаем переменные из файла .env
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'nikolaich_erp_v55_final'
@@ -22,9 +26,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 VK_TOKEN = "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
 VK_API_VERSION = "5.131"
 
-# Настройка ЮKassa (замени ключи на свои боевые или тяни из .env)
-Configuration.account_id = os.getenv('YOOKASSA_SHOP_ID', 'твой_shop_id')
-Configuration.secret_key = os.getenv('YOOKASSA_SECRET_KEY', 'live_d-b1l-24CoA-QawS3XVkfv1zT0i-ljsH4-fvYI0tYzQ')
+# Настройка ЮKassa (тянем ключи строго из .env)
+Configuration.account_id = os.getenv('YOOKASSA_SHOP_ID')
+Configuration.secret_key = os.getenv('YOOKASSA_SECRET_KEY')
 
 def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
     if custom_vk_id:

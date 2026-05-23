@@ -7,6 +7,7 @@ import datetime
 import random
 import os
 import hashlib
+import re
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.utils import secure_filename
 from yookassa import Configuration, Payment
@@ -661,22 +662,39 @@ def checkout():
     if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
         
     if p_type == 'online':
-        # Подготавливаем чек
+        # Подготавливаем чек (строго по документации ЮKassa)
         yookassa_items = []
         for i in receipt_items:
             yookassa_items.append({
-                "description": i["name"][:128],
+                "description": i["name"][:128].strip(),
                 "quantity": str(i["quantity"]),
-                "amount": {"value": str(i["price"]), "currency": "RUB"},
-                "vat_code": 1,
+                "amount": {
+                    "value": f"{i['price']:.2f}",
+                    "currency": "RUB"
+                },
+                "vat_code": 1, # 1 - Без НДС (совпадает с настройками СБИС для спецрежимов)
                 "payment_mode": "full_prepayment",
                 "payment_subject": "service" if i["item_type"] == "service" else "commodity"
             })
 
+        # Данные покупателя для чека
+        customer_data = {}
+        if email:
+            customer_data["email"] = email
+        else:
+            # ЮKassa требует формат телефона ITU-T E.164, например +79000000000
+            phone_clean = re.sub(r'\D', '', phone)
+            if phone_clean.startswith('8'): 
+                phone_clean = '7' + phone_clean[1:]
+            customer_data["phone"] = f"+{phone_clean}"
+
         try:
             # Создаем платеж
-            payment = Payment.create({
-                "amount": {"value": str(calc['final_total']), "currency": "RUB"},
+            payment_request = {
+                "amount": {
+                    "value": f"{calc['final_total']:.2f}",
+                    "currency": "RUB"
+                },
                 "confirmation": {
                     "type": "redirect",
                     "return_url": f"https://nikolaich.shop/payment/success?order_id={order_id}"
@@ -684,20 +702,30 @@ def checkout():
                 "capture": True,
                 "description": f"Заказ #{order_id}",
                 "metadata": {"order_id": str(order_id)},
-                "receipt": {"customer": {"email": client_email}, "items": yookassa_items}
-            })
+                "receipt": {
+                    "customer": customer_data,
+                    "items": yookassa_items
+                }
+            }
             
-            # ВАЖНО: Логируем ссылку, чтобы понять, что мы отправляем
-            print(f"DEBUG: Payment created! ID: {payment.id}, URL: {payment.confirmation.confirmation_url}")
+            payment = Payment.create(payment_request)
             
-            with sqlite3.connect('shop.db') as conn:
-                conn.execute("UPDATE orders SET yookassa_payment_id=? WHERE id=?", (payment.id, order_id))
+            # Проверяем, есть ли ссылка
+            if payment.confirmation and payment.confirmation.confirmation_url:
+                confirm_url = payment.confirmation.confirmation_url
+                print(f"DEBUG: Success! URL generated: {confirm_url}")
                 
-            return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": payment.confirmation.confirmation_url}})
+                with sqlite3.connect('shop.db') as conn:
+                    conn.execute("UPDATE orders SET yookassa_payment_id=? WHERE id=?", (payment.id, order_id))
+                    
+                return jsonify({"status": "ok", "order_id": order_id, "pay_data": {"url": confirm_url}})
+            else:
+                print(f"CRITICAL ERROR: ЮKassa вернула платеж без URL. Объект: {payment}")
+                return jsonify({"status": "error", "error": "ЮKassa не вернула ссылку на оплату"}), 500
             
         except Exception as e:
-            print(f"CRITICAL ERROR: {str(e)}") # Логируем ошибку
-            return jsonify({"status": "error", "error": f"Ошибка инициализации: {str(e)}"}), 500
+            print(f"CRITICAL ERROR (Exception): {str(e)}")
+            return jsonify({"status": "error", "error": f"Ошибка ЮKassa: {str(e)}"}), 500
 
 @app.route('/api/order/claim_gift', methods=['POST'])
 def claim_order_gift():

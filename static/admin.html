@@ -627,7 +627,6 @@
         document.body.style.cursor = 'default';
     }
 
-    /* ФУНКЦИИ СЕКРЕТНОГО ЗАМКА И ДОСТАВКИ */
     function toggleStoreLock(action) {
         if (!confirm(action === 'lock' ? 'Точно закрыть магазин от покупателей?' : 'Открыть магазин?')) return;
         fetch('/api/admin/secret_lock', {
@@ -664,7 +663,6 @@
         });
     }
 
-    /* ХАБ АКЦИЙ */
     async function loadPromotions() {
         const data = await apiCall('promotions');
         const wh = await apiCall('warehouse');
@@ -784,7 +782,6 @@
         document.getElementById('promoFields_1plus1').style.display = type === '1plus1' ? 'block' : 'none';
     }
 
-    /* КОЛЕСО ФОРТУНЫ (АДМИНКА И ПОДАРКИ) */
     async function loadWheelSectors() {
         const data = await apiCall('wheel_sectors');
         if(!data) return;
@@ -872,7 +869,6 @@
         });
     }
 
-    /* ЛОГИ СИСАДМИНА */
     async function loadSysadminLogs() {
         const data = await apiCall('sysadmin_logs'); 
         if(!data) return;
@@ -888,7 +884,6 @@
         }).join('');
     }
 
-    /* ЗАКАЗЫ И КУРЬЕРЫ */
     function getCourId(orderId) { let el = document.getElementById('cour_' + orderId); return el ? el.value : 0; }
     
     async function loadOrders() {
@@ -963,7 +958,6 @@
     }
     function promptTaxi() { const price = prompt("Тариф Яндекс.Логистики (₽):"); if(price) sendOrderMsg('taxi', price); }
 
-    /* CRM */
     async function loadUsers() {
         const data = await apiCall('users'); if(!data) return;
         document.getElementById('tableUsers').innerHTML = data.map(u => {
@@ -1025,7 +1019,6 @@
     async function openGlobalChat(userId, name) { currentGlobalChatUserId = userId; document.getElementById('activeChatName').innerText = name; const res = await apiCall('order_chat/0'); if(res) renderOrderChatMessages(res.messages.filter(m => m.user_id == userId), 'globalChatMessages'); }
     async function sendGlobalChatMsg() { const text = document.getElementById('globalChatInput').value.trim(); if(!text || !currentGlobalChatUserId) return; document.getElementById('globalChatInput').value = ''; await apiCall('vk_action', 'POST', {msg_type: 'direct', custom_val: text, target_id: currentGlobalChatUserId}); openGlobalChat(currentGlobalChatUserId, document.getElementById('activeChatName').innerText); }
 
-    /* СКЛАД И НАСТРОЙКИ */
     async function loadWarehouse() {
         const data = await apiCall('warehouse'); if(!data) return; categoriesList = data.categories;
         
@@ -1149,7 +1142,6 @@
         }); 
     }
 
-    /* === СТАРЫЕ РУЧНЫЕ КОНКУРСЫ === */
     async function loadContests() {
         const data = await apiCall('contests');
         if(!data) return;
@@ -1233,7 +1225,6 @@
         }, 60); 
     }
 
-    /* === СЕТТИНГИ === */
     async function loadSettings() {
         const settings = await apiCall('settings');
         if(settings) { 
@@ -1254,7 +1245,6 @@
             document.getElementById('setWheelActive').value = settings.wheel_active || '1';
             document.getElementById('setWheelLossThreshold').value = settings.wheel_loss_threshold || '0';
             
-            // Новые настройки
             document.getElementById('setDelEnabled').value = settings.delivery_enabled || '1';
             document.getElementById('setPickEnabled').value = settings.pickup_enabled || '1';
             document.getElementById('setWorkStart').value = settings.work_time_start || '09:00';

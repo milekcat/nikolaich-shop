@@ -167,6 +167,7 @@ def award_tickets(conn, order_id, user_id, final_total, items_json="{}"):
     if wheel_tix > 0:
         conn.execute("UPDATE users SET tickets_balance = tickets_balance + ? WHERE id=?", (wheel_tix, user_id))
 
+
 @app.route('/api/yookassa_webhook', methods=['POST'])
 def yookassa_webhook():
     event_data = request.json
@@ -668,7 +669,7 @@ def checkout():
                 "vat_code": 1,
                 "payment_mode": "full_prepayment",
                 "payment_subject": "service" if i["item_type"] == "service" else "commodity",
-                "measure": "piece"
+                "measure": "piece" 
             })
 
         customer_data = {}

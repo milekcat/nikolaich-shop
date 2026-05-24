@@ -1031,24 +1031,31 @@
         } 
         const btn = document.getElementById('checkoutBtn'); 
         btn.disabled = true; 
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подключение...'; 
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Перенаправление...'; 
         try { 
             const pl = {phone: ph, email: em, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc}; 
             const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)}); 
             const data = await res.json(); 
             if(data.status === 'ok') { 
                 if(data.pay_data && data.pay_data.url) { 
-                    // ДЕБАГ: выведет ссылку в консоль F12 (вкладка Console)
-                    console.log("DEBUG: ЮKassa URL:", data.pay_data.url);
-                    window.location.href = data.pay_data.url; 
+                    console.log("ЮKassa URL:", data.pay_data.url);
+                    window.location.replace(data.pay_data.url); 
                 } else { 
-                    cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals();
+                    cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals(); 
                     bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); 
                     document.getElementById('successOrderId').innerText = `#${data.order_id}`; 
+                    document.getElementById('successStandard').style.display = 'block';
+                    document.getElementById('successGift').style.display = 'none';
                     new bootstrap.Modal(document.getElementById('successModal')).show(); 
                 } 
-            } else { alert('Ошибка: ' + (data.error || 'Проверьте данные.')); btn.disabled = false; btn.innerHTML = 'Примите условия'; } 
-        } catch (error) { alert('Сбой подключения.'); btn.disabled = false; btn.innerHTML = 'Примите условия'; } 
+            } else { 
+                alert('Ошибка: ' + (data.error || 'Проверьте данные.')); 
+                btn.disabled = false; btn.innerHTML = 'Примите условия'; 
+            } 
+        } catch (error) { 
+            alert('Сбой сети. Попробуйте еще раз.'); 
+            btn.disabled = false; btn.innerHTML = 'Примите условия'; 
+        } 
     }
     
     async function setCourStatus(orderId, status) { if(!confirm(`Точно перевести заказ #${orderId} в статус "${status}"?`)) return; await fetch('/api/courier/action', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({order_id: orderId, action: 'status', status: status})}); refreshCabinetData(); }

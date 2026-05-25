@@ -121,7 +121,7 @@ def init_db():
 
         if c.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
             c.executemany('INSERT INTO settings (key_name, value) VALUES (?,?)', [
-                ('shop_name', 'У Николаича'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1'), ('store_locked', '0')
+                ('shop_name', 'U NIKOLAICHA'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1'), ('store_locked', '0')
             ])
 
         new_settings = [ ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'), ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'), ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), ('yandex_delivery_token', ''), ('sbis_api_token', ''), ('store_locked', '0') ]
@@ -166,7 +166,6 @@ def award_tickets(conn, order_id, user_id, final_total, items_json="{}"):
             
     if wheel_tix > 0:
         conn.execute("UPDATE users SET tickets_balance = tickets_balance + ? WHERE id=?", (wheel_tix, user_id))
-
 
 @app.route('/api/yookassa_webhook', methods=['POST'])
 def yookassa_webhook():
@@ -333,7 +332,8 @@ def index():
     user = get_user_by_identifier(auth_val, is_vk=(auth_type=='vk')) if auth_val else None
     
     cats = get_db_query("SELECT * FROM categories ORDER BY sort_order")
-    prods = get_db_query("SELECT p.*, c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.active=1")
+    # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN, чтобы товары без категорий не пропадали
+    prods = get_db_query("SELECT p.*, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.active=1")
     favs = [f['product_id'] for f in get_db_query("SELECT product_id FROM favorites WHERE user_id=?", (user['id'],))] if user else []
     rev_dict = {r['product_id']: {'avg': round(r['avg_rating'], 1), 'count': r['c']} for r in get_db_query("SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as c FROM reviews WHERE is_approved=1 GROUP BY product_id")}
     current_time = datetime.datetime.now().strftime("%H:%M")
@@ -500,7 +500,8 @@ def calc_cart():
     current_time = datetime.datetime.now().strftime("%H:%M")
     for p_id_key, item in cart_items.items():
         base_p_id = str(p_id_key).split('_')[0]
-        prod = get_db_query("SELECT p.*, c.is_hidden FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
+        # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN
+        prod = get_db_query("SELECT p.*, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         if prod:
             if prod['is_hidden'] == 1: has_18 = True
             item_price = float(prod['price'])
@@ -586,7 +587,8 @@ def checkout():
     for p_id_key, item in cart.items():
         if "_gift" in str(p_id_key): continue
         base_p_id = str(p_id_key).split('_')[0]
-        db_prod = get_db_query("SELECT p.stock, p.name, c.is_hidden FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
+        # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN для чекаута
+        db_prod = get_db_query("SELECT p.stock, p.name, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         if not db_prod or db_prod['stock'] < item['qty']: return jsonify({"error": f"Товара '{item['name']}' недостаточно (остаток: {db_prod['stock'] if db_prod else 0})."}), 400
         if db_prod['is_hidden'] == 1: has_18 = True
         cart_summary_text += f"• {item['name']} (x{item['qty']})\n"
@@ -824,7 +826,8 @@ def admin_crud(entity):
     
     if request.method == 'GET':
         if entity == 'warehouse': 
-            prods = get_db_query("SELECT p.*, c.name as cat_name FROM products p JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC")
+            # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN для админки
+            prods = get_db_query("SELECT p.*, IFNULL(c.name, 'Без категории') as cat_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC")
             for p in prods: 
                 p['images'] = json.loads(p['images'])
                 p['stickers'] = json.loads(p['stickers']) if p.get('stickers') else []

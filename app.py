@@ -88,6 +88,7 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE, name TEXT, full_name TEXT DEFAULT "", social_link TEXT DEFAULT "", addresses TEXT DEFAULT "[]", bonuses INTEGER DEFAULT 0, age_verified INTEGER DEFAULT 0, ref_code TEXT UNIQUE, vk_id TEXT DEFAULT "", balance REAL DEFAULT 0, is_sysadmin INTEGER DEFAULT 0, password TEXT DEFAULT "", role TEXT DEFAULT "client", comm_type TEXT DEFAULT "fixed", comm_val REAL DEFAULT 0, tips_link TEXT DEFAULT "", tips_qr TEXT DEFAULT "", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, tickets_balance INTEGER DEFAULT 0, last_daily_bonus TIMESTAMP DEFAULT NULL)''')
         c.execute('''CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, items_total REAL, package_cost REAL, delivery_cost REAL, final_total REAL, bonuses_spent INTEGER, items TEXT, delivery_type TEXT, payment_type TEXT, status TEXT DEFAULT "Новый", address TEXT DEFAULT "", delivery_time TEXT DEFAULT "Как можно скорее", comment TEXT DEFAULT "", courier_id INTEGER DEFAULT 0, is_paid_to_courier INTEGER DEFAULT 0, is_paid_to_sysadmin INTEGER DEFAULT 0, courier_rating INTEGER DEFAULT 0, courier_comment TEXT DEFAULT "", date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, gift_claimed INTEGER DEFAULT 0, receipt_payload TEXT DEFAULT "", yookassa_payment_id TEXT DEFAULT "")''')
         c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY, user_id INTEGER, is_incoming INTEGER, text TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS order_chats (id INTEGER PRIMARY KEY, order_id INTEGER, sender_type TEXT, message TEXT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         c.execute('''CREATE TABLE IF NOT EXISTS promocodes (id INTEGER PRIMARY KEY, code TEXT UNIQUE, discount_percent REAL DEFAULT 0, discount_rub REAL DEFAULT 0, min_sum REAL DEFAULT 0, is_active INTEGER DEFAULT 1, is_sysadmin_only INTEGER DEFAULT 0)''')
         c.execute('''CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, product_id INTEGER, user_id INTEGER, rating INTEGER, text TEXT, date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, is_approved INTEGER DEFAULT 1)''')
         c.execute('''CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER)''')
@@ -332,7 +333,6 @@ def index():
     user = get_user_by_identifier(auth_val, is_vk=(auth_type=='vk')) if auth_val else None
     
     cats = get_db_query("SELECT * FROM categories ORDER BY sort_order")
-    # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN, чтобы товары без категорий не пропадали
     prods = get_db_query("SELECT p.*, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.active=1")
     favs = [f['product_id'] for f in get_db_query("SELECT product_id FROM favorites WHERE user_id=?", (user['id'],))] if user else []
     rev_dict = {r['product_id']: {'avg': round(r['avg_rating'], 1), 'count': r['c']} for r in get_db_query("SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as c FROM reviews WHERE is_approved=1 GROUP BY product_id")}
@@ -500,7 +500,6 @@ def calc_cart():
     current_time = datetime.datetime.now().strftime("%H:%M")
     for p_id_key, item in cart_items.items():
         base_p_id = str(p_id_key).split('_')[0]
-        # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN
         prod = get_db_query("SELECT p.*, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         if prod:
             if prod['is_hidden'] == 1: has_18 = True
@@ -534,18 +533,20 @@ def calc_cart():
     delivery_cost = 0
     if delivery_type == 'courier': delivery_cost = 0 if base_total >= free_threshold else courier_cost
     discount_rub, sysadmin_pay, promo_status = 0, 0, ""
+    
     if promo_code:
         promo_db = get_db_query("SELECT * FROM promocodes WHERE code=? AND is_active=1", (promo_code,), fetch_one=True)
         if not promo_db: promo_status = "Неверный код"
         elif base_total < promo_db['min_sum']: promo_status = f"Минимальная сумма {promo_db['min_sum']} ₽"
         elif promo_db['is_sysadmin_only'] == 1:
             if user and user.get('role') == 'sysadmin':
-                sysadmin_pay = min(float(user.get('balance', 0)), base_total + package_cost + delivery_cost)
-                promo_status = f"Списано с баланса: {sysadmin_pay:.0f} ₽"
+                sysadmin_pay = 0  # Автоматическое списание баланса жестко отключено
+                promo_status = f"Оплата балансом отключена"
             else: promo_status = "Код только для Сисадмина"
         else:
             discount_rub = float(promo_db['discount_rub']) + (base_total * float(promo_db['discount_percent']) / 100)
             promo_status = f"Скидка применена!"
+            
     final_total = max(0, base_total + package_cost + delivery_cost - discount_rub - sysadmin_pay)
     active_min_order = min_order_pickup if delivery_type == 'pickup' else min_order_delivery
     return jsonify({"items_total": base_total + free_items_discount, "package_cost": package_cost, "delivery_cost": delivery_cost, "discount": discount_rub + free_items_discount, "sysadmin_pay": sysadmin_pay, "final_total": final_total, "free_threshold": free_threshold, "min_order": active_min_order, "promo_status": promo_status, "force_pickup_18": force_pickup_18, "gift": gift_prod})
@@ -587,7 +588,6 @@ def checkout():
     for p_id_key, item in cart.items():
         if "_gift" in str(p_id_key): continue
         base_p_id = str(p_id_key).split('_')[0]
-        # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN для чекаута
         db_prod = get_db_query("SELECT p.stock, p.name, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
         if not db_prod or db_prod['stock'] < item['qty']: return jsonify({"error": f"Товара '{item['name']}' недостаточно (остаток: {db_prod['stock'] if db_prod else 0})."}), 400
         if db_prod['is_hidden'] == 1: has_18 = True
@@ -716,6 +716,8 @@ def checkout():
             
         except Exception as e:
             return jsonify({"status": "error", "error": f"Сбой ЮKassa: {str(e)}"}), 500
+    else:
+        return jsonify({"success": True, "order_id": order_id})
 
 @app.route('/api/order/claim_gift', methods=['POST'])
 def claim_order_gift():
@@ -826,7 +828,6 @@ def admin_crud(entity):
     
     if request.method == 'GET':
         if entity == 'warehouse': 
-            # ИСПРАВЛЕНИЕ: Безопасный LEFT JOIN для админки
             prods = get_db_query("SELECT p.*, IFNULL(c.name, 'Без категории') as cat_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC")
             for p in prods: 
                 p['images'] = json.loads(p['images'])
@@ -953,29 +954,56 @@ def admin_crud(entity):
 
         return jsonify({"status": "ok"})
 
+# === SPRINT 3: ORDER CHAT (ADMIN & CLIENT) ===
 @app.route('/api/admin/order_chat/<int:order_id>', methods=['GET'])
-def get_order_chat(order_id):
+def admin_get_order_chat(order_id):
     if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
     order = get_db_query("SELECT * FROM orders WHERE id=?", (order_id,), fetch_one=True)
+    if not order: return jsonify({"error": "Not found"})
     user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
+    msgs = get_db_query("SELECT * FROM order_chats WHERE order_id=? ORDER BY timestamp ASC", (order_id,))
+    formatted_msgs = [{"text": m['message'], "is_incoming": 1 if m['sender_type'] == 'client' else 0, "created_at": m['timestamp']} for m in msgs]
     order['items'] = json.loads(order['items'])
-    return jsonify({"order": order, "user": user, "messages": get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)) if user else []})
+    return jsonify({"order": order, "user": user if user else {}, "messages": formatted_msgs})
 
 @app.route('/api/admin/chat_send', methods=['POST'])
 def admin_chat_send():
     if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403
     data = request.json
-    order = get_db_query("SELECT * FROM orders WHERE id=?", (data.get('order_id'),), fetch_one=True)
-    user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
-    settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+    order_id = data.get('order_id')
+    msg_type = data.get('msg_type')
+    text = data.get('text', '')
     
-    text = f"💳 Оплата комплектации:\nПереведите по реквизитам:\n{settings.get('payment_details', 'Не указано')}\nПосле перевода отправьте скриншот сюда." if data.get('msg_type') == 'req' else (f"🚕 Николаич проверил тариф Яндекс.Логистики: {data.get('custom_val', '')} ₽." if data.get('msg_type') == 'taxi' else ("✅ Денежку увидел! Ваш заказ передан в комплектацию." if data.get('msg_type') == 'paid' else data.get('text')))
-    full_text = f"👨‍🌾 Николаич:\n{text}"
+    if msg_type == 'req': text = "💳 Реквизиты для оплаты: Перевод по номеру телефона (Укажите ваши реквизиты в админке)."
+    elif msg_type == 'taxi': text = f"🚕 Тариф доставки Яндекс.Логистикой составит: {data.get('custom_val')} ₽."
+    elif msg_type == 'paid': text = "✅ Оплата успешно получена! Начинаем готовить ваш заказ."
     
-    send_vk_message(user['id'], user['social_link'], full_text)
-    with sqlite3.connect('shop.db') as conn: 
-        conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (user['id'], full_text))
+    if text:
+        with sqlite3.connect('shop.db') as conn:
+            conn.execute("INSERT INTO order_chats (order_id, sender_type, message) VALUES (?, 'admin', ?)", (order_id, text))
     return jsonify({"status": "ok"})
+
+@app.route('/api/user/order/<int:order_id>/chat', methods=['GET', 'POST'])
+def user_order_chat(order_id):
+    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+    
+    order = get_db_query("SELECT id FROM orders WHERE id=? AND user_id=?", (order_id, user['id']), fetch_one=True)
+    if not order: return jsonify({"error": "Not found"}), 404
+    
+    if request.method == 'POST':
+        text = request.json.get('text', '').strip()
+        if text:
+            with sqlite3.connect('shop.db') as conn:
+                conn.execute("INSERT INTO order_chats (order_id, sender_type, message) VALUES (?, 'client', ?)", (order_id, text))
+            
+            settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
+            admin_vk = settings.get('admin_vk_id', '').strip()
+            if admin_vk: send_vk_message(None, None, f"✉️ Новое сообщение в заказе #{order_id}:\n{text}", custom_vk_id=admin_vk)
+        return jsonify({"success": True})
+        
+    msgs = get_db_query("SELECT * FROM order_chats WHERE order_id=? ORDER BY timestamp ASC", (order_id,))
+    return jsonify([dict(m) for m in msgs])
 
 @app.route('/api/admin/all_chats', methods=['GET'])
 def admin_all_chats():

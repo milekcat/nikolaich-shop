@@ -25,7 +25,6 @@
     
     <title>{{ settings.shop_name }}</title>
     <meta name="theme-color" content="#00b853">
-    
     <meta name="perfluence-verification" content="89813663bd51" />
     
     <link rel="manifest" href="/static/manifest.json">
@@ -39,7 +38,6 @@
     {% endif %}
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
     <script src="https://unpkg.com/@vkid/sdk@latest/dist-sdk/umd/index.js"></script>
     <script src="https://vk.com/js/api/openapi.js?169" type="text/javascript"></script>
     
@@ -148,7 +146,7 @@
         .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #ffc107; }
         .star-rating-dr label:hover, .star-rating-dr label:hover ~ label, .star-rating-dr input:checked ~ label { color: #00b853; }
 
-        /* СТИЛИ ДЛЯ КОЛЕСА ФОРТУНЫ И ПОДАРКОВ */
+        /* КОЛЕСО ФОРТУНЫ */
         .wheel-canvas-container { position: relative; width: 300px; height: 300px; margin: 0 auto; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
         #wheelCanvas { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #1d1d1f; transition: transform 4s cubic-bezier(0.1, 2.7, 0.5, 1); }
         .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 35px solid #e63946; z-index: 10; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4)); }
@@ -403,9 +401,9 @@
 
 <div class="floating-chat-btn" onclick="openChat()"><i class="bi bi-chat-dots-fill"></i></div>
 
-<div id="cookieBanner" class="position-fixed bottom-0 start-0 w-100 bg-dark text-white p-3 d-flex justify-content-between align-items-center shadow-lg" style="z-index: 3000; display: none;">
-    <div class="small me-3 opacity-75">Мы используем файлы cookie. Продолжая, вы соглашаетесь с <span class="text-info text-decoration-underline" style="cursor:pointer;" onclick="new bootstrap.Modal(document.getElementById('privacyModal')).show()">Политикой конфиденциальности</span>.</div>
-    <button class="btn btn-sm btn-success fw-bold rounded-pill px-4" onclick="acceptCookies()">OK</button>
+<div id="cookieBanner" class="position-fixed bottom-0 start-0 m-3 bg-dark text-white p-3 d-flex flex-column align-items-start shadow-lg rounded-4" style="z-index: 3000; display: none; max-width: 320px; border: 1px solid rgba(255,255,255,0.1);">
+    <div class="small mb-2 fw-medium opacity-75 lh-sm">Мы используем файлы cookie. Продолжая, вы соглашаетесь с <span class="text-info text-decoration-underline" style="cursor:pointer;" onclick="new bootstrap.Modal(document.getElementById('privacyModal')).show()">Политикой конфиденциальности</span>.</div>
+    <button class="btn btn-sm btn-success fw-bold rounded-pill px-4 w-100 shadow-sm" onclick="acceptCookies()">Хорошо, понятно</button>
 </div>
 
 <div class="modal fade" id="deliveryModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content p-4 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center"><i class="bi bi-box-seam text-primary me-2"></i>Условия доставки и получения</h4><div class="small text-muted lh-lg"><p><b>1. Самовывоз из магазина:</b> Покупатель может самостоятельно забрать сформированный Заказ из пункта выдачи Продавца.</p><p><b>2. Транспортировка силами сторонних курьеров:</b> Продавец не является логистической компанией и не осуществляет доставку товаров. Покупатель при оформлении заказа вправе поручить Продавцу передать укомплектованный товар независимому курьеру. В этом случае ответственность за сохранность и сроки транспортировки несет лицо, фактически осуществляющее доставку в интересах Покупателя.</p><p><b>3. Товары категории 18+:</b> Реализация товаров с возрастными ограничениями дистанционным способом не осуществляется. Такие товары могут быть только зарезервированы на сайте и передаются исключительно путем самовывоза после строгой проверки документа, удостоверяющего личность и возраст Покупателя на кассе.</p></div><button class="btn btn-dark w-100 mt-3 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal">Закрыть</button></div></div></div>
@@ -497,7 +495,40 @@
 <div class="modal fade" id="deliveryRatingModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-2">Оцените доставку</h5><p class="small text-muted fw-bold mb-3">Был ли курьер (<span id="drCourName"></span>) вежлив? Всё ли понравилось?</p><div class="star-rating-dr mb-3 w-100"><input type="radio" id="dr_star5" name="dr_rating" value="5" checked><label for="dr_star5" title="5 звезд">★</label><input type="radio" id="dr_star4" name="dr_rating" value="4"><label for="dr_star4" title="4 звезды">★</label><input type="radio" id="dr_star3" name="dr_rating" value="3"><label for="dr_star3" title="3 звезды">★</label><input type="radio" id="dr_star2" name="dr_rating" value="2"><label for="dr_star2" title="2 звезды">★</label><input type="radio" id="dr_star1" name="dr_rating" value="1"><label for="dr_star1" title="1 звезда">★</label></div><textarea id="drComment" class="form-control bg-light border-0 rounded-4 p-3 mb-4" rows="2" placeholder="Ваши впечатления о доставке"></textarea><div id="drTipsContainer" style="display:none;" class="mb-4 text-start"><button id="drShowTipsBtn" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm py-2" onclick="document.getElementById('drTipsDetails').style.display='block'; this.style.display='none';"><i class="bi bi-cup-hot-fill me-1"></i>Хотите оставить чаевые?</button><div id="drTipsDetails" style="display:none;" class="p-3 bg-success bg-opacity-10 rounded-4 border border-success text-center"><p class="small text-success fw-bold mb-3" style="line-height: 1.3;">Это личные реквизиты курьера. Средства поступят напрямую на его счет.</p><img id="drTipsQr" src="" style="max-width: 150px; border-radius: 12px; display: none; margin: 0 auto 15px auto;" class="shadow-sm"><a id="drTipsLink" href="" target="_blank" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" style="display:none;">Перевести по ссылке</a></div></div><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="submitDeliveryRating()">Отправить оценку</button></div></div></div>
 <div class="modal fade" id="addReviewModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-1">Оцените товар</h5><div class="small text-muted fw-bold mb-3" id="revProdName"></div><div class="star-rating mb-3"><input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 звезд">★</label><input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 звезды">★</label><input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 звезды">★</label><input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 звезды">★</label><input type="radio" id="star1" name="rating" value="1" checked><label for="star1" title="1 звезда">★</label></div><textarea id="revText" class="form-control bg-light border-0 rounded-4 p-3 mb-3" rows="3" placeholder="Что вам понравилось?"></textarea><button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitReview()">Отправить отзыв</button></div></div></div>
 <div class="modal fade" id="productDetailModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4"><button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 rounded-circle shadow-sm" data-bs-dismiss="modal" style="z-index: 10;"></button><img id="pdImg" src="" class="w-100 rounded-4 mb-3 shadow-sm" style="height:280px; object-fit:cover; display:none;"><h3 class="fw-bold mb-1" id="pdName"></h3><h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4><p class="text-muted small mb-4" id="pdDesc"></p><button class="btn w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-4" id="pdAddBtn"></button><h5 class="fw-bold mb-3"><i class="bi bi-chat-left-text text-primary me-2"></i>Отзывы покупателей</h5><div id="pdReviewsList" class="d-flex flex-column gap-3"></div></div></div></div>
-<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6><select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="calcCart()"><option value="pickup">Самовывоз (Магазин)</option><option value="courier">Доставка курьером</option><option value="taxi">Отправка Яндекс.Доставкой</option></select><select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime"><option value="Как можно скорее">🕒 Как можно скорее</option><option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option><option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option></select><div id="addressBox" style="display:none;"><label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя</label><div class="d-flex gap-2 mb-2"><button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button><button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button></div><select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;"></select><div id="newAddrWrap" class="input-group mb-2"><input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира"><button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button></div></div></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (ЮKassa)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><label class="small text-muted fw-bold ms-2 mb-1 mt-1">E-mail для чека (Бесплатно от ОФД)</label><input type="email" id="checkoutEmail" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="example@mail.ru (необязательно)"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
+
+<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6>
+    
+    <select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="handleDeliveryChange()">
+        <option value="pickup">Самовывоз (Магазин)</option>
+        <option value="courier">Доставка курьером</option>
+        <option value="taxi">Отправка Яндекс.Доставкой</option>
+    </select>
+    
+    <select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime">
+        <option value="Как можно скорее">🕒 Как можно скорее</option>
+        <option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option>
+        <option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option>
+    </select>
+    
+    <div id="addressBox" style="display:none;">
+        <label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя (выберите на карте или введите)</label>
+        
+        <div id="checkoutMap" style="width: 100%; height: 200px; border-radius: 12px; display: none; margin-bottom: 10px; border: 1px solid #ccc; overflow:hidden;"></div>
+        
+        <div class="d-flex gap-2 mb-2">
+            <button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button>
+            <button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button>
+        </div>
+        <select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;" onchange="handleSavedAddressChange()"></select>
+        
+        <div id="newAddrWrap" class="input-group mb-2">
+            <input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира" onchange="geocodeTypedAddress()">
+            <button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button>
+        </div>
+    </div>
+</div>
+
+<div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (ЮKassa)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><label class="small text-muted fw-bold ms-2 mb-1 mt-1">E-mail для чека (Бесплатно от ОФД)</label><input type="email" id="checkoutEmail" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="example@mail.ru (необязательно)"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
 <div class="modal fade" id="chatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden"><div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center"><h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Чат с магазином</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="site-chat-container"><div class="site-chat-messages" id="siteChatBox"></div><div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;"><input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()"><button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button></div></div></div></div></div>
 <div class="modal fade" id="loginModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center">Вход в систему</h4><div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div><div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div><input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00"><input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button></div></div></div>
 
@@ -554,6 +585,124 @@
     const preorderEnabled = "{{ settings.preorder_enabled | default('1') }}" === "1";
     let isStoreOpen = true;
 
+    // YANDEX MAP LOGIC FOR CHECKOUT
+    let checkoutMap = null;
+    let checkoutPlacemark = null;
+    let routeDistanceKm = 0;
+    let redZoneMarkup = 0;
+    const shopCoords = [57.6299, 39.8737]; // Центр / Магазин по умолчанию
+
+    function initCheckoutMap() {
+        if (checkoutMap || typeof ymaps === 'undefined') return;
+        ymaps.ready(() => {
+            checkoutMap = new ymaps.Map("checkoutMap", {
+                center: shopCoords,
+                zoom: 12,
+                controls: ['zoomControl']
+            });
+            
+            const polyCoordsStr = '{{ settings.delivery_polygon | default("[]") | safe }}';
+            try {
+                const polyCoords = JSON.parse(polyCoordsStr);
+                if(polyCoords.length > 0) {
+                    const deliveryZone = new ymaps.Polygon(polyCoords, {}, { fillColor: '#19875422', strokeColor: '#198754', strokeWidth: 3 });
+                    checkoutMap.geoObjects.add(deliveryZone);
+                }
+            } catch(e) {}
+
+            checkoutMap.events.add('click', function (e) {
+                const coords = e.get('coords');
+                setCheckoutAddressByCoords(coords, true);
+            });
+        });
+    }
+
+    async function setCheckoutAddressByCoords(coords, updateInput = true) {
+        if (!window.ymaps) return;
+        
+        // Проверка зоны
+        const polyCoordsStr = '{{ settings.delivery_polygon | default("[]") | safe }}';
+        try {
+            const polyCoords = JSON.parse(polyCoordsStr);
+            if(polyCoords.length > 0) {
+                const polygon = new ymaps.Polygon(polyCoords);
+                if (!polygon.geometry.contains(coords)) {
+                    alert("Извините, этот адрес находится вне зеленой зоны доставки.");
+                    return;
+                }
+            }
+        } catch(e) {}
+
+        if(checkoutPlacemark) checkoutMap.geoObjects.remove(checkoutPlacemark);
+        checkoutPlacemark = new ymaps.Placemark(coords, {}, {preset: 'islands#redDotIcon'});
+        checkoutMap.geoObjects.add(checkoutPlacemark);
+        
+        if (updateInput) {
+            ymaps.geocode(coords).then(res => {
+                const firstGeoObject = res.geoObjects.get(0);
+                if(firstGeoObject) {
+                    document.getElementById('checkoutAddress').value = firstGeoObject.getAddressLine();
+                }
+            });
+        }
+        
+        // Строим маршрут
+        try {
+            const route = await ymaps.route([shopCoords, coords], {routingMode: 'auto'});
+            routeDistanceKm = Math.round(route.getLength() / 1000);
+            
+            // Здесь можно добавить проверку на попадание в Красные зоны (если они сохранены)
+            redZoneMarkup = 0; 
+
+            calcCart();
+        } catch(e) {
+            console.log("Routing error", e);
+            routeDistanceKm = 5; 
+            calcCart();
+        }
+    }
+
+    function handleDeliveryChange() {
+        const dt = document.getElementById('deliveryType').value;
+        if(dt === 'courier') {
+            document.getElementById('checkoutMap').style.display = 'block';
+            initCheckoutMap();
+        } else {
+            document.getElementById('checkoutMap').style.display = 'none';
+            routeDistanceKm = 0;
+            redZoneMarkup = 0;
+        }
+        calcCart();
+    }
+
+    function geocodeTypedAddress() {
+        const addr = document.getElementById('checkoutAddress').value;
+        if (!addr || !window.ymaps || !checkoutMap) return;
+        ymaps.geocode(addr).then(res => {
+            const firstGeoObject = res.geoObjects.get(0);
+            if (firstGeoObject) {
+                const coords = firstGeoObject.geometry.getCoordinates();
+                checkoutMap.setCenter(coords, 14);
+                setCheckoutAddressByCoords(coords, false);
+            }
+        });
+    }
+
+    function handleSavedAddressChange() {
+        const addr = document.getElementById('checkoutAddressSelect').value;
+        if(addr && window.ymaps && checkoutMap) {
+            ymaps.geocode(addr).then(res => {
+                const firstGeoObject = res.geoObjects.get(0);
+                if(firstGeoObject) {
+                    const coords = firstGeoObject.geometry.getCoordinates();
+                    checkoutMap.setCenter(coords, 14);
+                    setCheckoutAddressByCoords(coords, false);
+                }
+            });
+        }
+    }
+    // END YANDEX MAP LOGIC
+
     function checkWorkTime() {
         const now = new Date();
         const currentTotalMins = now.getHours() * 60 + now.getMinutes();
@@ -571,23 +720,6 @@
             document.getElementById('closedBanner').style.display = 'block';
         }
         return isStoreOpen;
-    }
-
-    async function checkDeliveryZone(address) {
-        if(!window.ymaps || !ymaps.geocode) return true; 
-        const polygonCoords = JSON.parse('{{ settings.delivery_polygon | default("[]") | safe }}');
-        if(polygonCoords.length === 0) return true; 
-        
-        try {
-            const res = await ymaps.geocode(address);
-            const firstGeoObject = res.geoObjects.get(0);
-            if(!firstGeoObject) return false;
-            const coords = firstGeoObject.geometry.getCoordinates();
-            const polygon = new ymaps.Polygon([polygonCoords]);
-            return polygon.geometry.contains(coords);
-        } catch(e) {
-            return true; 
-        }
     }
 
     let wheelData = [];
@@ -698,11 +830,12 @@
         const canvas = document.getElementById('wheelCanvas');
         canvas.style.transition = 'none';
         canvas.style.transform = `rotate(0deg)`;
+        void canvas.offsetWidth; // Force Reflow - Фикс для Колеса Фортуны
         
         setTimeout(() => {
             canvas.style.transition = 'transform 4s cubic-bezier(0.1, 2.7, 0.5, 1)';
             canvas.style.transform = `rotate(${data.target_angle}deg)`;
-        }, 50);
+        }, 10);
 
         setTimeout(() => {
             isSpinning = false;
@@ -795,12 +928,14 @@
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    if (window.ymaps && ymaps.geocode) {
+                    if (window.ymaps && checkoutMap) {
                         try {
                             const res = await ymaps.geocode([lat, lon]);
                             const firstGeoObject = res.geoObjects.get(0);
                             if (firstGeoObject) {
-                                document.getElementById('checkoutAddress').value = firstGeoObject.getAddressLine();
+                                const coords = firstGeoObject.geometry.getCoordinates();
+                                checkoutMap.setCenter(coords, 14);
+                                setCheckoutAddressByCoords(coords, true);
                             } else {
                                 alert("Не удалось определить адрес по координатам.");
                             }
@@ -879,7 +1014,6 @@
         alert("Отзыв отправлен на модерацию. Спасибо!");
     }
 
-
     if(!localStorage.getItem('cookies_accepted')) { document.getElementById('cookieBanner').style.setProperty('display', 'flex', 'important'); }
     window.acceptCookies = function() { localStorage.setItem('cookies_accepted', 'true'); const cb = document.getElementById('cookieBanner'); cb.style.display = 'none'; cb.style.setProperty('display', 'none', 'important'); }
 
@@ -941,7 +1075,7 @@
     
     function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { if (!String(id).includes("_gift")) { itemsTotal += cart[id].price * cart[id].qty; count++; } } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
     function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
-    async function loadUpsell() { const cartNames = Object.values(cart).map(i => i.name); const res = await fetch('/api/ai/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})}); const prods = await res.json(); const box = document.getElementById('upsellBox'); if(prods.length > 0) { box.innerHTML = prods.map(p => { let imgHtml = p.images && p.images.length > 0 ? `<img src="${p.images[0]}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`; const hdn = p.is_hidden || 0; const safeName = p.name.replace(/'/g,""); return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${p.images&&p.images.length>0?p.images[0]:''}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`; }).join(''); box.parentElement.style.display = 'block'; } else { box.parentElement.style.display = 'none'; } }
+    async function loadUpsell() { const cartNames = Object.values(cart).map(i => i.name); const res = await fetch('/api/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})}); const prods = await res.json(); const box = document.getElementById('upsellBox'); if(prods.length > 0) { box.innerHTML = prods.map(p => { let imgHtml = p.images && p.images.length > 0 ? `<img src="${p.images[0]}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`; const hdn = p.is_hidden || 0; const safeName = p.name.replace(/'/g,""); return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${p.images&&p.images.length>0?p.images[0]:''}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`; }).join(''); box.parentElement.style.display = 'block'; } else { box.parentElement.style.display = 'none'; } }
 
     async function prepareCart() { 
         const html = []; 
@@ -953,13 +1087,47 @@
         } 
         document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>'; 
         try { const res = await fetch('/api/user/cabinet'); const data = await res.json(); if(!data.error && data.user) { let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {} if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); } } } catch(e){} 
-        await loadUpsell(); await calcCart(); 
+        
+        handleDeliveryChange(); // Показывает/Скрывает карту при открытии
+        await loadUpsell(); 
+        await calcCart(); 
     }
     
     async function calcCart() { 
         if(Object.keys(cart).length === 0) return; 
-        let dt = document.getElementById('deliveryType').value; let pt = document.getElementById('paymentType').value; const oc = document.getElementById('optCash'); const pc = document.getElementById('promoCode').value; const ph = document.getElementById('checkoutPhone').value; 
-        const res = await fetch('/api/cart/calc', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items_total: itemsTotal, delivery_type: dt, promo_code: pc, phone: ph, cart: cart})}); 
+        let dt = document.getElementById('deliveryType').value; 
+        let pt = document.getElementById('paymentType').value; 
+        const oc = document.getElementById('optCash'); 
+        const pc = document.getElementById('promoCode').value; 
+        const ph = document.getElementById('checkoutPhone').value; 
+
+        // Пересчет дистанции, если ввели вручную и карта загружена
+        const addrVal = document.getElementById('checkoutAddress').value;
+        if (dt === 'courier' && addrVal && routeDistanceKm === 0 && window.ymaps && checkoutMap) {
+            try {
+                const res = await ymaps.geocode(addrVal);
+                const firstGeoObject = res.geoObjects.get(0);
+                if (firstGeoObject) {
+                    const coords = firstGeoObject.geometry.getCoordinates();
+                    const route = await ymaps.route([shopCoords, coords], {routingMode: 'auto'});
+                    routeDistanceKm = Math.round(route.getLength() / 1000);
+                }
+            } catch(e) {}
+        }
+        
+        const res = await fetch('/api/cart/calc', {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({
+                items_total: itemsTotal, 
+                delivery_type: dt, 
+                promo_code: pc, 
+                phone: ph, 
+                cart: cart,
+                distance_km: routeDistanceKm,
+                red_zone_markup: redZoneMarkup
+            })
+        }); 
         lastCalc = await res.json(); 
         
         const warnBox = document.getElementById('cart18Warning'); const delSelect = document.getElementById('deliveryType'); const paySelect = document.getElementById('paymentType'); const timeSelect = document.getElementById('checkoutTime');
@@ -990,6 +1158,7 @@
         if (lastCalc.discount > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-success fw-bold"><span>Скидки (Акции / Промо):</span><span>- ${lastCalc.discount} ₽</span></div>`; 
         if (lastCalc.sysadmin_pay > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-primary fw-bold"><span>Оплата балансом IT:</span><span>- ${lastCalc.sysadmin_pay.toFixed(0)} ₽</span></div>`; 
         if (lastCalc.gift) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-warning fw-bold bg-warning bg-opacity-10 p-2 rounded border border-warning mt-2"><span>🎁 Ваш подарок:</span><span>${lastCalc.gift.name} (0 ₽)</span></div>`;
+        if (lastCalc.weather_markup > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-danger fw-bold"><span>Наценка за погоду:</span><span>+ ${lastCalc.weather_markup} ₽</span></div>`;
         
         let earnedTickets = Math.floor(lastCalc.final_total / 500);
         for(let id in cart) { 
@@ -1006,7 +1175,7 @@
         }
 
         document.getElementById('cartAdditionalInfo').innerHTML = addInfoHtml; 
-        document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' : 'Бесплатно'); 
+        document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' + (lastCalc.weather_text || '') : 'Бесплатно'); 
         document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; 
         document.getElementById('tDiscount').innerText = lastCalc.final_total.toFixed(0) + ' ₽'; 
         
@@ -1082,7 +1251,7 @@
     }
 
     function openCabinet() { refreshCabinetData().then(() => new bootstrap.Modal(document.getElementById('cabinetModal')).show()); }
-    async function uploadCourQr(input) { if(!input.files || input.files.length === 0) return; const formData = new FormData(); formData.append('file', input.files[0]); try { const res = await fetch('/api/user/upload_qr', {method: 'POST', body: formData}); const data = await res.json(); if(data.url) { document.getElementById('cabTipsQr').value = data.url; document.getElementById('courQrPreview').src = data.url; document.getElementById('courQrPreview').style.display = 'block'; } } catch(e) { alert("Ошибка загрузки QR-кода."); } }
+    async function uploadCourQr(input) { if(!input.files || input.files.length === 0) return; const formData = new FormData(); formData.append('file', input.files[0]); try { const res = await fetch('/api/upload', {method: 'POST', body: formData}); const data = await res.json(); if(data.url) { document.getElementById('cabTipsQr').value = data.url; document.getElementById('courQrPreview').src = data.url; document.getElementById('courQrPreview').style.display = 'block'; } } catch(e) { alert("Ошибка загрузки QR-кода."); } }
     async function addAddress() { const addr = document.getElementById('cabNewAddress').value.trim(); if(!addr) return; await fetch('/api/user/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({new_address: addr})}); document.getElementById('cabNewAddress').value = ''; refreshCabinetData(); }
     async function updateProfile() { const payload = { full_name: document.getElementById('cabName').value, phone: document.getElementById('cabPhone').value, tips_link: document.getElementById('cabTipsLink').value, tips_qr: document.getElementById('cabTipsQr').value, password: document.getElementById('cabPass').value }; await fetch('/api/user/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}); alert("Данные сохранены!"); refreshCabinetData(); }
     function openDeliveryRating(orderId, courName, tipsLink, tipsQr) { currentRatingOrderId = orderId; document.getElementById('drCourName').innerText = courName || 'ваш курьер'; document.getElementById('drComment').value = ''; const tipsContainer = document.getElementById('drTipsContainer'); const tipsDetails = document.getElementById('drTipsDetails'); const showTipsBtn = document.getElementById('drShowTipsBtn'); const tLink = document.getElementById('drTipsLink'); const tQr = document.getElementById('drTipsQr'); if (tipsLink || tipsQr) { tipsContainer.style.display = 'block'; tipsDetails.style.display = 'none'; showTipsBtn.style.display = 'block'; if (tipsLink) { tLink.href = tipsLink; tLink.style.display = 'inline-block'; } else { tLink.style.display = 'none'; } if (tipsQr) { tQr.src = tipsQr; tQr.style.display = 'block'; } else { tQr.style.display = 'none'; } } else { tipsContainer.style.display = 'none'; } new bootstrap.Modal(document.getElementById('deliveryRatingModal')).show(); }

@@ -574,13 +574,11 @@ def calc_cart():
     weather_markup_sum = 0
     weather_text = ""
     
-    # 100% БЕСПЛАТНАЯ ПОГОДА ОТ OPEN-METEO (БЕЗ КЛЮЧЕЙ И РЕГИСТРАЦИЙ)
     if delivery_type == 'courier':
         try:
             w_res = requests.get("https://api.open-meteo.com/v1/forecast?latitude=57.6299&longitude=39.8737&current_weather=true", timeout=2).json()
             if 'current_weather' in w_res:
                 w_code = w_res['current_weather']['weathercode']
-                # По кодам WMO: все что больше 3 — туман, морось, дождь, снег, гроза
                 if w_code > 3:
                     weather_markup_sum = float(settings.get('weather_markup', 50))
                     weather_text = " (Непогода)"

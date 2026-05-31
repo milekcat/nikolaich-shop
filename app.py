@@ -23,12 +23,25 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-VK_TOKEN = "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
 VK_API_VERSION = "5.131"
 
 Configuration.configure(os.getenv('YOOKASSA_SHOP_ID'), os.getenv('YOOKASSA_SECRET_KEY'))
 
+def get_db_query(query, args=(), fetch_one=False):
+    with sqlite3.connect('shop.db') as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(query, args)
+        if fetch_one: 
+            res = cur.fetchone()
+            return dict(res) if res else None
+        return [dict(row) for row in cur.fetchall()]
+
+def get_vk_token():
+    res = get_db_query("SELECT value FROM settings WHERE key_name='vk_token'", fetch_one=True)
+    return res['value'] if res and res['value'] else "f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM"
+
 def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
+    vk_token = get_vk_token()
     if custom_vk_id:
         vk_id = custom_vk_id
     else:
@@ -40,7 +53,7 @@ def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
             if domain.startswith('id') and domain[2:].isdigit(): 
                 vk_id = domain[2:]
             else:
-                req_url = f"https://api.vk.com/method/utils.resolveScreenName?screen_name={domain}&access_token={VK_TOKEN}&v={VK_API_VERSION}"
+                req_url = f"https://api.vk.com/method/utils.resolveScreenName?screen_name={domain}&access_token={vk_token}&v={VK_API_VERSION}"
                 r_id = requests.get(req_url).json()
                 if r_id.get('response') and r_id['response']['type'] == 'user': 
                     vk_id = r_id['response']['object_id']
@@ -54,7 +67,7 @@ def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
         if db_user_id and not custom_vk_id:
             with sqlite3.connect('shop.db') as conn:
                 conn.execute("INSERT INTO chat_messages (user_id, is_incoming, text) VALUES (?, 0, ?)", (db_user_id, text))
-        payload = {"user_id": vk_id, "random_id": random.randint(1, 2147483647), "message": text, "access_token": VK_TOKEN, "v": VK_API_VERSION}
+        payload = {"user_id": vk_id, "random_id": random.randint(1, 2147483647), "message": text, "access_token": vk_token, "v": VK_API_VERSION}
         res = requests.post("https://api.vk.com/method/messages.send", data=payload).json()
         if 'error' in res:
             if res['error'].get('error_code') == 901: return "Клиент запретил сообщения."
@@ -125,22 +138,22 @@ def init_db():
                 ('shop_name', 'U NIKOLAICHA'), ('footer_text', 'Фермерские продукты от Николаича.'), ('package_cost', '29'), ('courier_cost', '150'), ('free_delivery_threshold', '3000'), ('min_order_sum', '500'), ('min_pickup_sum', '0'), ('high_demand', '0'), ('payment_details', '+7 (999) 000-00-00'), ('vk_confirm_code', '00000000'), ('admin_pin', '0000'), ('bg_main', '#fdfbf7'), ('bg_header', 'https://images.pexels.com/photos/1414651/pexels-photo-1414651.jpeg?auto=compress'), ('bg_cat', 'https://images.pexels.com/photos/413195/pexels-photo-413195.jpeg?auto=compress'), ('bg_card', 'https://images.pexels.com/photos/1297339/pexels-photo-1297339.jpeg?auto=compress'), ('wheel_active', '1'), ('store_locked', '0')
             ])
 
-        new_settings = [ ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'), ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'), ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), ('yandex_delivery_token', ''), ('sbis_api_token', ''), ('store_locked', '0') ]
+        new_settings = [ 
+            ('wheel_loss_threshold', '0'), ('delivery_enabled', '1'), ('pickup_enabled', '1'), 
+            ('work_time_start', '09:00'), ('work_time_end', '21:00'), ('preorder_enabled', '1'), 
+            ('admin_vk_id', ''), ('yandex_maps_apikey', ''), ('delivery_polygon', '[]'), 
+            ('yandex_delivery_token', ''), ('sbis_api_token', ''), ('store_locked', '0'), 
+            ('yookassa_comm_high', '14'), ('yookassa_comm_low', '11'),
+            ('base_delivery_cost', '100'), ('cost_per_km', '25'), ('weather_markup', '50'),
+            ('openweather_apikey', ''), ('red_zones', '[]'),
+            ('vk_token', 'f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM')
+        ]
         for key, val in new_settings:
             if c.execute("SELECT COUNT(*) FROM settings WHERE key_name=?", (key,)).fetchone()[0] == 0:
                 c.execute("INSERT INTO settings (key_name, value) VALUES (?, ?)", (key, val))
     conn.commit()
 
 init_db()
-
-def get_db_query(query, args=(), fetch_one=False):
-    with sqlite3.connect('shop.db') as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.execute(query, args)
-        if fetch_one: 
-            res = cur.fetchone()
-            return dict(res) if res else None
-        return [dict(row) for row in cur.fetchall()]
 
 def get_user_by_identifier(identifier, is_vk=False):
     if not identifier: return None
@@ -185,12 +198,12 @@ def yookassa_webhook():
         if order:
             user = get_db_query("SELECT * FROM users WHERE id=?", (order['user_id'],), fetch_one=True)
             if user and user['social_link']: 
-                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{order_id} через ЮKassa получена! Начинаем комплектацию.")
+                send_vk_message(user['id'], user['social_link'], f"✅ Онлайн-оплата заказа #{order_id} получена! Начинаем комплектацию.")
             
             settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
             admin_vk = settings.get('admin_vk_id', '').strip()
             if admin_vk: 
-                send_vk_message(None, None, f"💰 Заказ #{order_id} успешно оплачен (ЮKassa)! Направляем фискальные данные в СБИС.", custom_vk_id=admin_vk)
+                send_vk_message(None, None, f"💰 Заказ #{order_id} успешно оплачен онлайн! Направляем фискальные данные в СБИС.", custom_vk_id=admin_vk)
         
             if order.get('receipt_payload'):
                 send_receipt_to_sbis(order_id, order['receipt_payload'], settings)
@@ -306,7 +319,7 @@ def wheel_spin():
             exp = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
             conn.execute("""INSERT INTO user_prizes (user_id, title, type, value, expires_at, banner_url, partner_link, promo_code, description, erid) VALUES (?,?,?,?,?,?,?,?,?,?)""", 
                 (user['id'], winner_sector['title'], winner_sector['type'], winner_sector['value'], exp, winner_sector.get('banner_url', ''), winner_sector.get('partner_link', ''), winner_sector.get('promo_code', ''), winner_sector.get('description', ''), winner_sector.get('erid', '')))
-                         
+                          
     sector_angle = 360 / len(sectors)
     target_angle = 360 * 5 + (360 - (winner_index * sector_angle + sector_angle/2))
     return jsonify({"status": "ok", "target_angle": target_angle, "prize": dict(winner_sector), "tickets_left": curr_user['tickets_balance'] - 1})
@@ -320,6 +333,28 @@ def wheel_daily():
     if last_bonus and last_bonus.startswith(today): return jsonify({"error": "Бонус сегодня уже получен"})
     with sqlite3.connect('shop.db') as conn: conn.execute("UPDATE users SET tickets_balance = tickets_balance + 1, last_daily_bonus=? WHERE id=?", (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user['id']))
     return jsonify({"status": "ok", "tickets": user['tickets_balance'] + 1})
+
+@app.route('/api/upsell', methods=['GET', 'POST'])
+def get_upsell():
+    try:
+        data = request.json or {}
+        cart_items = data.get('cart', {})
+        cart_ids = [int(str(k).split('_')[0]) for k in cart_items.keys() if str(k).split('_')[0].isdigit()]
+        
+        user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
+        is_vip = user and user.get('age_verified') == 2
+        
+        all_prods = get_db_query("SELECT p.id, p.name, p.price, p.images, p.step, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.active=1")
+        
+        available = [p for p in all_prods if p['id'] not in cart_ids and (is_vip or p['is_hidden'] != 1)]
+        random.shuffle(available)
+        
+        for p in available:
+            p['images'] = json.loads(p['images']) if p['images'] else []
+            
+        return jsonify(available[:4])
+    except Exception as e:
+        return jsonify([])
 
 @app.route('/')
 def index():
@@ -498,6 +533,7 @@ def calc_cart():
         if orders_count and orders_count['c'] > 0: is_new_user = False
     promotions = get_db_query("SELECT * FROM promotions WHERE active=1")
     current_time = datetime.datetime.now().strftime("%H:%M")
+    
     for p_id_key, item in cart_items.items():
         base_p_id = str(p_id_key).split('_')[0]
         prod = get_db_query("SELECT p.*, IFNULL(c.is_hidden, 0) as is_hidden FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id=?", (base_p_id,), fetch_one=True)
@@ -513,11 +549,13 @@ def calc_cart():
                         free_qty = int(item['qty'] // 3)
                         free_items_discount += (item_price * free_qty)
             base_total += (item_price * float(item['qty']))
+            
     gift_prod = None
     for promo in promotions:
         if promo['promo_type'] == 'gift' and is_new_user and base_total >= promo['min_sum']:
             gift_prod = get_db_query("SELECT id, name, images, unit, step FROM products WHERE id=?", (promo['target_id'],), fetch_one=True)
             if gift_prod: gift_added = True
+            
     base_total -= free_items_discount
     base_total = max(0, base_total)
     delivery_type = data.get('delivery_type', 'pickup')
@@ -525,13 +563,37 @@ def calc_cart():
     is_vip = user and user.get('age_verified') == 2
     force_pickup_18 = has_18 and not is_vip
     if force_pickup_18: delivery_type = 'pickup'
+    
     package_cost = float(settings.get('package_cost', 29)) if base_total > 0 else 0
-    courier_cost = float(settings.get('courier_cost', 150))
+    
+    base_del_cost = float(settings.get('base_delivery_cost', 100))
+    cost_per_km = float(settings.get('cost_per_km', 25))
+    distance_km = float(data.get('distance_km', 0))
+    red_zone_markup = float(data.get('red_zone_markup', 0))
+    
+    weather_markup_sum = 0
+    weather_text = ""
+    openweather_key = settings.get('openweather_apikey', '')
+    if openweather_key and delivery_type == 'courier':
+        try:
+            w_res = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat=57.6299&lon=39.8737&appid={openweather_key}&units=metric&lang=ru", timeout=2).json()
+            if 'weather' in w_res:
+                w_id = w_res['weather'][0]['id']
+                if w_id < 800:
+                    weather_markup_sum = float(settings.get('weather_markup', 50))
+                    weather_text = " (Непогода)"
+        except: pass
+
+    courier_cost = base_del_cost + (distance_km * cost_per_km) + red_zone_markup + weather_markup_sum
     free_threshold = float(settings.get('free_delivery_threshold', 3000))
+    
+    delivery_cost = 0
+    if delivery_type == 'courier': 
+        delivery_cost = 0 if base_total >= free_threshold else courier_cost
+        
     min_order_delivery = float(settings.get('min_order_sum', 500))
     min_order_pickup = float(settings.get('min_pickup_sum', 0))
-    delivery_cost = 0
-    if delivery_type == 'courier': delivery_cost = 0 if base_total >= free_threshold else courier_cost
+    
     discount_rub, sysadmin_pay, promo_status = 0, 0, ""
     
     if promo_code:
@@ -540,16 +602,48 @@ def calc_cart():
         elif base_total < promo_db['min_sum']: promo_status = f"Минимальная сумма {promo_db['min_sum']} ₽"
         elif promo_db['is_sysadmin_only'] == 1:
             if user and user.get('role') == 'sysadmin':
-                sysadmin_pay = 0  # Автоматическое списание баланса жестко отключено
+                sysadmin_pay = 0  
                 promo_status = f"Оплата балансом отключена"
             else: promo_status = "Код только для Сисадмина"
         else:
             discount_rub = float(promo_db['discount_rub']) + (base_total * float(promo_db['discount_percent']) / 100)
             promo_status = f"Скидка применена!"
             
-    final_total = max(0, base_total + package_cost + delivery_cost - discount_rub - sysadmin_pay)
+    payment_type = data.get('payment_type', 'cash')
+    subtotal = base_total + package_cost + delivery_cost - discount_rub - sysadmin_pay
+    
+    markup_sum = 0
+    markup_percent = 0
+    if payment_type == 'online':
+        try: comm_high = float(settings.get('yookassa_comm_high', 14))
+        except: comm_high = 14.0
+        try: comm_low = float(settings.get('yookassa_comm_low', 11))
+        except: comm_low = 11.0
+        markup_percent = comm_high if subtotal < 1000 else comm_low
+        markup_sum = round(subtotal * (markup_percent / 100.0))
+        
+    final_total = max(0, subtotal + markup_sum)
     active_min_order = min_order_pickup if delivery_type == 'pickup' else min_order_delivery
-    return jsonify({"items_total": base_total + free_items_discount, "package_cost": package_cost, "delivery_cost": delivery_cost, "discount": discount_rub + free_items_discount, "sysadmin_pay": sysadmin_pay, "final_total": final_total, "free_threshold": free_threshold, "min_order": active_min_order, "promo_status": promo_status, "force_pickup_18": force_pickup_18, "gift": gift_prod})
+    
+    return jsonify({
+        "items_total": base_total + free_items_discount, 
+        "package_cost": package_cost, 
+        "delivery_cost": delivery_cost, 
+        "weather_markup": weather_markup_sum,
+        "distance_km": distance_km,
+        "red_zone_markup": red_zone_markup,
+        "weather_text": weather_text,
+        "markup_sum": markup_sum,
+        "markup_percent": markup_percent,
+        "discount": discount_rub + free_items_discount, 
+        "sysadmin_pay": sysadmin_pay, 
+        "final_total": final_total, 
+        "free_threshold": free_threshold, 
+        "min_order": active_min_order, 
+        "promo_status": promo_status, 
+        "force_pickup_18": force_pickup_18, 
+        "gift": gift_prod
+    })
 
 @app.route('/api/checkout', methods=['POST'])
 def checkout():
@@ -594,18 +688,26 @@ def checkout():
         cart_summary_text += f"• {item['name']} (x{item['qty']})\n"
 
     is_vip = user and user.get('age_verified') == 2
-    force_pickup_18 = has_18 and not is_vip
-    d_type = 'pickup' if force_pickup_18 else data.get('delivery_type', 'pickup')
-    p_type = 'cash' if force_pickup_18 else data.get('payment_type', 'cash')
-    address = data.get('address', '') if not force_pickup_18 else ''
+    if has_18 and not is_vip:
+        return jsonify({"error": "В корзине есть товары 18+. Пожалуйста, подтвердите возраст в личном кабинете!"}), 403
+
+    d_type = data.get('delivery_type', 'pickup')
+    p_type = data.get('payment_type', 'cash')
+    address = data.get('address', '')
     d_time = data.get('delivery_time', 'Как можно скорее')
     comment = data.get('comment', '')
     sysadmin_pay = calc.get('sysadmin_pay', 0)
     order_status = "Ожидает оплаты" if p_type == 'online' else "Новый"
 
+    try: markup_sum = float(calc.get('markup_sum', 0))
+    except: markup_sum = 0.0
+    
     receipt_items = []
     total_cart_sum = sum(float(i['price']) * i['qty'] for k, i in cart.items() if '_gift' not in str(k))
-    total_logistics = calc['package_cost'] + calc['delivery_cost']
+    
+    try: total_logistics = float(calc.get('package_cost', 0)) + float(calc.get('delivery_cost', 0)) + markup_sum
+    except: total_logistics = 0.0
+    
     discount_ratio = calc['final_total'] / (total_cart_sum + total_logistics) if (total_cart_sum + total_logistics) > 0 else 1
     
     for p_id_key, item in cart.items():
@@ -614,14 +716,11 @@ def checkout():
         adjusted_sum = round(adjusted_price * item['qty'], 2)
         receipt_items.append({"name": item['name'][:128], "price": adjusted_price, "quantity": item['qty'], "sum": adjusted_sum, "tax": "none", "item_type": "goods", "payment_method": "full_prepayment"})
         
-    if calc['package_cost'] > 0:
-        adj_pkg = round(calc['package_cost'] * discount_ratio, 2)
-        receipt_items.append({"name": "Упаковка заказа", "price": adj_pkg, "quantity": 1, "sum": adj_pkg, "tax": "none", "item_type": "service", "payment_method": "full_prepayment"})
-        
-    if calc['delivery_cost'] > 0:
-        adj_del = round(calc['delivery_cost'] * discount_ratio, 2)
-        receipt_items.append({"name": "Доставка курьером", "price": adj_del, "quantity": 1, "sum": adj_del, "tax": "none", "item_type": "service", "payment_method": "full_prepayment"})
-        
+    if total_logistics > 0:
+        adj_logistics = round(total_logistics * discount_ratio, 2)
+        # ФИСКАЛИЗАЦИЯ: Все логистические косты в одну строчку
+        receipt_items.append({"name": "Фирменный пакет", "price": adj_logistics, "quantity": 1, "sum": adj_logistics, "tax": "none", "item_type": "goods", "payment_method": "full_prepayment"})
+
     current_sum = sum(i['sum'] for i in receipt_items)
     diff = round(calc['final_total'] - current_sum, 2)
     if diff != 0 and receipt_items:
@@ -644,19 +743,22 @@ def checkout():
         
         if sysadmin_pay > 0: 
             conn.execute("UPDATE users SET balance = balance - ? WHERE id=?", (sysadmin_pay, user['id']))
-            conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (-sysadmin_pay, f"Оплата заказа #{order_id} промокодом Сисадмина"))
+            conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (-sysadmin_pay, f"Оплата заказа #{order_id} балансом Сисадмина"))
             
     settings = {s['key_name']: s['value'] for s in get_db_query("SELECT * FROM settings")}
     
     admin_vk = settings.get('admin_vk_id', '').strip()
     if admin_vk:
-        admin_msg = f"🔥 НОВЫЙ ЗАКАЗ #{order_id}!\n👤 Клиент: {user.get('full_name', phone) if user else phone}\n📞 Телефон: {phone}\n💰 Сумма: {calc['final_total']} ₽ ({'Онлайн (ЮKassa)' if p_type == 'online' else 'При получении'})\n🚚 {d_type.upper()} ({d_time})\n"
+        admin_msg = f"🔥 НОВЫЙ ЗАКАЗ #{order_id}!\n👤 Клиент: {user.get('full_name', phone) if user else phone}\n📞 Телефон: {phone}\n💰 Сумма: {calc['final_total']} ₽ ({'Онлайн оплата' if p_type == 'online' else 'При получении'})\n🚚 {d_type.upper()} ({d_time})\n"
         if address: admin_msg += f"📍 Адрес: {address}\n"
+        if calc.get('distance_km'): admin_msg += f"📏 Дистанция: {calc.get('distance_km')} км\n"
         if comment: admin_msg += f"📝 Комментарий: {comment}\n"
+        if markup_sum > 0: admin_msg += f"📈 Комиссия онлайн: {markup_sum} ₽\n"
+        if calc.get('weather_markup') and float(calc.get('weather_markup')) > 0: admin_msg += f"🌧️ Наценка за непогоду: {calc.get('weather_markup')} ₽\n"
         admin_msg += f"\n🛒 Состав:\n{cart_summary_text}"
         send_vk_message(None, None, admin_msg, custom_vk_id=admin_vk)
 
-    if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🚜 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
+    if user['social_link'] and p_type != 'online': send_vk_message(user['id'], user['social_link'], f"🤝 Заказ #{order_id} принят!\nСумма: {calc['final_total']:.0f} ₽.")
         
     if p_type == 'online':
         yookassa_items = []
@@ -761,6 +863,13 @@ def chat_get_site():
     user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
     if not user: return jsonify([])
     return jsonify(get_db_query("SELECT * FROM chat_messages WHERE user_id=? ORDER BY id ASC", (user['id'],)))
+
+@app.route('/courier')
+def courier_panel():
+    user = get_user_by_identifier(session.get('user_identifier'), is_vk=(session.get('auth_type')=='vk'))
+    if user and user.get('role') == 'courier':
+        return render_template('courier.html', user=user)
+    return "Доступ запрещен", 403
 
 @app.route('/robots.txt')
 def robots():
@@ -922,10 +1031,16 @@ def admin_crud(entity):
             elif entity == 'users':
                 u = get_db_query("SELECT * FROM users WHERE id=?", (data['id'],), fetch_one=True)
                 if u:
+                    new_balance = float(data.get('balance', u.get('balance') or 0))
+                    old_balance = float(u.get('balance') or 0)
                     conn.execute("UPDATE users SET full_name=?, phone=?, social_link=?, addresses=?, age_verified=?, balance=?, role=?, comm_type=?, comm_val=?, password=?, tickets_balance=? WHERE id=?", 
                         (data.get('full_name', u.get('full_name')), data.get('phone', u.get('phone')), data.get('social_link', u.get('social_link')), data.get('addresses', u.get('addresses')), 
-                         data.get('age_verified', u.get('age_verified')), data.get('balance', u.get('balance')), data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
+                         data.get('age_verified', u.get('age_verified')), new_balance, data.get('role', u.get('role')), data.get('comm_type', u.get('comm_type')), 
                          data.get('comm_val', u.get('comm_val')), data.get('password', u.get('password')), data.get('tickets_balance', u.get('tickets_balance')), data['id']))
+                    
+                    if u.get('role') == 'sysadmin' and new_balance != old_balance:
+                        diff = new_balance - old_balance
+                        conn.execute("INSERT INTO sysadmin_logs (amount, description) VALUES (?, ?)", (diff, f"Ручная корректировка баланса администратором (было {old_balance}, стало {new_balance})"))
             
             elif entity == 'orders':
                 order_id = data.get('id')
@@ -954,7 +1069,6 @@ def admin_crud(entity):
 
         return jsonify({"status": "ok"})
 
-# === SPRINT 3: ORDER CHAT (ADMIN & CLIENT) ===
 @app.route('/api/admin/order_chat/<int:order_id>', methods=['GET'])
 def admin_get_order_chat(order_id):
     if not session.get('is_admin'): return jsonify({'error': 'Unauthorized'}), 403

@@ -65,7 +65,7 @@
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Сайт</a>
     </nav>
     <button class="btn btn-outline-danger mt-auto mb-2 fw-bold rounded-pill shadow-sm" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i> Выход</button>
-    <div class="small text-muted text-center fw-bold">ERP System v55.1 (Mobile)</div>
+    <div class="small text-muted text-center fw-bold">ERP System v55.2 (RedZones)</div>
 </div>
 
 <div class="main-content">
@@ -447,21 +447,32 @@
                             <label class="small fw-bold text-muted mb-1">Yandex Maps API Key (Обязательно для карты)</label>
                             <div class="input-group mb-3 shadow-sm">
                                 <input type="text" id="setYandexMapsKey" class="form-control bg-white border border-dark fw-bold">
-                                <button class="btn btn-dark" type="button" onclick="initAdminMap()"><i class="bi bi-arrow-clockwise"></i> Загрузить</button>
+                                <button class="btn btn-dark" type="button" onclick="initAdminMap()"><i class="bi bi-arrow-clockwise"></i> Загрузить карту</button>
                             </div>
                             
-                            <div id="adminMap" style="width: 100%; height: 400px; border-radius: 12px; background: #e9ecef; margin-bottom: 15px; overflow: hidden; border: 2px solid #ccc;"></div>
+                            <div id="adminMap" style="width: 100%; height: 450px; border-radius: 12px; background: #e9ecef; margin-bottom: 15px; overflow: hidden; border: 2px solid #ccc;"></div>
                             
-                            <div class="d-flex gap-2 mb-3">
-                                <button class="btn btn-success fw-bold w-50 shadow-sm" onclick="startDrawingPolygon()"><i class="bi bi-pencil"></i> Рисовать зону</button>
-                                <button class="btn btn-secondary fw-bold w-50 shadow-sm" onclick="stopDrawingPolygon()"><i class="bi bi-check2-circle"></i> Завершить</button>
-                                <button class="btn btn-danger fw-bold shadow-sm" onclick="clearPolygon()"><i class="bi bi-trash"></i></button>
+                            <div class="d-flex gap-2 mb-3 flex-wrap">
+                                <button class="btn btn-success fw-bold flex-grow-1 shadow-sm" onclick="drawGreenZone()"><i class="bi bi-brush"></i> Зеленая зона</button>
+                                <button class="btn btn-danger fw-bold flex-grow-1 shadow-sm" onclick="drawRedZone()"><i class="bi bi-brush"></i> Красная зона</button>
+                                <button class="btn btn-secondary fw-bold shadow-sm" onclick="stopDrawing()"><i class="bi bi-check2-circle"></i> Завершить</button>
+                                <button class="btn btn-outline-danger fw-bold shadow-sm" onclick="clearGreenZone()"><i class="bi bi-trash"></i></button>
                             </div>
+                            <div class="small text-muted mb-3"><i class="bi bi-info-circle"></i> Чтобы удалить Красную Зону, дважды кликните по ней на карте.</div>
 
-                            <label class="small fw-bold text-muted mb-1">Координаты полигона (GeoJSON)</label>
-                            <textarea id="setDeliveryPolygon" class="form-control bg-white border border-dark mb-3 p-2" rows="2" readonly></textarea>
+                            <label class="small fw-bold text-muted mb-1">Зеленая зона (Координаты)</label>
+                            <textarea id="setDeliveryPolygon" class="form-control bg-white border border-dark mb-2 p-2" rows="2" readonly></textarea>
                             
-                            <label class="small fw-bold text-muted mb-1">Yandex Routing Token (Для расчета КМ)</label>
+                            <label class="small fw-bold text-muted mb-1">Красные зоны (Координаты)</label>
+                            <textarea id="setRedZones" class="form-control bg-white border border-danger mb-4 p-2" rows="2" readonly></textarea>
+
+                            <h6 class="fw-bold mb-3 text-dark mt-2"><i class="bi bi-box-seam me-2 text-warning"></i>Яндекс.Доставка API</h6>
+                            <label class="small fw-bold text-muted mb-1">Интеграция Яндекс.Доставки</label>
+                            <select id="setYandexDelEnabled" class="form-select bg-white border border-dark mb-2">
+                                <option value="1">🟢 Включена (Показывать при заказе)</option>
+                                <option value="0">🔴 Выключена (Скрыть)</option>
+                            </select>
+                            <label class="small fw-bold text-muted mb-1">Yandex Delivery Token (OAuth)</label>
                             <input type="text" id="setYandexToken" class="form-control bg-white border border-dark p-2">
                         </div>
                     </div>
@@ -574,11 +585,12 @@
     
     // --- ИНТЕРАКТИВНАЯ КАРТА АДМИНА ---
     let adminYMap = null;
-    let adminPolygon = null;
+    let greenPolygon = null;
+    let redPolygons = [];
 
     function initAdminMap() {
         const apiKey = document.getElementById('setYandexMapsKey').value;
-        if (!apiKey) return;
+        if (!apiKey) return alert("Введите Yandex Maps API Key!");
         
         if (typeof ymaps === 'undefined') {
             const script = document.createElement('script');
@@ -596,21 +608,15 @@
         adminYMap = new ymaps.Map("adminMap", {
             center: [57.6299, 39.8737],
             zoom: 11,
-            controls: ['zoomControl', 'searchControl']
+            controls: ['zoomControl', 'searchControl', 'fullscreenControl']
         });
         
-        let coordsStr = document.getElementById('setDeliveryPolygon').value;
-        let coords = [];
-        try {
-            coords = JSON.parse(coordsStr);
-            if (!Array.isArray(coords)) coords = [];
-        } catch(e) { coords = []; }
+        let greenCoords = [];
+        try { greenCoords = JSON.parse(document.getElementById('setDeliveryPolygon').value); } catch(e) {}
+        if (!Array.isArray(greenCoords)) greenCoords = [];
+        if (greenCoords.length === 0) greenCoords = [[[57.64, 39.85], [57.64, 39.90], [57.60, 39.90], [57.60, 39.85]]];
         
-        if (coords.length === 0) {
-            coords = [[[57.64, 39.85], [57.64, 39.90], [57.60, 39.90], [57.60, 39.85]]];
-        }
-        
-        adminPolygon = new ymaps.Polygon(coords, {}, {
+        greenPolygon = new ymaps.Polygon(greenCoords, {hintContent: "Зеленая зона (Базовая логистика)"}, {
             editorDrawingCursor: "crosshair",
             editorMaxPoints: 50,
             fillColor: '#19875444',
@@ -618,27 +624,70 @@
             strokeWidth: 4
         });
         
-        adminYMap.geoObjects.add(adminPolygon);
+        adminYMap.geoObjects.add(greenPolygon);
+        greenPolygon.events.add('geometrychange', updateMapCoords);
+
+        let redCoordsList = [];
+        try { redCoordsList = JSON.parse(document.getElementById('setRedZones').value); } catch(e) {}
+        if (!Array.isArray(redCoordsList)) redCoordsList = [];
         
-        adminPolygon.events.add('geometrychange', function () {
-            document.getElementById('setDeliveryPolygon').value = JSON.stringify(adminPolygon.geometry.getCoordinates());
-        });
+        redPolygons = [];
+        redCoordsList.forEach(coords => createRedPolygon(coords));
     }
 
-    function startDrawingPolygon() {
-        if (!adminPolygon) return alert("Сначала загрузите карту!");
-        adminPolygon.editor.startDrawing();
+    function createRedPolygon(coords = []) {
+        let poly = new ymaps.Polygon(coords, { hintContent: "Красная зона (Двойной клик для удаления)" }, {
+            editorDrawingCursor: "crosshair",
+            editorMaxPoints: 50,
+            fillColor: '#dc354544',
+            strokeColor: '#dc3545',
+            strokeWidth: 4
+        });
+        adminYMap.geoObjects.add(poly);
+        poly.events.add('geometrychange', updateMapCoords);
+        poly.events.add('dblclick', function () {
+            if (confirm("Точно удалить эту красную зону?")) {
+                adminYMap.geoObjects.remove(poly);
+                redPolygons = redPolygons.filter(p => p !== poly);
+                updateMapCoords();
+            }
+        });
+        redPolygons.push(poly);
+        return poly;
+    }
+
+    function updateMapCoords() {
+        if(greenPolygon) {
+            document.getElementById('setDeliveryPolygon').value = JSON.stringify(greenPolygon.geometry.getCoordinates());
+        }
+        let reds = redPolygons.map(p => p.geometry.getCoordinates()).filter(c => c.length > 0 && c[0].length > 0);
+        document.getElementById('setRedZones').value = JSON.stringify(reds);
+    }
+
+    function drawGreenZone() {
+        if (!greenPolygon) return alert("Сначала загрузите карту!");
+        stopDrawing();
+        greenPolygon.editor.startDrawing();
+    }
+
+    function drawRedZone() {
+        if (!adminYMap) return alert("Сначала загрузите карту!");
+        stopDrawing();
+        let poly = createRedPolygon([]);
+        poly.editor.startDrawing();
     }
     
-    function stopDrawingPolygon() {
-        if (!adminPolygon) return;
-        adminPolygon.editor.stopDrawing();
+    function stopDrawing() {
+        if (greenPolygon && greenPolygon.editor.state.get('drawing')) greenPolygon.editor.stopDrawing();
+        redPolygons.forEach(p => { if(p.editor.state.get('drawing')) p.editor.stopDrawing(); });
     }
 
-    function clearPolygon() {
-        if (!adminPolygon) return;
-        adminPolygon.geometry.setCoordinates([]);
-        document.getElementById('setDeliveryPolygon').value = '[]';
+    function clearGreenZone() {
+        if (!greenPolygon) return;
+        if(confirm("Очистить зеленую зону?")) {
+            greenPolygon.geometry.setCoordinates([]);
+            updateMapCoords();
+        }
     }
     // ---------------------------------
 
@@ -1346,9 +1395,12 @@
             document.getElementById('setPreorderEnabled').value = settings.preorder_enabled || '1';
             document.getElementById('setAdminVkId').value = settings.admin_vk_id || '';
             document.getElementById('setVkToken').value = settings.vk_token || '';
+            
+            document.getElementById('setYandexDelEnabled').value = settings.yandex_delivery_enabled || '1';
             document.getElementById('setYandexToken').value = settings.yandex_delivery_token || '';
             document.getElementById('setYandexMapsKey').value = settings.yandex_maps_apikey || '';
             document.getElementById('setDeliveryPolygon').value = settings.delivery_polygon || '[]';
+            document.getElementById('setRedZones').value = settings.red_zones || '[]';
             
             document.getElementById('setPWABanner').value = settings.show_pwa_banner || '1';
             document.getElementById('setLockIcon').value = settings.show_lock_icon || '1';
@@ -1357,7 +1409,6 @@
             document.getElementById('setBgCat').value = settings.bg_cat || ''; 
             document.getElementById('setBgCard').value = settings.bg_card || '';
             
-            // Инициализация карты Яндекса, если введен ключ
             setTimeout(() => initAdminMap(), 500);
         }
         const wh = await apiCall('warehouse'); if(wh) { categoriesList = wh.categories; productsList = wh.products; }
@@ -1393,9 +1444,13 @@
             preorder_enabled: document.getElementById('setPreorderEnabled').value,
             admin_vk_id: document.getElementById('setAdminVkId').value,
             vk_token: document.getElementById('setVkToken').value,
+            
+            yandex_delivery_enabled: document.getElementById('setYandexDelEnabled').value,
             yandex_delivery_token: document.getElementById('setYandexToken').value,
             yandex_maps_apikey: document.getElementById('setYandexMapsKey').value,
             delivery_polygon: document.getElementById('setDeliveryPolygon').value,
+            red_zones: document.getElementById('setRedZones').value,
+            
             bg_main: document.getElementById('setBgMain').value, 
             bg_header: document.getElementById('setBgHeader').value,
             bg_cat: document.getElementById('setBgCat').value, 

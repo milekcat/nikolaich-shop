@@ -499,9 +499,9 @@
 <div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6>
     
     <select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="handleDeliveryChange()">
-        <option value="pickup">Самовывоз (Магазин)</option>
-        <option value="courier">Доставка курьером</option>
-        <option value="taxi">Отправка Яндекс.Доставкой</option>
+        {% if settings.pickup_enabled|default('1') == '1' %}<option value="pickup">Самовывоз (Магазин)</option>{% endif %}
+        {% if settings.delivery_enabled|default('1') == '1' %}<option value="courier">Доставка курьером</option>{% endif %}
+        {% if settings.yandex_delivery_enabled|default('1') == '1' %}<option value="taxi">Отправка Яндекс.Доставкой</option>{% endif %}
     </select>
     
     <select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime">
@@ -590,6 +590,7 @@
     let checkoutPlacemark = null;
     let routeDistanceKm = 0;
     let redZoneMarkup = 0;
+    const RED_ZONE_PRICE = parseFloat('{{ settings.red_zone_markup | default("0") }}') || 0;
     const shopCoords = [57.6299, 39.8737]; // Центр / Магазин по умолчанию
 
     function initCheckoutMap() {
@@ -597,7 +598,7 @@
         ymaps.ready(() => {
             checkoutMap = new ymaps.Map("checkoutMap", {
                 center: shopCoords,
-                zoom: 12,
+                zoom: 11,
                 controls: ['zoomControl']
             });
             
@@ -610,6 +611,17 @@
                 }
             } catch(e) {}
 
+            const redZonesStr = '{{ settings.red_zones | default("[]") | safe }}';
+            try {
+                const redZones = JSON.parse(redZonesStr);
+                redZones.forEach(rz => {
+                    if(rz.length > 0) {
+                        const rzPoly = new ymaps.Polygon(rz, {}, { fillColor: '#dc354544', strokeColor: '#dc3545', strokeWidth: 2 });
+                        checkoutMap.geoObjects.add(rzPoly);
+                    }
+                });
+            } catch(e) {}
+
             checkoutMap.events.add('click', function (e) {
                 const coords = e.get('coords');
                 setCheckoutAddressByCoords(coords, true);
@@ -620,15 +632,31 @@
     async function setCheckoutAddressByCoords(coords, updateInput = true) {
         if (!window.ymaps) return;
         
-        // Проверка зоны
+        // Проверка зеленой зоны
         const polyCoordsStr = '{{ settings.delivery_polygon | default("[]") | safe }}';
         try {
             const polyCoords = JSON.parse(polyCoordsStr);
             if(polyCoords.length > 0) {
                 const polygon = new ymaps.Polygon(polyCoords);
                 if (!polygon.geometry.contains(coords)) {
-                    alert("Извините, этот адрес находится вне зеленой зоны доставки.");
+                    alert("Извините, этот адрес находится вне зоны доставки.");
                     return;
+                }
+            }
+        } catch(e) {}
+
+        // Проверка красных зон
+        redZoneMarkup = 0;
+        const redZonesStr = '{{ settings.red_zones | default("[]") | safe }}';
+        try {
+            const redZones = JSON.parse(redZonesStr);
+            for (let rz of redZones) {
+                if (rz.length > 0) {
+                    const rzPoly = new ymaps.Polygon(rz);
+                    if (rzPoly.geometry.contains(coords)) {
+                        redZoneMarkup = RED_ZONE_PRICE;
+                        break;
+                    }
                 }
             }
         } catch(e) {}
@@ -646,14 +674,9 @@
             });
         }
         
-        // Строим маршрут
         try {
             const route = await ymaps.route([shopCoords, coords], {routingMode: 'auto'});
             routeDistanceKm = Math.round(route.getLength() / 1000);
-            
-            // Здесь можно добавить проверку на попадание в Красные зоны (если они сохранены)
-            redZoneMarkup = 0; 
-
             calcCart();
         } catch(e) {
             console.log("Routing error", e);
@@ -664,7 +687,7 @@
 
     function handleDeliveryChange() {
         const dt = document.getElementById('deliveryType').value;
-        if(dt === 'courier') {
+        if(dt === 'courier' || dt === 'taxi') {
             document.getElementById('checkoutMap').style.display = 'block';
             initCheckoutMap();
         } else {
@@ -830,7 +853,7 @@
         const canvas = document.getElementById('wheelCanvas');
         canvas.style.transition = 'none';
         canvas.style.transform = `rotate(0deg)`;
-        void canvas.offsetWidth; // Force Reflow - Фикс для Колеса Фортуны
+        void canvas.offsetWidth; // Force Reflow
         
         setTimeout(() => {
             canvas.style.transition = 'transform 4s cubic-bezier(0.1, 2.7, 0.5, 1)';
@@ -1088,7 +1111,7 @@
         document.getElementById('cartItemsList').innerHTML = html.length > 0 ? html.join('') : '<div class="text-center text-muted my-4">Корзина пуста</div>'; 
         try { const res = await fetch('/api/user/cabinet'); const data = await res.json(); if(!data.error && data.user) { let addrs = []; try { addrs = data.user.addresses ? JSON.parse(data.user.addresses) : []; } catch(e) {} if(addrs.length > 0) { document.getElementById('checkoutAddressSelect').innerHTML = addrs.map(a => `<option value="${a}">${a}</option>`).join(''); switchAddressMode('saved'); } else { switchAddressMode('new'); } } } catch(e){} 
         
-        handleDeliveryChange(); // Показывает/Скрывает карту при открытии
+        handleDeliveryChange(); 
         await loadUpsell(); 
         await calcCart(); 
     }
@@ -1101,9 +1124,8 @@
         const pc = document.getElementById('promoCode').value; 
         const ph = document.getElementById('checkoutPhone').value; 
 
-        // Пересчет дистанции, если ввели вручную и карта загружена
         const addrVal = document.getElementById('checkoutAddress').value;
-        if (dt === 'courier' && addrVal && routeDistanceKm === 0 && window.ymaps && checkoutMap) {
+        if ((dt === 'courier' || dt === 'taxi') && addrVal && routeDistanceKm === 0 && window.ymaps && checkoutMap) {
             try {
                 const res = await ymaps.geocode(addrVal);
                 const firstGeoObject = res.geoObjects.get(0);
@@ -1159,6 +1181,7 @@
         if (lastCalc.sysadmin_pay > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-primary fw-bold"><span>Оплата балансом IT:</span><span>- ${lastCalc.sysadmin_pay.toFixed(0)} ₽</span></div>`; 
         if (lastCalc.gift) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-warning fw-bold bg-warning bg-opacity-10 p-2 rounded border border-warning mt-2"><span>🎁 Ваш подарок:</span><span>${lastCalc.gift.name} (0 ₽)</span></div>`;
         if (lastCalc.weather_markup > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-danger fw-bold"><span>Наценка за погоду:</span><span>+ ${lastCalc.weather_markup} ₽</span></div>`;
+        if (lastCalc.red_zone_markup > 0 && dt !== 'pickup') addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-danger fw-bold"><span>Красная зона (Доплата):</span><span>+ ${lastCalc.red_zone_markup} ₽</span></div>`;
         
         let earnedTickets = Math.floor(lastCalc.final_total / 500);
         for(let id in cart) { 
@@ -1175,7 +1198,7 @@
         }
 
         document.getElementById('cartAdditionalInfo').innerHTML = addInfoHtml; 
-        document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' + (lastCalc.weather_text || '') : 'Бесплатно'); 
+        document.getElementById('tDel').innerText = dt == 'taxi' ? 'По тарифу Яндекса' : (lastCalc.delivery_cost > 0 ? lastCalc.delivery_cost + ' ₽' + (lastCalc.weather_text || '') : 'Бесплатно'); 
         document.getElementById('tItems').innerText = lastCalc.items_total.toFixed(0) + ' ₽'; 
         document.getElementById('tDiscount').innerText = lastCalc.final_total.toFixed(0) + ' ₽'; 
         
@@ -1207,7 +1230,6 @@
             const data = await res.json(); 
             if(data.status === 'ok') { 
                 if(data.pay_data && data.pay_data.url) { 
-                    console.log("ЮKassa URL:", data.pay_data.url);
                     window.location.replace(data.pay_data.url); 
                 } else { 
                     cart = {}; localStorage.removeItem('nikolaich_cart'); recalcTotals(); 

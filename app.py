@@ -46,7 +46,7 @@ def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
         vk_id = custom_vk_id
     else:
         if not user_vk_link or "vk.com" not in user_vk_link: 
-            return "Нет ссылки на VK."
+            return "No VK link."
         try:
             domain = user_vk_link.split('/')[-1].split('?')[0]
             vk_id = None
@@ -57,12 +57,12 @@ def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
                 r_id = requests.get(req_url).json()
                 if r_id.get('response') and r_id['response']['type'] == 'user': 
                     vk_id = r_id['response']['object_id']
-            if not vk_id: return "Не удалось распознать ID."
+            if not vk_id: return "Error parsing ID."
             if db_user_id:
                 with sqlite3.connect('shop.db') as conn:
                     conn.execute("UPDATE users SET vk_id=? WHERE id=?", (str(vk_id), db_user_id))
         except Exception as e:
-            return f"Сбой парсинга: {str(e)}"
+            return f"Parsing fail: {str(e)}"
     try:
         if db_user_id and not custom_vk_id:
             with sqlite3.connect('shop.db') as conn:
@@ -70,15 +70,15 @@ def send_vk_message(db_user_id, user_vk_link, text, custom_vk_id=None):
         payload = {"user_id": vk_id, "random_id": random.randint(1, 2147483647), "message": text, "access_token": vk_token, "v": VK_API_VERSION}
         res = requests.post("https://api.vk.com/method/messages.send", data=payload).json()
         if 'error' in res:
-            if res['error'].get('error_code') == 901: return "Клиент запретил сообщения."
-            return f"Ошибка ВК: {res['error'].get('error_msg')}"
+            if res['error'].get('error_code') == 901: return "Client blocked msgs."
+            return f"VK Error: {res['error'].get('error_msg')}"
         return "ok"
-    except Exception as e: return f"Сбой отправки: {str(e)}"
+    except Exception as e: return f"Send fail: {str(e)}"
 
 def send_receipt_to_sbis(order_id, receipt_data, settings):
     sbis_token = settings.get('sbis_api_token', '').strip()
     if not sbis_token:
-        print(f"⚠️ СБИС не фискализировал заказ #{order_id}: отсутствует токен доступа.")
+        print(f"No SBIS token for #{order_id}")
         return False
     url = "https://online.sbis.ru/acquiring/service/sbp/"
     headers = {"Content-Type": "application/json; charset=utf-8", "X-SBIS-AccessToken": sbis_token}
@@ -87,7 +87,7 @@ def send_receipt_to_sbis(order_id, receipt_data, settings):
         res = requests.post(url, json=payload, headers=headers, timeout=10)
         return res.status_code == 200
     except Exception as e:
-        print(f"❌ Ошибка СБИС: {str(e)}")
+        print(f"SBIS error: {str(e)}")
         return False
 
 def init_db():
@@ -146,7 +146,8 @@ def init_db():
             ('yookassa_comm_high', '14'), ('yookassa_comm_low', '11'),
             ('base_delivery_cost', '100'), ('cost_per_km', '25'), ('weather_markup', '50'),
             ('openweather_apikey', ''), ('red_zones', '[]'),
-            ('vk_token', 'f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM')
+            ('vk_token', 'f9LHodD0cOKnmfrtQwhB_QBqCoPV4XveP_YlEok9IKDCiL-2SbV9mU5vKBqFB9sYwRMurF9pmuj6DQnTerFM'),
+            ('yandex_delivery_enabled', '1')
         ]
         for key, val in new_settings:
             if c.execute("SELECT COUNT(*) FROM settings WHERE key_name=?", (key,)).fetchone()[0] == 0:

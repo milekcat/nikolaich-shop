@@ -43,7 +43,7 @@
     
     <style>
         :root { --accent: #00b853; --text: #1d1d1f; }
-        body { background: {{ settings.bg_main | default('#fdfbf7') }}; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 120px; -webkit-tap-highlight-color: transparent; overflow-x: hidden;}
+        body { background: {{ settings.bg_main | default('#fdfbf7') }}; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; padding-bottom: 90px; -webkit-tap-highlight-color: transparent; overflow-x: hidden; -webkit-transform: translate3d(0,0,0); transform: translate3d(0,0,0); }
         ::-webkit-scrollbar { display: none; }
         
         .burger-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1040; opacity: 0; pointer-events: none; transition: 0.3s; }
@@ -61,7 +61,7 @@
         .cat-tile-icon { font-size: 32px; line-height: 1; margin-bottom: 8px; }
         .cat-tile-name { font-size: 12px; font-weight: 800; line-height: 1.2; color: #333; }
 
-        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('{{ settings.bg_header | default("https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&w=1920&h=400&q=80") }}'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .sticky-top-area { position: sticky; top: 0; z-index: 1000; background-color: #2c3e50; background-image: url('{{ settings.bg_header | default("https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&w=1920&h=400&q=80") }}'); background-size: cover; background-position: center 60%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); -webkit-transform: translate3d(0,0,0); transform: translate3d(0,0,0); }
         .header-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); padding-top: 15px; padding-bottom: 15px; }
         .header-top { padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
         .header-top h3 { color: #fff !important; text-shadow: 1px 1px 5px rgba(0,0,0,1); font-weight: 900; margin: 0; }
@@ -83,7 +83,7 @@
         .block-title { background: #fff; display: inline-block; padding: 8px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-left: 20px; border: 1px solid #eee; }
         .prod-grid { padding: 0 20px; }
         
-        .p-card { background-color: #4a2e1b !important; background-image: url('{{ settings.bg_card | default("https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&w=800&q=80") }}') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid rgba(0,0,0,0.4); position: relative; overflow: hidden; transition: 0.3s; cursor: pointer; }
+        .p-card { background-color: #4a2e1b !important; background-image: url('{{ settings.bg_card | default("https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&w=800&q=80") }}') !important; background-size: cover !important; background-position: center !important; border-radius: 20px; padding: 12px; height: 100%; display: flex; flex-direction: column; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid rgba(0,0,0,0.4); position: relative; overflow: hidden; transition: 0.3s; cursor: pointer; -webkit-transform: translate3d(0,0,0); transform: translate3d(0,0,0); }
         .p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: 1; pointer-events: none; }
         .p-card > * { position: relative; z-index: 2; }
         
@@ -91,7 +91,8 @@
         .locked-18 .p-img-box::after { content: '🔒 18+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: 900; color: #fff; background: rgba(220,53,69,0.85); padding: 8px 18px; border-radius: 12px; z-index: 10; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         .locked-18 .p-name { filter: blur(5px); opacity: 0.6; user-select: none; }
         .locked-18 .p-price { filter: blur(5px); opacity: 0.6; }
-        .locked-18 .btn-add { font-size: 0 !important; background: #333 !important; color: #fff !important; border: 1px solid #555; pointer-events: none; box-shadow: none; }
+        .locked-18 .smart-counter { display: none !important; }
+        .locked-18 .btn-add { display: block !important; font-size: 0 !important; background: #333 !important; color: #fff !important; border: 1px solid #555; pointer-events: none; box-shadow: none; }
         .locked-18 .btn-add::after { content: 'Открыть'; font-size: 14px; font-weight: 800; display: block; }
         
         .p-stickers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
@@ -107,14 +108,18 @@
         .p-name { font-size: 14px; color: #fff; font-weight: 800; line-height: 1.2; margin-top: 6px; height: 36px; overflow: hidden; text-shadow: 1px 1px 4px rgba(0,0,0,1); transition: 0.3s; }
         
         .btn-add { background: rgba(255, 255, 255, 0.95); color: #000; border: none; border-radius: 14px; width: 100%; padding: 10px; font-weight: 800; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .btn-add.added { background: var(--accent); color: #fff; }
+        .smart-counter { display: none; background: var(--accent); border-radius: 14px; width: 100%; padding: 5px; margin-top: 10px; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .smart-counter button { border: none; background: transparent; color: #fff; font-weight: 900; font-size: 20px; padding: 0 12px; cursor: pointer; }
+        .smart-counter span { color: #fff; font-weight: 800; font-size: 14px; }
         
-        @keyframes cartPop { 0% { transform: scale(1); } 50% { transform: scale(1.08); background-color: #00d65f; } 100% { transform: scale(1); background-color: var(--accent); } }
-        .cart-bounce { animation: cartPop 0.4s ease; }
-        
-        .floating-cart { position: fixed; bottom: 20px; left: 20px; right: 80px; background: var(--accent); color: #fff; border-radius: 20px; padding: 18px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 2000; cursor: pointer; }
-        .floating-chat-btn { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: #007aff; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 10px 25px rgba(0, 122, 255, 0.4); z-index: 2000; cursor: pointer; transition: 0.2s; }
-        .floating-wheel-btn { position: fixed; bottom: 90px; right: 20px; width: 56px; height: 56px; background: linear-gradient(135deg, #f1c40f, #e67e22); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 28px; box-shadow: 0 10px 25px rgba(241, 196, 15, 0.4); z-index: 2000; cursor: pointer; border: 3px solid #fff; animation: pulseWinner 2s infinite alternate;}
+        .floating-cart { position: fixed; bottom: 80px; left: 20px; right: 20px; background: var(--accent); color: #fff; border-radius: 20px; padding: 16px 24px; display: none; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(0, 184, 83, 0.4); z-index: 1500; cursor: pointer; }
+        @media(min-width: 768px) { .floating-cart { bottom: 20px; left: 20px; right: 80px; } }
+
+        /* Нижний мобильный Tab-бар как в Самокате */
+        .bottom-tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: #ffffff; border-top: 1px solid #e5e5ea; display: flex; justify-content: space-around; align-items: center; z-index: 1999; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -4px 15px rgba(0,0,0,0.05); }
+        .tab-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #8e8e93; font-weight: 700; font-size: 10px; cursor: pointer; text-decoration: none; flex: 1; height: 100%; }
+        .tab-item i { font-size: 22px; margin-bottom: 2px; height: 24px; display: flex; align-items: center; }
+        .tab-item.active { color: var(--accent); }
         
         .checkout-box { background: #f9f9f9; border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; }
         .upsell-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
@@ -146,20 +151,19 @@
         .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #ffc107; }
         .star-rating-dr label:hover, .star-rating-dr label:hover ~ label, .star-rating-dr input:checked ~ label { color: #00b853; }
 
-        /* КОЛЕСО ФОРТУНЫ */
         .wheel-canvas-container { position: relative; width: 300px; height: 300px; margin: 0 auto; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
         #wheelCanvas { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #1d1d1f; transition: transform 4s cubic-bezier(0.1, 2.7, 0.5, 1); }
         .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 35px solid #e63946; z-index: 10; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4)); }
         .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: #1d1d1f; border-radius: 50%; border: 4px solid #f1c40f; display:flex; justify-content:center; align-items:center; color:#f1c40f; font-size:24px; font-weight:900; z-index: 5; box-shadow: inset 0 0 10px rgba(0,0,0,1); }
-        @keyframes pulseWinner { 0% { transform: scale(1); } 100% { transform: scale(1.1); box-shadow: 0 0 20px rgba(241, 196, 15, 1); } }
         .wheel-btn { background: linear-gradient(135deg, #f1c40f, #e67e22); border: none; color: #fff; font-weight: 900; font-size: 20px; padding: 15px 30px; border-radius: 30px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(230, 126, 34, 0.4); width: 100%; margin-top: 20px; transition: 0.2s;}
-        .wheel-btn:active { transform: translateY(4px); box-shadow: 0 4px 10px rgba(230, 126, 34, 0.4); }
-        .wheel-btn:disabled { background: #ccc; box-shadow: none; color: #888; transform: none; }
         .prize-card { background: #fff; border-radius: 16px; padding: 15px; border: 2px dashed #f1c40f; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(241, 196, 15, 0.1); }
         
         @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
         .gift-box-anim { transition: 0.3s; display: inline-block; }
         .gift-box-anim:hover { animation: shake 0.5s infinite; transform: scale(1.1); }
+
+        #checkoutMapWrapper { position: relative; width: 100%; height: 220px; display: none; margin-bottom: 10px; border-radius: 12px; overflow: hidden; border: 1px solid #ccc; }
+        .map-center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; font-size: 32px; pointer-events: none; text-shadow: 0 2px 5px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
@@ -239,6 +243,29 @@
     </div>
 </div>
 
+<div class="bottom-tab-bar d-flex d-md-none">
+    <div class="tab-item active" id="tabCatalog" onclick="location.href='/';">
+        <i class="bi bi-grid-fill"></i>
+        <span>Каталог</span>
+    </div>
+    <div class="tab-item" id="tabCart" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()">
+        <i class="bi bi-cart3 position-relative">
+            <span id="tabCartBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none; font-size:9px; padding:3px 5px;">0</span>
+        </i>
+        <span>Корзина</span>
+    </div>
+    <div class="tab-item" id="tabChat" onclick="openChat()">
+        <i class="bi bi-chat-dots-fill position-relative">
+            <span id="tabChatBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none; font-size:9px; padding:3px 5px;">!</span>
+        </i>
+        <span>Чат заказа</span>
+    </div>
+    <div class="tab-item" id="tabProfile" onclick="openCabinet()">
+        <i class="bi bi-person-circle"></i>
+        <span>Профиль</span>
+    </div>
+</div>
+
 <div id="pwaInstallBanner" class="pwa-banner" style="display: none;" onclick="handleInstallClick()">
     <div class="d-flex align-items-center">
         <div style="background: #fff; padding: 6px; border-radius: 12px; margin-right: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
@@ -312,7 +339,15 @@
                             <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                             <div class="p-unit">за 1 {{ p.unit }}</div>
                             <div class="p-name">{{ p.name }}</div>
-                            <button class="btn-add mt-auto" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
+                            
+                            <div class="card-action-wrap mt-auto" onclick="event.stopPropagation();">
+                                <button class="btn-add id-btn-add-{{ p.id }}" onclick="handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
+                                <div class="smart-counter id-counter-{{ p.id }}">
+                                    <button onclick="updateCartItem({{ p.id }}, -1)">-</button>
+                                    <span class="id-counter-text-{{ p.id }}">0 шт</span>
+                                    <button onclick="updateCartItem({{ p.id }}, 1)">+</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
@@ -345,7 +380,15 @@
                     <div class="p-price">{{ p.price|int }} ₽ {% if p.old_price > 0 %}<span class="old-price">{{ p.old_price|int }} ₽</span>{% endif %}</div>
                     <div class="p-unit">за 1 {{ p.unit }}</div>
                     <div class="p-name">{{ p.name }}</div>
-                    <button class="btn-add mt-auto" onclick="event.stopPropagation(); handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
+                    
+                    <div class="card-action-wrap mt-auto" onclick="event.stopPropagation();">
+                        <button class="btn-add id-btn-add-{{ p.id }}" onclick="handleAddClick(this)">+ {{ p.step }} {{ p.unit }}</button>
+                        <div class="smart-counter id-counter-{{ p.id }}">
+                            <button onclick="updateCartItem({{ p.id }}, -1)">-</button>
+                            <span class="id-counter-text-{{ p.id }}">0 шт</span>
+                            <button onclick="updateCartItem({{ p.id }}, 1)">+</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -390,7 +433,7 @@
     {% endif %}
 </div>
 
-<div class="floating-cart" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()">
+<div class="floating-cart d-none d-md-flex" id="cartBtn" data-bs-toggle="modal" data-bs-target="#cartModal" onclick="prepareCart()">
     <span id="cartCount">0 товаров</span>
     <span id="cartSum">0 ₽</span>
 </div>
@@ -398,8 +441,6 @@
 {% if user and settings.wheel_active|default('1') == '1' %}
 <div class="floating-wheel-btn" onclick="openWheel()"><i class="bi bi-bullseye"></i></div>
 {% endif %}
-
-<div class="floating-chat-btn" onclick="openChat()"><i class="bi bi-chat-dots-fill"></i></div>
 
 <div id="cookieBanner" class="position-fixed bottom-0 start-0 m-3 bg-dark text-white p-3 d-flex flex-column align-items-start shadow-lg rounded-4" style="z-index: 3000; display: none; max-width: 320px; border: 1px solid rgba(255,255,255,0.1);">
     <div class="small mb-2 fw-medium opacity-75 lh-sm">Мы используем файлы cookie. Продолжая, вы соглашаетесь с <span class="text-info text-decoration-underline" style="cursor:pointer;" onclick="new bootstrap.Modal(document.getElementById('privacyModal')).show()">Политикой конфиденциальности</span>.</div>
@@ -496,40 +537,67 @@
 <div class="modal fade" id="addReviewModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 rounded-4 border-0 shadow-lg text-center"><h5 class="fw-bold mb-1">Оцените товар</h5><div class="small text-muted fw-bold mb-3" id="revProdName"></div><div class="star-rating mb-3"><input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 звезд">★</label><input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 звезды">★</label><input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 звезды">★</label><input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 звезды">★</label><input type="radio" id="star1" name="rating" value="1" checked><label for="star1" title="1 звезда">★</label></div><textarea id="revText" class="form-control bg-light border-0 rounded-4 p-3 mb-3" rows="3" placeholder="Что вам понравилось?"></textarea><button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitReview()">Отправить отзыв</button></div></div></div>
 <div class="modal fade" id="productDetailModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4"><button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 rounded-circle shadow-sm" data-bs-dismiss="modal" style="z-index: 10;"></button><img id="pdImg" src="" class="w-100 rounded-4 mb-3 shadow-sm" style="height:280px; object-fit:cover; display:none;"><h3 class="fw-bold mb-1" id="pdName"></h3><h4 class="text-success fw-bold mb-3"><span id="pdPrice"></span> ₽ <span class="text-muted fs-6" id="pdUnit"></span></h4><p class="text-muted small mb-4" id="pdDesc"></p><button class="btn w-100 fw-bold py-3 rounded-4 shadow-sm fs-5 mb-4" id="pdAddBtn"></button><h5 class="fw-bold mb-3"><i class="bi bi-chat-left-text text-primary me-2"></i>Отзывы покупателей</h5><div id="pdReviewsList" class="d-flex flex-column gap-3"></div></div></div></div>
 
-<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div><div id="cartItemsList" class="mb-2"></div><div id="cartAdditionalInfo" class="mb-4 small text-muted"></div><h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6><div class="upsell-scroll mb-4" id="upsellBox"></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6>
+<div class="modal fade" id="cartModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-4 pb-5" style="min-height: 85vh;"><div class="d-flex justify-content-between align-items-center mb-3"><h3 class="fw-bold m-0">Ваш заказ</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
     
-    <select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="handleDeliveryChange()">
-        {% if settings.pickup_enabled|default('1') == '1' %}<option value="pickup">Самовывоз (Магазин)</option>{% endif %}
-        {% if settings.delivery_enabled|default('1') == '1' %}<option value="courier">Доставка курьером</option>{% endif %}
-        {% if settings.yandex_delivery_enabled|default('1') == '1' %}<option value="taxi">Отправка Яндекс.Доставкой</option>{% endif %}
-    </select>
-    
-    <select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime">
-        <option value="Как можно скорее">🕒 Как можно скорее</option>
-        <option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option>
-        <option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option>
-    </select>
-    
-    <div id="addressBox" style="display:none;">
-        <label class="small text-muted fw-bold ms-1 mb-1">Адрес получателя (выберите на карте или введите)</label>
-        
-        <div id="checkoutMap" style="width: 100%; height: 200px; border-radius: 12px; display: none; margin-bottom: 10px; border: 1px solid #ccc; overflow:hidden;"></div>
-        
-        <div class="d-flex gap-2 mb-2">
-            <button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button>
-            <button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button>
+    <div id="freeDeliveryProgressBlock" class="mb-3" style="display:none;">
+        <div class="progress rounded-pill" style="height: 10px; background-color: #e5e5ea;">
+            <div id="freeDeliveryProgressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;"></div>
         </div>
-        <select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;" onchange="handleSavedAddressChange()"></select>
+        <div id="freeDeliveryProgressText" class="small fw-bold text-muted text-center mt-1" style="font-size: 11px;"></div>
+    </div>
+
+    <div id="cart18Warning" class="alert alert-danger fw-bold small mb-3 shadow-sm border-0" style="display:none; border-radius:12px;"><i class="bi bi-exclamation-triangle-fill me-1 fs-5"></i> В корзине товары 18+. Доставка и онлайн-оплата заблокированы. Доступен только самовывоз.</div>
+    <div id="cartItemsList" class="mb-2"></div>
+    <div id="cartAdditionalInfo" class="mb-4 small text-muted"></div>
+    <h6 class="fw-bold mb-2 small text-muted">Рекомендуем добавить</h6>
+    <div class="upsell-scroll mb-4" id="upsellBox"></div>
+    <div class="checkout-box">
+        <h6 class="fw-bold mb-2"><i class="bi bi-box-seam text-primary"></i> Доставка и Время</h6>
         
-        <div id="newAddrWrap" class="input-group mb-2">
-            <input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира" onchange="geocodeTypedAddress()">
-            <button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button>
+        <select class="form-select bg-white border fw-bold mb-2" id="deliveryType" onchange="handleDeliveryChange()">
+            {% if settings.pickup_enabled|default('1') == '1' %}<option value="pickup">Самовывоз (Магазин)</option>{% endif %}
+            {% if settings.delivery_enabled|default('1') == '1' %}<option value="courier">Доставка курьером</option>{% endif %}
+            {% if settings.yandex_delivery_enabled|default('1') == '1' %}<option value="taxi">Отправка Яндекс.Доставкой</option>{% endif %}
+        </select>
+        
+        <select class="form-select bg-light border-0 fw-bold mb-2 text-primary" id="checkoutTime">
+            <option value="Как можно скорее">🕒 Как можно скорее</option>
+            <option value="Сегодня вечером (18:00 - 21:00)">🕒 Сегодня (18:00 - 21:00)</option>
+            <option value="Завтра утром (10:00 - 13:00)">🕒 Завтра (10:00 - 13:00)</option>
+        </select>
+        
+        <div id="addressBox" style="display:none;">
+            <label class="small text-muted fw-bold ms-1 mb-1">Адрес (Перемещайте карту, пин привязан к центру)</label>
+            
+            <div id="checkoutMapWrapper">
+                <div class="map-center-pin text-danger"><i class="bi bi-geo-alt-fill"></i></div>
+                <div id="checkoutMap" style="width: 100%; height: 100%;"></div>
+            </div>
+            
+            <div class="d-flex gap-2 mb-2">
+                <button class="btn btn-outline-dark btn-sm w-50" id="btnAddrSaved" onclick="switchAddressMode('saved')">Сохраненный</button>
+                <button class="btn btn-dark btn-sm w-50" id="btnAddrNew" onclick="switchAddressMode('new')">Новый</button>
+            </div>
+            <select id="checkoutAddressSelect" class="form-select bg-white border mb-2" style="display:none;" onchange="handleSavedAddressChange()"></select>
+            
+            <div id="newAddrWrap" class="input-group mb-2">
+                <input type="text" id="checkoutAddress" class="form-control bg-white border fw-bold" placeholder="Улица, дом, квартира" onchange="geocodeTypedAddress()">
+                <button class="btn btn-outline-secondary bg-white border" type="button" onclick="getLocation()"><i class="bi bi-geo-alt-fill text-danger fs-5"></i></button>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6><select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()"><option value="online" class="text-success fw-bold">Картой онлайн (ЮKassa)</option><option value="cash" id="optCash">Наличными при получении</option><option value="transfer">Перевод (Реквизиты в чате)</option></select></div><div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><label class="small text-muted fw-bold ms-2 mb-1 mt-1">E-mail для чека (Бесплатно от ОФД)</label><input type="email" id="checkoutEmail" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="example@mail.ru (необязательно)"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
-<div class="modal fade" id="chatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden"><div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center"><h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Чат с магазином</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="site-chat-container"><div class="site-chat-messages" id="siteChatBox"></div><div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;"><input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()"><button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button></div></div></div></div></div>
+    <div class="checkout-box">
+        <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success"></i> Способ оплаты</h6>
+        <select class="form-select bg-white border fw-bold" id="paymentType" onchange="calcCart()">
+            <option value="online" class="text-success fw-bold">Картой онлайн (ЮKassa)</option>
+            <option value="cash" id="optCash">Наличными при получении</option>
+            <option value="transfer">Перевод (Реквизиты в чате)</option>
+        </select>
+    </div>
+
+    <div class="checkout-box"><h6 class="fw-bold mb-2"><i class="bi bi-chat-left-text text-secondary"></i> Комментарий к заказу</h6><textarea id="checkoutComment" class="form-control bg-white border" rows="2" placeholder="Например: Позвонить за 10 минут"></textarea></div><div class="d-flex gap-2 mb-4"><input type="text" id="promoCode" class="form-control bg-light border-0 fw-bold" placeholder="Промокод"><button class="btn btn-dark fw-bold" onclick="calcCart()">Применить</button></div><div id="promoStatus" class="mb-3 small fw-bold"></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Доставка / Логистика</span><span id="tDel" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-1 text-muted"><span>Товары</span><span id="tItems" class="fw-bold text-dark">0 ₽</span></div><div class="d-flex justify-content-between mb-4 text-muted"><span>Итого со скидками</span><span id="tDiscount" class="fw-bold text-success">0 ₽</span></div><label class="small text-muted fw-bold ms-2 mb-1">Ваш контактный номер</label><input type="tel" id="checkoutPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="+7 999 000 00 00" value="{{ user.phone if user else '' }}" onchange="calcCart()"><label class="small text-muted fw-bold ms-2 mb-1 mt-1">E-mail для чека (Бесплатно от ОФД)</label><input type="email" id="checkoutEmail" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="example@mail.ru (необязательно)"><div id="vkLinkBlock"><label class="small text-muted fw-bold ms-2 mb-1">Ссылка VK (Для получения чеков)</label><input type="text" id="checkoutSocial" class="form-control p-3 bg-light border-0 rounded-4 mb-4 fw-bold text-center" placeholder="https://vk.com/..." value="{{ user.social_link if user else '' }}"></div><button class="btn btn-success w-100 py-4 rounded-4 fw-bold fs-5 shadow" id="checkoutBtn" onclick="sendOrder()">Примите условия</button></div></div></div>
+<div class="modal fade" id="chatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-0 border-0 shadow-lg rounded-4 overflow-hidden"><div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center"><h5 class="fw-bold m-0"><i class="bi bi-chat-dots-fill me-2"></i> Выделенный чат заказа</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="site-chat-container"><div class="site-chat-messages" id="siteChatBox"></div><div class="p-3 border-top bg-white d-flex gap-2" id="siteChatInputBox" style="display:none !important;"><input type="text" id="siteChatInput" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Напишите сообщение..." onkeypress="if(event.key === 'Enter') sendUserSiteChat()"><button class="btn btn-primary rounded-circle" onclick="sendUserSiteChat()"><i class="bi bi-send-fill"></i></button></div></div></div></div></div>
 <div class="modal fade" id="loginModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 pb-5 rounded-4 border-0 shadow-lg"><h4 class="fw-bold mb-4 text-center">Вход в систему</h4><div id="vkIdContainer" class="d-flex justify-content-center mb-4"></div><div class="text-center text-muted small fw-bold mb-3">ИЛИ ПО НОМЕРУ</div><input type="tel" id="loginPhone" class="form-control p-3 bg-light border-0 rounded-4 mb-2 fw-bold text-center" placeholder="+7 (999) 000-00-00"><input type="password" id="loginPass" class="form-control p-3 bg-light border-0 rounded-4 mb-3 fw-bold text-center" placeholder="Пароль (если есть)"><button class="btn btn-dark w-100 py-3 rounded-4 fw-bold" onclick="loginPhone()">Продолжить</button></div></div></div>
 
 <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
@@ -585,67 +653,86 @@
     const preorderEnabled = "{{ settings.preorder_enabled | default('1') }}" === "1";
     let isStoreOpen = true;
 
-    // YANDEX MAP LOGIC FOR CHECKOUT
+    // YANDEX MAP LOGIC WITH CENTER UX PIN + 3 ZONES
     let checkoutMap = null;
-    let checkoutPlacemark = null;
     let routeDistanceKm = 0;
     let redZoneMarkup = 0;
+    let orangeZoneMarkup = 0;
     const RED_ZONE_PRICE = parseFloat('{{ settings.red_zone_markup | default("0") }}') || 0;
-    const shopCoords = [57.6299, 39.8737]; // Центр / Магазин по умолчанию
+    const ORANGE_ZONE_PRICE = parseFloat('{{ settings.orange_zone_markup | default("0") }}') || 0;
+    const shopCoords = [57.6299, 39.8737];
 
     function initCheckoutMap() {
         if (checkoutMap || typeof ymaps === 'undefined') return;
         ymaps.ready(() => {
             checkoutMap = new ymaps.Map("checkoutMap", {
                 center: shopCoords,
-                zoom: 11,
+                zoom: 12,
                 controls: ['zoomControl']
             });
             
+            // Отрисовка базовой зоны полигона
             const polyCoordsStr = '{{ settings.delivery_polygon | default("[]") | safe }}';
             try {
                 const polyCoords = JSON.parse(polyCoordsStr);
                 if(polyCoords.length > 0) {
-                    const deliveryZone = new ymaps.Polygon(polyCoords, {}, { fillColor: '#19875422', strokeColor: '#198754', strokeWidth: 3 });
+                    const deliveryZone = new ymaps.Polygon(polyCoords, {}, { fillColor: '#19875415', strokeColor: '#198754', strokeWidth: 2 });
                     checkoutMap.geoObjects.add(deliveryZone);
                 }
             } catch(e) {}
 
+            // Отрисовка Красных Зон
             const redZonesStr = '{{ settings.red_zones | default("[]") | safe }}';
             try {
                 const redZones = JSON.parse(redZonesStr);
                 redZones.forEach(rz => {
                     if(rz.length > 0) {
-                        const rzPoly = new ymaps.Polygon(rz, {}, { fillColor: '#dc354544', strokeColor: '#dc3545', strokeWidth: 2 });
+                        const rzPoly = new ymaps.Polygon(rz, {}, { fillColor: '#dc354525', strokeColor: '#dc3545', strokeWidth: 2 });
                         checkoutMap.geoObjects.add(rzPoly);
                     }
                 });
             } catch(e) {}
 
-            checkoutMap.events.add('click', function (e) {
-                const coords = e.get('coords');
-                setCheckoutAddressByCoords(coords, true);
+            // Отрисовка Оранжевых Зон
+            const orangeZonesStr = '{{ settings.orange_zones | default("[]") | safe }}';
+            try {
+                const orangeZones = JSON.parse(orangeZonesStr);
+                orangeZones.forEach(oz => {
+                    if(oz.length > 0) {
+                        const ozPoly = new ymaps.Polygon(oz, {}, { fillColor: '#ff980025', strokeColor: '#ff9800', strokeWidth: 2 });
+                        checkoutMap.geoObjects.add(ozPoly);
+                    }
+                });
+            } catch(e) {}
+
+            // UX Событие: Перемещение карты -> адрес берется из центра координат
+            checkoutMap.events.add('actionend', function() {
+                const mapCenter = checkoutMap.getCenter();
+                setCheckoutAddressByCoords(mapCenter, true);
             });
+            
+            // Начальный триггер для центра карты при открытии
+            setCheckoutAddressByCoords(shopCoords, true);
         });
     }
 
     async function setCheckoutAddressByCoords(coords, updateInput = true) {
         if (!window.ymaps) return;
         
-        // Проверка зеленой зоны
+        // Зоны валидации адреса
         const polyCoordsStr = '{{ settings.delivery_polygon | default("[]") | safe }}';
         try {
             const polyCoords = JSON.parse(polyCoordsStr);
             if(polyCoords.length > 0) {
                 const polygon = new ymaps.Polygon(polyCoords);
                 if (!polygon.geometry.contains(coords)) {
-                    alert("Извините, этот адрес находится вне зоны доставки.");
+                    document.getElementById('checkoutAddress').value = "Вне зоны логистики!";
                     return;
                 }
             }
         } catch(e) {}
 
-        // Проверка красных зон
+        // Расчет надбавок за Красную зону
         redZoneMarkup = 0;
         const redZonesStr = '{{ settings.red_zones | default("[]") | safe }}';
         try {
@@ -661,10 +748,22 @@
             }
         } catch(e) {}
 
-        if(checkoutPlacemark) checkoutMap.geoObjects.remove(checkoutPlacemark);
-        checkoutPlacemark = new ymaps.Placemark(coords, {}, {preset: 'islands#redDotIcon'});
-        checkoutMap.geoObjects.add(checkoutPlacemark);
-        
+        // Расчет надбавок за Оранжевую зону
+        orangeZoneMarkup = 0;
+        const orangeZonesStr = '{{ settings.orange_zones | default("[]") | safe }}';
+        try {
+            const orangeZones = JSON.parse(orangeZonesStr);
+            for (let oz of orangeZones) {
+                if (oz.length > 0) {
+                    const ozPoly = new ymaps.Polygon(oz);
+                    if (ozPoly.geometry.contains(coords)) {
+                        orangeZoneMarkup = ORANGE_ZONE_PRICE;
+                        break;
+                    }
+                }
+            }
+        } catch(e) {}
+
         if (updateInput) {
             ymaps.geocode(coords).then(res => {
                 const firstGeoObject = res.geoObjects.get(0);
@@ -679,7 +778,6 @@
             routeDistanceKm = Math.round(route.getLength() / 1000);
             calcCart();
         } catch(e) {
-            console.log("Routing error", e);
             routeDistanceKm = 5; 
             calcCart();
         }
@@ -688,12 +786,13 @@
     function handleDeliveryChange() {
         const dt = document.getElementById('deliveryType').value;
         if(dt === 'courier' || dt === 'taxi') {
-            document.getElementById('checkoutMap').style.display = 'block';
+            document.getElementById('checkoutMapWrapper').style.display = 'block';
             initCheckoutMap();
         } else {
-            document.getElementById('checkoutMap').style.display = 'none';
+            document.getElementById('checkoutMapWrapper').style.display = 'none';
             routeDistanceKm = 0;
             redZoneMarkup = 0;
+            orangeZoneMarkup = 0;
         }
         calcCart();
     }
@@ -724,7 +823,6 @@
             });
         }
     }
-    // END YANDEX MAP LOGIC
 
     function checkWorkTime() {
         const now = new Date();
@@ -853,7 +951,7 @@
         const canvas = document.getElementById('wheelCanvas');
         canvas.style.transition = 'none';
         canvas.style.transform = `rotate(0deg)`;
-        void canvas.offsetWidth; // Force Reflow
+        void canvas.offsetWidth; 
         
         setTimeout(() => {
             canvas.style.transition = 'transform 4s cubic-bezier(0.1, 2.7, 0.5, 1)';
@@ -1046,7 +1144,18 @@
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
     function handleInstallClick() { const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase()); if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { document.getElementById('pwaInstallBanner').style.display = 'none'; } deferredPrompt = null; }); } else if (isIos) { new bootstrap.Modal(document.getElementById('iosInstallModal')).show(); } else { new bootstrap.Modal(document.getElementById('androidInstallModal')).show(); } }
-    function updateProductVisibility() { const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true'; document.querySelectorAll('.p-item').forEach(el => { const pHidden = parseInt(el.dataset.hidden || '0', 10); if (pHidden === 1 && !isConfirmed) { el.classList.add('locked-18'); } else { el.classList.remove('locked-18'); } }); }
+    
+    function updateProductVisibility() { 
+        const isConfirmed = userVipStatus === 2 || sessionStorage.getItem('age_confirmed') === 'true'; 
+        document.querySelectorAll('.p-item').forEach(el => { 
+            const pHidden = parseInt(el.dataset.hidden || '0', 10); 
+            if (pHidden === 1 && !isConfirmed) { 
+                el.classList.add('locked-18'); 
+            } else { 
+                el.classList.remove('locked-18'); 
+            } 
+        }); 
+    }
 
     document.addEventListener("DOMContentLoaded", () => { 
         checkWorkTime();
@@ -1093,10 +1202,88 @@
     function handleAddClick(btn) { const parent = btn.closest('.p-item'); const id = parent.dataset.id; const name = parent.dataset.name; const price = parseFloat(parent.dataset.price); const step = parseFloat(parent.dataset.step); const unit = parent.dataset.unit; const img = parent.dataset.img; const isHidden = parseInt(parent.dataset.hidden || '0', 10); if (isHidden === 1 && userVipStatus !== 2 && !sessionStorage.getItem('age_confirmed')) { pendingAction = () => add(btn, id, price, name, step, unit, img, isHidden); document.getElementById('dobError').style.display = 'none'; document.getElementById('dobInput').value = ''; new bootstrap.Modal(document.getElementById('ageVerificationModal')).show(); return; } add(btn, id, price, name, step, unit, img, isHidden); }
 
     async function openProductView(id, name, img, desc, price, step, unit, isHidden) { document.getElementById('pdName').innerText = name; document.getElementById('pdPrice').innerText = price; document.getElementById('pdUnit').innerText = `за 1 ${unit}`; document.getElementById('pdDesc').innerText = desc || 'Свежий фермерский продукт.'; if(img) { document.getElementById('pdImg').src = img; document.getElementById('pdImg').style.display = 'block'; } else { document.getElementById('pdImg').style.display = 'none'; } const addBtn = document.getElementById('pdAddBtn'); addBtn.onclick = () => { add(null, id, price, name, step, unit, img, isHidden); bootstrap.Modal.getInstance(document.getElementById('productDetailModal')).hide(); }; addBtn.innerHTML = `В корзину (+ ${step} ${unit})`; if(isHidden === 1) { addBtn.classList.replace('btn-success', 'btn-danger'); } else { addBtn.classList.replace('btn-danger', 'btn-success'); } const rRes = await fetch(`/api/product/${id}/reviews`); const rData = await rRes.json(); const rBox = document.getElementById('pdReviewsList'); if(rData.length > 0) { rBox.innerHTML = rData.map(r => `<div class="bg-light p-3 rounded-4 border"><div class="d-flex justify-content-between mb-1"><span class="fw-bold">${r.author || 'Гость'}</span><span class="text-warning fw-bold">★ ${r.rating}</span></div><div class="small text-muted">${r.text}</div></div>`).join(''); } else { rBox.innerHTML = '<div class="small text-muted">Пока нет отзывов. Купите и станьте первым!</div>'; } new bootstrap.Modal(document.getElementById('productDetailModal')).show(); }
-    function add(btn, id, price, name, step, unit, img, isHidden) { if(cart[id]) { cart[id].qty += step; } else { cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden}; } cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; recalcTotals(); if(btn) { const originalText = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i>'; btn.classList.add('added'); setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('added'); }, 500); } const cb = document.getElementById('cartBtn'); cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); }
-    function updateCartItem(id, m) { if(cart[id]) { cart[id].qty += m * cart[id].step; cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; if(cart[id].qty <= 0) delete cart[id]; recalcTotals(); prepareCart(); } }
     
-    function recalcTotals() { itemsTotal = 0; let count = 0; for(let id in cart) { if (!String(id).includes("_gift")) { itemsTotal += cart[id].price * cart[id].qty; count++; } } localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); document.getElementById('cartBtn').style.display = count > 0 ? 'flex' : 'none'; document.getElementById('cartCount').innerText = count + ' позиций'; document.getElementById('cartSum').innerText = itemsTotal.toFixed(0) + ' ₽'; if(calcDebounceTimer) clearTimeout(calcDebounceTimer); calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); }
+    function add(btn, id, price, name, step, unit, img, isHidden) { 
+        if(cart[id]) { 
+            cart[id].qty += step; 
+        } else { 
+            cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden}; 
+        } 
+        cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; 
+        recalcTotals(); 
+        
+        const cb = document.getElementById('cartBtn'); 
+        if (cb) { cb.classList.remove('cart-bounce'); void cb.offsetWidth; cb.classList.add('cart-bounce'); }
+    }
+    
+    function updateCartItem(id, m) { 
+        if(cart[id]) { 
+            cart[id].qty += m * cart[id].step; 
+            cart[id].qty = Math.round(cart[id].qty * 1000) / 1000; 
+            if(cart[id].qty <= 0) delete cart[id]; 
+            recalcTotals(); 
+            if(document.getElementById('cartModal').classList.contains('show')) prepareCart(); 
+        } else if (m > 0) {
+            // Если товара нет в корзине (кликнули на плюс карточки)
+            const parent = document.querySelector(`.p-item[data-id="${id}"]`);
+            if(parent) {
+                const name = parent.dataset.name;
+                const price = parseFloat(parent.dataset.price);
+                const step = parseFloat(parent.dataset.step);
+                const unit = parent.dataset.unit;
+                const img = parent.dataset.img;
+                const isHidden = parseInt(parent.dataset.hidden || '0', 10);
+                cart[id] = {name, price, qty: step, step, unit, img, is_hidden: isHidden};
+                recalcTotals();
+            }
+        }
+    }
+    
+    // Синхронизация смарт-кнопок [ - ] qty [ + ] на карточках витрины
+    function syncCardCounters() {
+        document.querySelectorAll('.p-item').forEach(el => {
+            const id = el.dataset.id;
+            const btnAdd = el.querySelector(`.id-btn-add-${id}`);
+            const counterBox = el.querySelector(`.id-counter-${id}`);
+            const counterText = el.querySelector(`.id-counter-text-${id}`);
+            
+            if (cart[id] && cart[id].qty > 0) {
+                if(btnAdd) btnAdd.style.display = 'none';
+                if(counterBox) counterBox.style.setProperty('display', 'flex', 'important');
+                if(counterText) counterText.innerText = `${cart[id].qty} ${cart[id].unit}`;
+            } else {
+                if(btnAdd) btnAdd.style.display = 'block';
+                if(counterBox) counterBox.style.setProperty('display', 'none', 'important');
+            }
+        });
+    }
+    
+    function recalcTotals() { 
+        itemsTotal = 0; let count = 0; 
+        for(let id in cart) { 
+            if (!String(id).includes("_gift")) { 
+                itemsTotal += cart[id].price * cart[id].qty; 
+                count++; 
+            } 
+        } 
+        localStorage.setItem('nikolaich_cart', JSON.stringify(cart)); 
+        
+        // Обновление десктопной кнопки и бейджа мобильного таб-бара
+        const cb = document.getElementById('cartBtn'); if(cb) cb.style.display = count > 0 ? 'flex' : 'none';
+        const cc = document.getElementById('cartCount'); if(cc) cc.innerText = count + ' позиций';
+        const cs = document.getElementById('cartSum'); if(cs) cs.innerText = itemsTotal.toFixed(0) + ' ₽';
+        
+        const tabBadge = document.getElementById('tabCartBadge');
+        if(tabBadge) {
+            tabBadge.innerText = count;
+            tabBadge.style.display = count > 0 ? 'block' : 'none';
+        }
+        
+        syncCardCounters();
+        if(calcDebounceTimer) clearTimeout(calcDebounceTimer); 
+        calcDebounceTimer = setTimeout(() => { if(lastCalc || count > 0) calcCart(); }, 400); 
+    }
+    
     function switchAddressMode(mode) { currentAddressMode = mode; document.getElementById('btnAddrSaved').className = mode === 'saved' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('btnAddrNew').className = mode === 'new' ? 'btn btn-dark btn-sm w-50' : 'btn btn-outline-dark btn-sm w-50'; document.getElementById('checkoutAddressSelect').style.display = mode === 'saved' ? 'block' : 'none'; document.getElementById('newAddrWrap').style.display = mode === 'new' ? 'flex' : 'none'; }
     async function loadUpsell() { const cartNames = Object.values(cart).map(i => i.name); const res = await fetch('/api/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cart_items: cartNames})}); const prods = await res.json(); const box = document.getElementById('upsellBox'); if(prods.length > 0) { box.innerHTML = prods.map(p => { let imgHtml = p.images && p.images.length > 0 ? `<img src="${p.images[0]}">` : `<div style="height:70px; background:#eee; border-radius:12px; margin-bottom:8px;"></div>`; const hdn = p.is_hidden || 0; const safeName = p.name.replace(/'/g,""); return `<div class="upsell-card" style="cursor:pointer;" onclick="add(this, ${p.id}, ${p.price}, '${safeName}', ${p.step}, '${p.unit}', '${p.images&&p.images.length>0?p.images[0]:''}', ${hdn})">${imgHtml}<div class="fw-bold lh-1 mb-1" style="font-size:12px;">${p.name}</div><div class="text-success fw-bold small">+ ${p.price} ₽</div></div>`; }).join(''); box.parentElement.style.display = 'block'; } else { box.parentElement.style.display = 'none'; } }
 
@@ -1147,7 +1334,9 @@
                 phone: ph, 
                 cart: cart,
                 distance_km: routeDistanceKm,
-                red_zone_markup: redZoneMarkup
+                red_zone_markup: redZoneMarkup,
+                orange_zone_markup: orangeZoneMarkup,
+                payment_type: pt
             })
         }); 
         lastCalc = await res.json(); 
@@ -1176,13 +1365,36 @@
         
         const ps = document.getElementById('promoStatus'); ps.innerText = lastCalc.promo_status || ''; ps.className = lastCalc.promo_status && lastCalc.promo_status.includes('Скидка') ? "small fw-bold text-success" : "small fw-bold text-danger"; 
         
-        let addInfoHtml = `<div class="d-flex justify-content-between mb-1"><span>Упаковка пакета:</span><span>${lastCalc.package_cost} ₽</span></div>`; 
-        if (lastCalc.discount > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-success fw-bold"><span>Скидки (Акции / Промо):</span><span>- ${lastCalc.discount} ₽</span></div>`; 
+        // Динамический расчет Прогресс-бара до бесплатной доставки
+        const progressBlock = document.getElementById('freeDeliveryProgressBlock');
+        if(dt !== 'pickup' && lastCalc.free_threshold) {
+            progressBlock.style.display = 'block';
+            const remainder = lastCalc.free_threshold - itemsTotal;
+            const pct = Math.min(100, (itemsTotal / lastCalc.free_threshold) * 100);
+            document.getElementById('freeDeliveryProgressBar').style.width = `${pct}%`;
+            
+            if(remainder > 0) {
+                document.getElementById('freeDeliveryProgressText').innerHTML = `До бесплатной доставки осталось <span class="text-success">${remainder.toFixed(0)} ₽</span>`;
+            } else {
+                document.getElementById('freeDeliveryProgressText').innerHTML = `🎉 Логистика за наш счет!`;
+            }
+        } else {
+            progressBlock.style.display = 'none';
+        }
+
+        let addInfoHtml = `<div class="d-flex justify-content-between mb-1"><span>Упаковка чека (пакет):</span><span>${lastCalc.package_cost} ₽</span></div>`; 
+        if (lastCalc.discount > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-success fw-bold"><span>Скидки по акциям / промо:</span><span>- ${lastCalc.discount} ₽</span></div>`; 
         if (lastCalc.sysadmin_pay > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-primary fw-bold"><span>Оплата балансом IT:</span><span>- ${lastCalc.sysadmin_pay.toFixed(0)} ₽</span></div>`; 
-        if (lastCalc.gift) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-warning fw-bold bg-warning bg-opacity-10 p-2 rounded border border-warning mt-2"><span>🎁 Ваш подарок:</span><span>${lastCalc.gift.name} (0 ₽)</span></div>`;
-        if (lastCalc.weather_markup > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-danger fw-bold"><span>Наценка за погоду:</span><span>+ ${lastCalc.weather_markup} ₽</span></div>`;
-        if (lastCalc.red_zone_markup > 0 && dt !== 'pickup') addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-danger fw-bold"><span>Красная зона (Доплата):</span><span>+ ${lastCalc.red_zone_markup} ₽</span></div>`;
+        if (lastCalc.gift) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-warning fw-bold bg-warning bg-opacity-10 p-2 rounded border border-warning mt-2"><span>🎁 Подарок в заказ:</span><span>${lastCalc.gift.name} (0 ₽)</span></div>`;
+        if (lastCalc.weather_markup > 0) addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-danger fw-bold"><span>Наценка за непогоду:</span><span>+ ${lastCalc.weather_markup} ₽</span></div>`;
+        if (lastCalc.red_zone_markup > 0 && dt !== 'pickup') addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-danger fw-bold"><span>Красная зона надбавка:</span><span>+ ${lastCalc.red_zone_markup} ₽</span></div>`;
+        if (lastCalc.orange_zone_markup > 0 && dt !== 'pickup') addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-warning fw-bold" style="color:#e67e22 !important;"><span>Оранжевая зона надбавка:</span><span>+ ${lastCalc.orange_zone_markup} ₽</span></div>`;
         
+        // Прозрачный вывод комиссий платежной системы ЮKassa
+        if (lastCalc.markup_sum > 0 && pt === 'online') {
+            addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-secondary fw-bold" style="border-top:1px dashed #ddd; pt-1;"><span>Комиссия за онлайн-оплату (${lastCalc.markup_percent}%):</span><span class="text-danger">+ ${lastCalc.markup_sum} ₽</span></div>`;
+        }
+
         let earnedTickets = Math.floor(lastCalc.final_total / 500);
         for(let id in cart) { 
             if(String(id).includes('_gift')) continue;
@@ -1194,7 +1406,7 @@
             }
         }
         if (earnedTickets >= 1) {
-            addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-white fw-bold bg-dark p-2 rounded border mt-2"><span>🎟️ Вы получите билетов:</span><span class="text-warning">+${Math.floor(earnedTickets)} шт</span></div>`;
+            addInfoHtml += `<div class="d-flex justify-content-between mb-1 text-white fw-bold bg-dark p-2 rounded border mt-2"><span>🎟️ Будет начислено билетов:</span><span class="text-warning">+${Math.floor(earnedTickets)} шт</span></div>`;
         }
 
         document.getElementById('cartAdditionalInfo').innerHTML = addInfoHtml; 
@@ -1203,7 +1415,7 @@
         document.getElementById('tDiscount').innerText = lastCalc.final_total.toFixed(0) + ' ₽'; 
         
         if(lastCalc.items_total < mo) { btn.disabled = true; btn.classList.replace('btn-success', 'btn-secondary'); btn.innerHTML = `Добавьте ещё на ${mo - lastCalc.items_total} ₽`; } 
-        else if (isStoreOpen || preorderEnabled) { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить за ${lastCalc.final_total.toFixed(0)} ₽`; } 
+        else if (isStoreOpen || preorderEnabled) { btn.disabled = false; btn.classList.replace('btn-secondary', 'btn-success'); btn.innerHTML = pt === 'online' ? `<i class="bi bi-credit-card-fill me-2"></i>К онлайн-оплате ${lastCalc.final_total.toFixed(0)} ₽` : `Оформить заказ за ${lastCalc.final_total.toFixed(0)} ₽`; } 
     }
     
     async function sendOrder() { 
@@ -1219,11 +1431,11 @@
         let addr = ''; 
         if(dt !== 'pickup' && !lastCalc.force_pickup_18) { 
             addr = currentAddressMode === 'new' ? document.getElementById('checkoutAddress').value : document.getElementById('checkoutAddressSelect').value; 
-            if(!addr) return alert("Укажите адрес доставки!"); 
+            if(!addr || addr === "Вне зоны доставки!") return alert("Укажите корректный адрес доставки на карте!"); 
         } 
         const btn = document.getElementById('checkoutBtn'); 
         btn.disabled = true; 
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Перенаправление...'; 
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Формирование чека...'; 
         try { 
             const pl = {phone: ph, email: em, social_link: soc, delivery_type: dt, payment_type: pt, address: addr, delivery_time: d_time, comment: comm, cart: cart, calc: lastCalc}; 
             const res = await fetch('/api/checkout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pl)}); 
@@ -1240,7 +1452,7 @@
                     new bootstrap.Modal(document.getElementById('successModal')).show(); 
                 } 
             } else { 
-                alert('Ошибка: ' + (data.error || 'Проверьте данные.')); 
+                alert('Ошибка: ' + (data.error || 'Проверьте введенные поля.')); 
                 btn.disabled = false; btn.innerHTML = 'Примите условия'; 
             } 
         } catch (error) { 
@@ -1257,6 +1469,10 @@
         const res = await fetch('/api/user/cabinet'); const data = await res.json(); 
         if(data.error) return new bootstrap.Modal(document.getElementById('loginModal')).show(); 
         document.getElementById('cabName').value = data.user.full_name || ''; document.getElementById('cabPhone').value = data.user.phone || ''; 
+        
+        // Рендеринг уведомления в Таб-бар
+        let totalUnread = 0;
+
         if (data.user.role === 'courier') { 
             document.getElementById('cabMainTitle').innerHTML = '<i class="bi bi-box-seam text-warning me-2"></i>Пульт Курьера'; document.getElementById('cabTabOrders').innerText = 'Биржа / Доставки'; document.getElementById('cabTabTickets').style.display = 'none'; document.getElementById('cabAddrBlock').style.display = 'none'; document.getElementById('cabTipsBlock').style.display = 'block'; document.getElementById('cabTipsLink').value = data.user.tips_link || ''; document.getElementById('cabTipsQr').value = data.user.tips_qr || ''; if(data.user.tips_qr) { document.getElementById('courQrPreview').src = data.user.tips_qr; document.getElementById('courQrPreview').style.display = 'block'; } 
             const stC = {'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success'}; 
@@ -1269,7 +1485,22 @@
             else { html += data.my_orders.map(o => { let btns = ''; if(o.status === 'Собран') btns = `<button class="btn btn-primary w-100 fw-bold mt-2 py-3 rounded-pill shadow-sm" onclick="setCourStatus(${o.id}, 'В пути')"><i class="bi bi-truck me-2"></i> Забрал, везу</button>`; if(o.status === 'В пути') btns = `<button class="btn btn-success w-100 fw-bold mt-2 py-3 rounded-pill shadow-sm" onclick="setCourStatus(${o.id}, 'Выполнен')"><i class="bi bi-check-circle-fill me-2"></i> Отдал клиенту</button>`; return `<div class="order-receipt border-primary shadow-sm"><div class="d-flex justify-content-between mb-3"><h4 class="fw-bold m-0">#${o.id}</h4><span class="badge bg-${stC[o.status]||'dark'} px-3 py-2">${o.status}</span></div><div class="mb-2"><i class="bi bi-person-fill text-muted me-1"></i> <b>Клиент:</b> ${o.client_name || 'Без имени'} <a href="tel:${o.client_phone}" class="fw-bold text-decoration-none ms-1">📞 ${o.client_phone}</a></div><div class="mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> <b>Куда:</b> ${o.address}</div><div class="mb-3"><i class="bi bi-cash-stack text-success me-1"></i> <b>Сумма чека:</b> <span class="text-success fw-bold fs-5">${o.payment_type=='online'?'ОПЛАЧЕНО ОНЛАЙН':o.final_total + ' ₽'}</span></div>${o.comment ? `<div class="text-danger small mt-1 bg-danger bg-opacity-10 p-2 rounded"><b>Комментарий:</b> ${o.comment}</div>` : ''}<a href="https://yandex.ru/maps/?rtext=~${encodeURIComponent(o.address)}" target="_blank" class="btn btn-warning w-100 fw-bold mt-3 mb-1 py-2 rounded-pill"><i class="bi bi-map-fill me-1"></i> Проложить маршрут</a>${btns}</div>`; }).join(''); }
             html += '</div></div>'; document.getElementById('cabinetOrders').innerHTML = html;
         } else { 
-            document.getElementById('cabAddrBlock').style.display = 'block'; document.getElementById('cabTipsBlock').style.display = 'none'; document.getElementById('cabTabTickets').style.display = 'block'; userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : []; document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span></div>`).join(''); if(data.tickets && data.tickets.length > 0) { document.getElementById('cabinetTicketsList').innerHTML = data.tickets.map(t => `<div class="ticket-item"><div class="small fw-bold opacity-75">${t.title}</div><div class="ticket-num">${t.ticket_number}</div></div>`).join(''); } else { document.getElementById('cabinetTicketsList').innerHTML = '<div class="text-muted small">У вас пока нет билетов. Сделайте заказ!</div>'; } const stC = {'Новый':'secondary', 'Оплачен':'primary', 'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success', 'Отменен':'danger'}; if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Вы еще ничего не заказывали.</div>'; } else { document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => { const itemsList = Object.keys(o.items).map(k => { const i = o.items[k]; return `<div class="receipt-line align-items-center"><span>${i.name}</span><div class="text-end"><span class="fw-bold d-block">${i.qty}${i.unit}</span><button class="btn btn-sm btn-link p-0 text-warning text-decoration-none fw-bold" onclick="openReviewDialog('${k}', '${i.name.replace(/'/g, "&apos;")}')"><i class="bi bi-star-fill"></i> Оценить</button></div></div>`; }).join(''); let transparentCheck = `<div class="receipt-line small mt-2"><span>Упаковка пакета</span><span>${o.package_cost} ₽</span></div>`; if (o.delivery_cost > 0) transparentCheck += `<div class="receipt-line small"><span>Логистика</span><span>${o.delivery_cost} ₽</span></div>`; if (o.bonuses_spent > 0) transparentCheck += `<div class="receipt-line small text-primary fw-bold"><span>Оплата балансом (IT)</span><span>- ${o.bonuses_spent} ₽</span></div>`; const jsonStr = JSON.stringify(o.items).replace(/"/g, '&quot;'); let btnRepeat = `<button class="btn btn-sm btn-primary mt-3 w-100 fw-bold rounded-pill shadow-sm" onclick="repeatOrder('${jsonStr}')"><i class="bi bi-arrow-clockwise me-1"></i> Повторить заказ</button>`; let tipBtn = ''; if (o.status === 'Выполнен') { if (!o.courier_rating || o.courier_rating === 0) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-star-fill me-1"></i> Оценить доставку</button>`; } else if (o.c_tips || o.c_tips_qr) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-cup-hot-fill me-1"></i> Чаевые курьеру</button>`; } } return `<div class="order-receipt"><div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold m-0">Чек #${o.id}</h5><span class="badge bg-${stC[o.status]||'dark'}">${o.status}</span></div><div class="small text-muted mb-3">${o.date}</div><div class="receipt-divider"></div>${itemsList}<div class="receipt-divider"></div>${transparentCheck}<div class="receipt-divider"></div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted mt-2">Комплектация: ${o.delivery_type==='pickup'?'Самовывоз':'Логистика'}<br>Время: ${o.delivery_time}</div><div class="fw-bold fs-4 text-success">${o.final_total} ₽</div></div>${btnRepeat}${tipBtn}</div>`; }).join(''); } } 
+            document.getElementById('cabAddrBlock').style.display = 'block'; document.getElementById('cabTipsBlock').style.display = 'none'; document.getElementById('cabTabTickets').style.display = 'block'; userAddresses = data.user.addresses ? JSON.parse(data.user.addresses) : []; document.getElementById('cabAddressesList').innerHTML = userAddresses.map(a => `<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border"><span class="fw-bold">${a}</span></div>`).join(''); if(data.tickets && data.tickets.length > 0) { document.getElementById('cabinetTicketsList').innerHTML = data.tickets.map(t => `<div class="ticket-item"><div class="small fw-bold opacity-75">${t.title}</div><div class="ticket-num">${t.ticket_number}</div></div>`).join(''); } else { document.getElementById('cabinetTicketsList').innerHTML = '<div class="text-muted small">У вас пока нет билетов. Сделайте заказ!</div>'; } const stC = {'Новый':'secondary', 'Оплачен':'primary', 'Собран':'warning text-dark', 'В пути':'primary', 'Выполнен':'success', 'Отменен':'danger'}; if(data.orders.length === 0) { document.getElementById('cabinetOrders').innerHTML = '<div class="text-muted text-center mt-5">Вы еще ничего не заказывали.</div>'; } else { document.getElementById('cabinetOrders').innerHTML = data.orders.map(o => { 
+                totalUnread += (o.unread_count || 0);
+                const itemsList = Object.keys(o.items).map(k => { const i = o.items[k]; return `<div class="receipt-line align-items-center"><span>${i.name}</span><div class="text-end"><span class="fw-bold d-block">${i.qty}${i.unit}</span><button class="btn btn-sm btn-link p-0 text-warning text-decoration-none fw-bold" onclick="openReviewDialog('${k}', '${i.name.replace(/'/g, "&apos;")}')"><i class="bi bi-star-fill"></i> Оценить</button></div></div>`; }).join(''); let transparentCheck = `<div class="receipt-line small mt-2"><span>Упаковка пакета</span><span>${o.package_cost} ₽</span></div>`; if (o.delivery_cost > 0) transparentCheck += `<div class="receipt-line small"><span>Логистика</span><span>${o.delivery_cost} ₽</span></div>`; if (o.bonuses_spent > 0) transparentCheck += `<div class="receipt-line small text-primary fw-bold"><span>Оплата балансом (IT)</span><span>- ${o.bonuses_spent} ₽</span></div>`; const jsonStr = JSON.stringify(o.items).replace(/"/g, '&quot;'); let btnRepeat = `<button class="btn btn-sm btn-primary mt-3 w-100 fw-bold rounded-pill shadow-sm" onclick="repeatOrder('${jsonStr}')"><i class="bi bi-arrow-clockwise me-1"></i> Повторить заказ</button>`; let tipBtn = ''; if (o.status === 'Выполнен') { if (!o.courier_rating || o.courier_rating === 0) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-star-fill me-1"></i> Оценить доставку</button>`; } else if (o.c_tips || o.c_tips_qr) { tipBtn = `<button class="btn btn-outline-success mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="openDeliveryRating(${o.id}, '${o.c_name || ''}', '${o.c_tips || ''}', '${o.c_tips_qr || ''}')"><i class="bi bi-cup-hot-fill me-1"></i> Чаевые курьеру</button>`; } } 
+                
+                // Кнопка перехода в индивидуальный выделенный чат заказа
+                let chatBadgeHtml = o.unread_count > 0 ? `<span class="badge bg-danger ms-1">${o.unread_count}</span>` : '';
+                let orderChatBtn = `<button class="btn btn-sm btn-outline-primary mt-2 w-100 fw-bold rounded-pill shadow-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('cabinetModal')).hide(); window.currentLiveChatOrderId=${o.id}; openChat();"><i class="bi bi-chat-left-dots-fill me-1"></i> Чат по заказу #${o.id}${chatBadgeHtml}</button>`;
+
+                return `<div class="order-receipt"><div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold m-0">Чек #${o.id}</h5><span class="badge bg-${stC[o.status]||'dark'}">${o.status}</span></div><div class="small text-muted mb-3">${o.date}</div><div class="receipt-divider"></div>${itemsList}<div class="receipt-divider"></div>${transparentCheck}<div class="receipt-divider"></div><div class="d-flex justify-content-between align-items-end"><div class="small fw-bold text-muted mt-2">Комплектация: ${o.delivery_type==='pickup'?'Самовывоз':'Логистика'}<br>Время: ${o.delivery_time}</div><div class="fw-bold fs-4 text-success">${o.final_total} ₽</div></div>${btnRepeat}${orderChatBtn}${tipBtn}</div>`; }).join(''); } } 
+        
+        // Синхронизация бейджа непрочитанных чатов в Tab-баре витрины
+        const chatBadge = document.getElementById('tabChatBadge');
+        if(chatBadge) {
+            chatBadge.innerText = totalUnread > 0 ? totalUnread : '!';
+            chatBadge.style.display = totalUnread > 0 ? 'block' : 'none';
+        }
     }
 
     function openCabinet() { refreshCabinetData().then(() => new bootstrap.Modal(document.getElementById('cabinetModal')).show()); }
@@ -1281,13 +1512,14 @@
     async function logout() { await fetch('/api/auth/logout', {method: 'POST'}); location.reload(); }
     async function toggleFav(id, el) { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); const res = await fetch('/api/user/fav', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({product_id: id})}); const data = await res.json(); if(data.status === 'added') el.classList.add('active'); else el.classList.remove('active'); }
     
-    let chatState = 'start'; let chatInterval = null;
-    function openChat() { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); new bootstrap.Modal(document.getElementById('chatModal')).show(); renderBotMenu(); }
-    function renderBotMenu() { const b = document.getElementById('siteChatBox'); document.getElementById('siteChatInputBox').style.setProperty('display', 'none', 'important'); if(chatState === 'start') { b.innerHTML = `<div class="chat-bubble chat-bot">Чем могу помочь?<button class="chat-btn" onclick="chatState='order_ask'; renderBotMenu();">Вопрос по заказу</button><button class="chat-btn" onclick="chatState='menu'; renderBotMenu();">Другой вопрос</button></div>`; } else if(chatState === 'order_ask') { b.innerHTML += `<div class="chat-bubble chat-user">По заказу</div><div class="chat-bubble chat-bot">Нажмите "Позвать Николаича" и напишите номер заказа.<button class="chat-btn" onclick="startLiveChat()">Позвать Николаича</button></div>`; } else if(chatState === 'menu') { b.innerHTML += `<div class="chat-bubble chat-user">Другой вопрос</div><div class="chat-bubble chat-bot">Выберите тему:<button class="chat-btn" onclick="botAnswer('Самовывоз и курьер магазина.')">📦 Доставка</button><button class="chat-btn" onclick="botAnswer('Картой на сайте или наличными.')">💳 Оплата</button><button class="chat-btn" onclick="startLiveChat()">👨‍🌾 Позвать Николаича</button></div>`; } b.scrollTop = b.scrollHeight; }
+    // ВЫДЕЛЕННЫЙ ЧАТ ДЛЯ КАЖДОГО ЗАКАЗА
+    let chatState = 'start'; let chatInterval = null; window.currentLiveChatOrderId = 0;
+    function openChat() { if(!'{{ user.id if user else "" }}') return new bootstrap.Modal(document.getElementById('loginModal')).show(); new bootstrap.Modal(document.getElementById('chatModal')).show(); if(window.currentLiveChatOrderId > 0) { startLiveChat(); } else { chatState = 'start'; renderBotMenu(); } }
+    function renderBotMenu() { const b = document.getElementById('siteChatBox'); document.getElementById('siteChatInputBox').style.setProperty('display', 'none', 'important'); if(chatState === 'start') { b.innerHTML = `<div class="chat-bubble chat-bot">Чем могу помочь?<button class="chat-btn" onclick="chatState='order_ask'; renderBotMenu();">Вопрос по конкретному заказу</button><button class="chat-btn" onclick="chatState='menu'; renderBotMenu();">Другой вопрос</button></div>`; } else if(chatState === 'order_ask') { b.innerHTML += `<div class="chat-bubble chat-user">По заказу</div><div class="chat-bubble chat-bot">Для связи перейдите в «Профиль» -> «История чеков» -> кнопка «Чат по заказу» на нужном чеке. Либо нажмите ниже для связи по последней заявке.<button class="chat-btn" onclick="startLiveChat()">👨‍🌾 Позвать Николаича в общий чат</button></div>`; } else if(chatState === 'menu') { b.innerHTML += `<div class="chat-bubble chat-user">Другой вопрос</div><div class="chat-bubble chat-bot">Выберите интересующую тему:<button class="chat-btn" onclick="botAnswer('Самовывоз из магазина или транспортировка курьерами сторонних служб.')">📦 Доставка</button><button class="chat-btn" onclick="botAnswer('Принимаем оплату картой онлайн (ЮKassa) или наличными на месте.')">💳 Варианты оплаты</button><button class="chat-btn" onclick="startLiveChat()">👨‍🌾 Связаться напрямую</button></div>`; } b.scrollTop = b.scrollHeight; }
     function botAnswer(t) { const b = document.getElementById('siteChatBox'); b.innerHTML += `<div class="chat-bubble chat-bot">${t}</div>`; b.scrollTop = b.scrollHeight; }
-    function startLiveChat() { chatState = 'live'; const b = document.getElementById('siteChatBox'); b.innerHTML = `<div class="text-center small text-muted mb-2">Николаич на связи.</div>`; document.getElementById('siteChatInputBox').style.setProperty('display', 'flex', 'important'); fetchLiveChat(); if(chatInterval) clearInterval(chatInterval); chatInterval = setInterval(fetchLiveChat, 5000); }
-    async function sendUserSiteChat() { const i = document.getElementById('siteChatInput'); const t = i.value.trim(); if(!t) return; i.value = ''; await fetch('/api/chat/send_from_site', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text: t})}); fetchLiveChat(); }
-    async function fetchLiveChat() { const r = await fetch('/api/chat/get_from_site'); const m = await r.json(); const b = document.getElementById('siteChatBox'); if(m.length > 0) { b.innerHTML = m.map(x => x.is_incoming === 1 ? `<div class="chat-bubble chat-user">${x.text}</div>` : `<div class="chat-bubble chat-bot" style="background:#e8f0fe;"><b>Николаич:</b><br>${x.text}</div>`).join(''); b.scrollTop = b.scrollHeight; } }
+    function startLiveChat() { chatState = 'live'; const b = document.getElementById('siteChatBox'); b.innerHTML = `<div class="text-center small text-muted mb-2">Николаич подключается... Чат заказа #${window.currentLiveChatOrderId || 'Общий'}</div>`; document.getElementById('siteChatInputBox').style.setProperty('display', 'flex', 'important'); fetchLiveChat(); if(chatInterval) clearInterval(chatInterval); chatInterval = setInterval(fetchLiveChat, 4000); }
+    async function sendUserSiteChat() { const i = document.getElementById('siteChatInput'); const t = i.value.trim(); if(!t) return; i.value = ''; await fetch(`/api/user/order/${window.currentLiveChatOrderId || 0}/chat`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text: t})}); fetchLiveChat(); }
+    async function fetchLiveChat() { const r = await fetch(`/api/user/order/${window.currentLiveChatOrderId || 0}/chat`); if (r.status === 401 || r.status === 404) return; const m = await r.json(); const b = document.getElementById('siteChatBox'); if(m && m.length > 0) { b.innerHTML = m.map(x => x.sender_type === 'client' ? `<div class="chat-bubble chat-user">${x.message}</div>` : `<div class="chat-bubble chat-bot" style="background:#e8f0fe;"><b>Николаич:</b><br>${x.message}</div>`).join(''); b.scrollTop = b.scrollHeight; } }
 
     document.getElementById('loginModal').addEventListener('shown.bs.modal', function() { 
         if('VKIDSDK' in window && !document.getElementById('vkIdContainer').innerHTML) { 

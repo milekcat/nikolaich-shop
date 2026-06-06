@@ -65,7 +65,7 @@
         <a class="nav-link" onclick="showTab('site', this)"><i class="bi bi-window-desktop me-2 fs-5"></i> Сайт</a>
     </nav>
     <button class="btn btn-outline-danger mt-auto mb-2 fw-bold rounded-pill shadow-sm" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i> Выход</button>
-    <div class="small text-muted text-center fw-bold">ERP System v55.2 (RedZones)</div>
+    <div class="small text-muted text-center fw-bold">ERP System v56.0 (MultiZone)</div>
 </div>
 
 <div class="main-content">
@@ -388,6 +388,24 @@
                         </div>
                     </div>
 
+                    <div class="card-ui mb-4" style="border: 2px solid #00b853;">
+                        <h5 class="fw-bold mb-3 text-success"><i class="bi bi-credit-card-2-back me-2"></i>Прозрачность ЮKassa (Комиссии)</h5>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <label class="small fw-bold text-muted mb-1">До 1000 ₽ (%)</label>
+                                <input type="number" id="setYookassaCommHigh" class="form-control bg-light border p-2 fw-bold text-success">
+                            </div>
+                            <div class="col-4">
+                                <label class="small fw-bold text-muted mb-1">От 1000 ₽ (%)</label>
+                                <input type="number" id="setYookassaCommLow" class="form-control bg-light border p-2 fw-bold text-success">
+                            </div>
+                            <div class="col-4">
+                                <label class="small fw-bold text-muted mb-1">Товары 18+ (%)</label>
+                                <input type="number" id="setYookassaComm18" class="form-control bg-light border p-2 fw-bold text-danger">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card-ui mb-4 shadow-sm" style="border: 2px solid #e67e22;">
                         <h5 class="fw-bold mb-3" style="color: #e67e22;"><i class="bi bi-bullseye me-2"></i>Колесо Фортуны</h5>
                         <label class="small fw-bold text-muted mb-1">Статус на витрине</label>
@@ -433,8 +451,9 @@
                             <div class="col-4"><label class="small fw-bold text-muted mb-1">Цена за 1 км</label><input type="number" id="setCostPerKm" class="form-control bg-light border p-2"></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Наценка: Погода</label><input type="number" id="setWeatherMarkup" class="form-control bg-light border p-2 text-primary fw-bold"></div>
-                            <div class="col-6"><label class="small fw-bold text-muted mb-1">Наценка: Красная зона</label><input type="number" id="setRedZoneMarkup" class="form-control bg-light border p-2 text-danger fw-bold"></div>
+                            <div class="col-4"><label class="small fw-bold text-muted mb-1">Доплата: Погода</label><input type="number" id="setWeatherMarkup" class="form-control bg-light border p-2 text-primary fw-bold"></div>
+                            <div class="col-4"><label class="small fw-bold text-muted mb-1">Доплата: Красная</label><input type="number" id="setRedZoneMarkup" class="form-control bg-light border p-2 text-danger fw-bold"></div>
+                            <div class="col-4"><label class="small fw-bold text-muted mb-1">Доплата: Оранжевая</label><input type="number" id="setOrangeZoneMarkup" class="form-control bg-light border p-2 text-warning fw-bold" style="color: #e67e22 !important;"></div>
                         </div>
                         <div class="row mb-4">
                             <div class="col-6"><label class="small fw-bold text-muted mb-1">Бесплатно от (₽)</label><input type="number" id="setFreeDelivery" class="form-control bg-light border p-2"></div>
@@ -442,9 +461,9 @@
                         </div>
 
                         <div class="p-3 border border-dark rounded-4 bg-light mb-2">
-                            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Карта зон доставки</h6>
+                            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Интерактивное управление логистикой</h6>
                             
-                            <label class="small fw-bold text-muted mb-1">Yandex Maps API Key (Обязательно для карты)</label>
+                            <label class="small fw-bold text-muted mb-1">Yandex Maps API Key</label>
                             <div class="input-group mb-3 shadow-sm">
                                 <input type="text" id="setYandexMapsKey" class="form-control bg-white border border-dark fw-bold">
                                 <button class="btn btn-dark" type="button" onclick="initAdminMap()"><i class="bi bi-arrow-clockwise"></i> Загрузить карту</button>
@@ -455,16 +474,20 @@
                             <div class="d-flex gap-2 mb-3 flex-wrap">
                                 <button class="btn btn-success fw-bold flex-grow-1 shadow-sm" onclick="drawGreenZone()"><i class="bi bi-brush"></i> Зеленая зона</button>
                                 <button class="btn btn-danger fw-bold flex-grow-1 shadow-sm" onclick="drawRedZone()"><i class="bi bi-brush"></i> Красная зона</button>
+                                <button class="btn btn-warning fw-bold flex-grow-1 shadow-sm text-dark" onclick="drawOrangeZone()"><i class="bi bi-brush"></i> Оранжевая зона</button>
                                 <button class="btn btn-secondary fw-bold shadow-sm" onclick="stopDrawing()"><i class="bi bi-check2-circle"></i> Завершить</button>
-                                <button class="btn btn-outline-danger fw-bold shadow-sm" onclick="clearGreenZone()"><i class="bi bi-trash"></i></button>
+                                <button class="btn btn-outline-danger fw-bold shadow-sm" onclick="clearGreenZone()"><i class="bi bi-trash"></i> Сброс зеленой</button>
                             </div>
-                            <div class="small text-muted mb-3"><i class="bi bi-info-circle"></i> Чтобы удалить Красную Зону, дважды кликните по ней на карте.</div>
+                            <div class="small text-muted mb-3"><i class="bi bi-info-circle"></i> Удаление Красной/Оранжевой зоны: двойной клик по ней на карте.</div>
 
                             <label class="small fw-bold text-muted mb-1">Зеленая зона (Координаты)</label>
                             <textarea id="setDeliveryPolygon" class="form-control bg-white border border-dark mb-2 p-2" rows="2" readonly></textarea>
                             
-                            <label class="small fw-bold text-muted mb-1">Красные зоны (Координаты)</label>
-                            <textarea id="setRedZones" class="form-control bg-white border border-danger mb-4 p-2" rows="2" readonly></textarea>
+                            <label class="small fw-bold text-muted mb-1">Красные зоны (Координаты полигонов)</label>
+                            <textarea id="setRedZones" class="form-control bg-white border border-danger mb-2 p-2" rows="2" readonly></textarea>
+
+                            <label class="small fw-bold text-muted mb-1">Оранжевые зоны (Координаты полигонов)</label>
+                            <textarea id="setOrangeZones" class="form-control bg-white border border-warning mb-4 p-2" rows="2" readonly></textarea>
 
                             <h6 class="fw-bold mb-3 text-dark mt-2"><i class="bi bi-box-seam me-2 text-warning"></i>Яндекс.Доставка API</h6>
                             <label class="small fw-bold text-muted mb-1">Интеграция Яндекс.Доставки</label>
@@ -548,9 +571,11 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 p-0 shadow-lg" style="border-radius: 24px; overflow:hidden;">
             <div class="row g-0 h-100" style="min-height: 600px;">
-                <div class="col-md-5 bg-light p-4 border-end d-flex flex-column">
+                <div class="col-md-5 bg-light p-4 border-end d-flex flex-column" style="overflow-y: auto; max-height: 600px;">
                     <div class="d-flex justify-content-between mb-3"><h4 class="fw-bold m-0" id="ocTitle">Заказ</h4><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    
                     <div id="ocInfo" class="mb-4 small" style="line-height: 1.6;"></div>
+                    
                     <div class="mb-4"><label class="small fw-bold text-muted mb-1">Сменить статус</label><select id="ocStatus" class="form-select fw-bold border-2 p-2 shadow-sm" onchange="sendOrderMsg('status', this.value)"></select></div>
                     <div class="mt-auto">
                         <h6 class="fw-bold mb-2 text-muted small">Быстрые сообщения</h6>
@@ -560,10 +585,10 @@
                     </div>
                 </div>
                 <div class="col-md-7 d-flex flex-column bg-white position-relative">
-                    <div class="p-3 border-bottom bg-white fw-bold shadow-sm z-1"><i class="bi bi-chat-dots text-primary me-2"></i>Связь с клиентом</div>
-                    <div id="ocMessages" class="flex-grow-1 p-4 overflow-auto" style="background: #fdfbf7; max-height: 500px; display:flex; flex-direction:column; gap:12px;"></div>
+                    <div class="p-3 border-bottom bg-white fw-bold shadow-sm z-1"><i class="bi bi-chat-dots text-primary me-2"></i>Выделенный чат заказа</div>
+                    <div id="ocMessages" class="flex-grow-1 p-4 overflow-auto" style="background: #fdfbf7; max-height: 440px; display:flex; flex-direction:column; gap:12px;"></div>
                     <div class="p-3 border-top bg-white d-flex gap-2">
-                        <input type="text" id="ocInput" class="form-control bg-light border-0 rounded-pill px-4" placeholder="Написать сообщение..." onkeypress="if(event.key === 'Enter') sendOrderMsg('custom', document.getElementById('ocInput').value)">
+                        <input type="text" id="ocInput" class="form-control bg-light border-0 rounded-pill px-4" placeholder="Написать сообщение в заказ..." onkeypress="if(event.key === 'Enter') sendOrderMsg('custom', document.getElementById('ocInput').value)">
                         <button class="btn btn-primary rounded-circle shadow-sm" style="width: 45px; height: 45px;" onclick="sendOrderMsg('custom', document.getElementById('ocInput').value)"><i class="bi bi-send-fill"></i></button>
                     </div>
                 </div>
@@ -583,10 +608,11 @@
     let lastOrdersCount = 0; 
     let currentGlobalChatUserId = null;
     
-    // --- ИНТЕРАКТИВНАЯ КАРТА АДМИНА ---
+    // --- ИНТЕРАКТИВНАЯ КАРТА АДМИНА + 3-я ЗОНА (ОРАНЖЕВАЯ) ---
     let adminYMap = null;
     let greenPolygon = null;
     let redPolygons = [];
+    let orangePolygons = [];
 
     function initAdminMap() {
         const apiKey = document.getElementById('setYandexMapsKey').value;
@@ -627,12 +653,19 @@
         adminYMap.geoObjects.add(greenPolygon);
         greenPolygon.events.add('geometrychange', updateMapCoords);
 
+        // Восстановление Красных зон
         let redCoordsList = [];
         try { redCoordsList = JSON.parse(document.getElementById('setRedZones').value); } catch(e) {}
         if (!Array.isArray(redCoordsList)) redCoordsList = [];
-        
         redPolygons = [];
         redCoordsList.forEach(coords => createRedPolygon(coords));
+
+        // Восстановление Оранжевых зон
+        let orangeCoordsList = [];
+        try { orangeCoordsList = JSON.parse(document.getElementById('setOrangeZones').value); } catch(e) {}
+        if (!Array.isArray(orangeCoordsList)) orangeCoordsList = [];
+        orangePolygons = [];
+        orangeCoordsList.forEach(coords => createOrangePolygon(coords));
     }
 
     function createRedPolygon(coords = []) {
@@ -656,12 +689,36 @@
         return poly;
     }
 
+    function createOrangePolygon(coords = []) {
+        let poly = new ymaps.Polygon(coords, { hintContent: "Оранжевая зона (Двойной клик для удаления)" }, {
+            editorDrawingCursor: "crosshair",
+            editorMaxPoints: 50,
+            fillColor: '#ff980044',
+            strokeColor: '#ff9800',
+            strokeWidth: 4
+        });
+        adminYMap.geoObjects.add(poly);
+        poly.events.add('geometrychange', updateMapCoords);
+        poly.events.add('dblclick', function () {
+            if (confirm("Точно удалить эту оранжевую зону?")) {
+                adminYMap.geoObjects.remove(poly);
+                orangePolygons = orangePolygons.filter(p => p !== poly);
+                updateMapCoords();
+            }
+        });
+        orangePolygons.push(poly);
+        return poly;
+    }
+
     function updateMapCoords() {
         if(greenPolygon) {
             document.getElementById('setDeliveryPolygon').value = JSON.stringify(greenPolygon.geometry.getCoordinates());
         }
         let reds = redPolygons.map(p => p.geometry.getCoordinates()).filter(c => c.length > 0 && c[0].length > 0);
         document.getElementById('setRedZones').value = JSON.stringify(reds);
+        
+        let oranges = orangePolygons.map(p => p.geometry.getCoordinates()).filter(c => c.length > 0 && c[0].length > 0);
+        document.getElementById('setOrangeZones').value = JSON.stringify(oranges);
     }
 
     function drawGreenZone() {
@@ -676,10 +733,18 @@
         let poly = createRedPolygon([]);
         poly.editor.startDrawing();
     }
+
+    function drawOrangeZone() {
+        if (!adminYMap) return alert("Сначала загрузите карту!");
+        stopDrawing();
+        let poly = createOrangePolygon([]);
+        poly.editor.startDrawing();
+    }
     
     function stopDrawing() {
         if (greenPolygon && greenPolygon.editor.state.get('drawing')) greenPolygon.editor.stopDrawing();
         redPolygons.forEach(p => { if(p.editor.state.get('drawing')) p.editor.stopDrawing(); });
+        orangePolygons.forEach(p => { if(p.editor.state.get('drawing')) p.editor.stopDrawing(); });
     }
 
     function clearGreenZone() {
@@ -1050,7 +1115,7 @@
                     </select>` : ''}
                 </td>
                 <td data-label="Управление">
-                    <button class="btn btn-primary fw-bold rounded-pill px-3 shadow-sm btn-sm mb-1 w-100" onclick="openOrderManage(${o.id})"><i class="bi bi-chat-dots me-1"></i> Чат</button>
+                    <button class="btn btn-primary fw-bold rounded-pill px-3 shadow-sm btn-sm mb-1 w-100" onclick="openOrderManage(${o.id})"><i class="bi bi-chat-dots me-1"></i> Чат / Состав</button>
                     <button class="btn btn-outline-danger fw-bold rounded-pill px-3 shadow-sm btn-sm w-100" onclick="deleteEntity('orders', ${o.id}, loadOrders)"><i class="bi bi-trash"></i> Удалить</button>
                 </td>
             </tr>`;
@@ -1066,8 +1131,19 @@
         const o = res.order; const u = res.user; const msgs = res.messages; currentGlobalChatUserId = u.id;
         
         document.getElementById('ocTitle').innerText = `Заказ #${o.id}`;
-        let itemsHtml = Object.values(o.items).map(i => `<li>${i.name} — ${i.qty}${i.unit}</li>`).join('');
-        document.getElementById('ocInfo').innerHTML = `<b>Клиент:</b> ${u.full_name || u.phone}<br><b>Сумма чека:</b> ${o.final_total} ₽<br><b>Адрес:</b> ${o.address || '-'}<br><b class="mt-2 d-block">Состав:</b><ul>${itemsHtml}</ul>`;
+        
+        // Кэшируем данные состава заказа во временный объект окна для интерактивного редактирования
+        window.currentOrderItems = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+        window.currentOrderData = o;
+        window.currentUserData = u;
+        
+        // Гарантируем предзагрузку списка товаров со склада для выпадающего селектора добавления
+        if (!productsList || productsList.length === 0) {
+            const warehouseData = await apiCall('warehouse');
+            if (warehouseData) productsList = warehouseData.products;
+        }
+
+        renderOrderEditInterface();
         
         const statuses = ['Новый', 'Ожидает оплаты', 'Оплачен', 'Собран', 'В пути', 'Выполнен', 'Отменен'];
         document.getElementById('ocStatus').innerHTML = statuses.map(s => `<option value="${s}" ${o.status===s ? 'selected' : ''}>${s}</option>`).join('');
@@ -1075,10 +1151,112 @@
         renderOrderChatMessages(msgs, 'ocMessages'); 
         new bootstrap.Modal(document.getElementById('orderChatModal')).show();
     }
+
+    function renderOrderEditInterface() {
+        const o = window.currentOrderData;
+        const u = window.currentUserData;
+        const items = window.currentOrderItems;
+        
+        let itemsHtml = Object.keys(items).map(k => {
+            const i = items[k];
+            return `
+            <div class="d-flex align-items-center justify-content-between border-bottom py-2 gap-2">
+                <div class="small fw-bold text-truncate" style="max-width: 170px;" title="${i.name}">${i.name}</div>
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" step="${i.step || 1}" class="form-control form-control-sm text-center fw-bold" style="width: 65px; padding: 2px;" value="${i.qty}" onchange="updateEditingItemQty('${k}', this.value)">
+                    <span class="small text-muted" style="font-size: 11px;">${i.unit || 'шт'}</span>
+                </div>
+                <div class="small fw-bold text-success mx-1">${(parseFloat(i.price) * parseFloat(i.qty)).toFixed(0)} ₽</div>
+                <button class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeEditingItem('${k}')"><i class="bi bi-trash"></i></button>
+            </div>
+            `;
+        }).join('');
+        
+        let addProdSelect = `
+        <select class="form-select form-select-sm mt-2 fw-bold" onchange="addEditingItem(this.value); this.selectedIndex=0;">
+            <option value="">➕ Добавить товар в чек...</option>
+            ${productsList.map(p => `<option value="${p.id}">${p.name} (${p.price} ₽/${p.unit})</option>`).join('')}
+        </select>
+        `;
+        
+        document.getElementById('ocInfo').innerHTML = `
+            <div class="card p-3 mb-2 bg-white border rounded-3 shadow-sm small">
+                <b>👤 Клиент:</b> ${u.full_name || 'Не указано'}<br>
+                <b>📞 Телефон:</b> <a href="tel:${u.phone}" class="text-decoration-none fw-bold">${u.phone}</a><br>
+                <b>📍 Адрес:</b> ${o.address || 'Самовывоз'}<br>
+                <b>💰 Сумма чека:</b> <span class="text-success fw-bold fs-5">${o.final_total} ₽</span>
+            </div>
+            <div class="card p-3 bg-white border rounded-3 shadow-sm">
+                <h6 class="fw-bold mb-2 text-primary" style="font-size: 13px;"><i class="bi bi-pencil-square"></i> Изменение состава и сумм</h6>
+                <div style="max-height: 180px; overflow-y: auto;" class="pe-1">
+                    ${itemsHtml || '<div class="text-muted small py-2 text-center">Чек пуст</div>'}
+                </div>
+                ${addProdSelect}
+                <button class="btn btn-sm btn-success w-100 fw-bold rounded-pill mt-3 py-2 shadow-sm" onclick="saveOrderItemsChanges()"><i class="bi bi-check2-circle me-1"></i> Пересчитать на сервере</button>
+            </div>
+        `;
+    }
+
+    window.updateEditingItemQty = function(key, val) {
+        if(window.currentOrderItems[key]) {
+            window.currentOrderItems[key].qty = parseFloat(val) || 0;
+            renderOrderEditInterface();
+        }
+    }
+
+    window.removeEditingItem = function(key) {
+        if(window.currentOrderItems[key]) {
+            delete window.currentOrderItems[key];
+            renderOrderEditInterface();
+        }
+    }
+
+    window.addEditingItem = function(prodId) {
+        if(!prodId) return;
+        const prod = productsList.find(p => p.id == prodId);
+        if(!prod) return;
+        
+        const key = String(prodId);
+        if(window.currentOrderItems[key]) {
+            window.currentOrderItems[key].qty += prod.step || 1;
+        } else {
+            window.currentOrderItems[key] = {
+                name: prod.name,
+                price: prod.price,
+                qty: prod.step || 1,
+                step: prod.step || 1,
+                unit: prod.unit || 'шт',
+                img: (prod.images && prod.images.length > 0) ? prod.images[0] : ''
+            };
+        }
+        renderOrderEditInterface();
+    }
+
+    window.saveOrderItemsChanges = async function() {
+        if(!currentActiveOrder) return;
+        if(confirm("Вы уверены, что хотите применить новые позиции чека? Суммы логистики и ЮKassa автоматически подстроятся на сервере.")) {
+            const res = await fetch('/api/admin/order_edit_items', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    order_id: currentActiveOrder,
+                    cart: window.currentOrderItems
+                })
+            });
+            const data = await res.json();
+            if(data.status === 'ok') {
+                alert("Состав заказа изменен. Итоговые перерасчеты выполнены!");
+                openOrderManage(currentActiveOrder);
+                loadOrders();
+            } else {
+                alert(data.error || "Ошибка сохранения состава");
+            }
+        }
+    }
     
     function renderOrderChatMessages(msgs, boxId) {
         const box = document.getElementById(boxId); 
-        if(msgs.length === 0) { box.innerHTML = '<div class="text-center text-muted small mt-5">Нет сообщений.</div>'; return; }
+        if(msgs.length === 0) { box.innerHTML = '<div class="text-center text-muted small mt-5">Нет сообщений в чате заказа.</div>'; return; }
         box.innerHTML = msgs.map(m => { 
             const time = m.created_at.split(' ')[1].substring(0,5); 
             if(m.is_incoming === 1) return `<div class="chat-bubble chat-client"><b>Клиент:</b><br>${m.text}<div class="text-end small text-muted mt-1" style="font-size:10px;">${time}</div></div>`; 
@@ -1160,7 +1338,7 @@
     async function sendGlobalChatMsg() { const text = document.getElementById('globalChatInput').value.trim(); if(!text || !currentGlobalChatUserId) return; document.getElementById('globalChatInput').value = ''; await apiCall('vk_action', 'POST', {msg_type: 'direct', custom_val: text, target_id: currentGlobalChatUserId}); openGlobalChat(currentGlobalChatUserId, document.getElementById('activeChatName').innerText); }
 
     async function loadWarehouse() {
-        const data = await apiCall('warehouse'); if(!data) return; categoriesList = data.categories;
+        const data = await apiCall('warehouse'); if(!data) return; categoriesList = data.categories; productsList = data.products;
         
         document.getElementById('tableProducts').innerHTML = data.products.map(p => {
             return `<tr>
@@ -1216,7 +1394,7 @@
         openModal(p ? 'Редактирование товара' : 'Новый товар', `
             <input type="hidden" id="pId" value="${p ? p.id : ''}">
             <div class="row">
-                <div class="col-md-12 border-end pe-md-4">
+                <div class="col-md-12">
                     <label class="small fw-bold text-muted mb-1">Название</label>
                     <input type="text" id="pName" class="form-control bg-light border mb-2 p-2 fw-bold" placeholder="Стейк Рибай" value="${p ? p.name : ''}">
                     <label class="small fw-bold text-muted mb-1">Описание</label>
@@ -1375,6 +1553,7 @@
             document.getElementById('setCostPerKm').value = settings.cost_per_km || '25';
             document.getElementById('setWeatherMarkup').value = settings.weather_markup || '50';
             document.getElementById('setRedZoneMarkup').value = settings.red_zone_markup || '0';
+            document.getElementById('setOrangeZoneMarkup').value = settings.orange_zone_markup || '100';
             document.getElementById('setFreeDelivery').value = settings.free_delivery_threshold || '3000'; 
             document.getElementById('setMinOrder').value = settings.min_order_sum || '500';
             document.getElementById('setMinPickup').value = settings.min_pickup_sum || '0'; 
@@ -1401,6 +1580,7 @@
             document.getElementById('setYandexMapsKey').value = settings.yandex_maps_apikey || '';
             document.getElementById('setDeliveryPolygon').value = settings.delivery_polygon || '[]';
             document.getElementById('setRedZones').value = settings.red_zones || '[]';
+            document.getElementById('setOrangeZones').value = settings.orange_zones || '[]';
             
             document.getElementById('setPWABanner').value = settings.show_pwa_banner || '1';
             document.getElementById('setLockIcon').value = settings.show_lock_icon || '1';
@@ -1408,6 +1588,10 @@
             document.getElementById('setBgHeader').value = settings.bg_header || '';
             document.getElementById('setBgCat').value = settings.bg_cat || ''; 
             document.getElementById('setBgCard').value = settings.bg_card || '';
+
+            document.getElementById('setYookassaCommHigh').value = settings.yookassa_comm_high || '14';
+            document.getElementById('setYookassaCommLow').value = settings.yookassa_comm_low || '11';
+            document.getElementById('setYookassaComm18').value = settings.yookassa_comm_18 || '18';
             
             setTimeout(() => initAdminMap(), 500);
         }
@@ -1426,6 +1610,7 @@
             cost_per_km: document.getElementById('setCostPerKm').value, 
             weather_markup: document.getElementById('setWeatherMarkup').value, 
             red_zone_markup: document.getElementById('setRedZoneMarkup').value, 
+            orange_zone_markup: document.getElementById('setOrangeZoneMarkup').value, 
             free_delivery_threshold: document.getElementById('setFreeDelivery').value, 
             min_order_sum: document.getElementById('setMinOrder').value, 
             min_pickup_sum: document.getElementById('setMinPickup').value, 
@@ -1450,13 +1635,18 @@
             yandex_maps_apikey: document.getElementById('setYandexMapsKey').value,
             delivery_polygon: document.getElementById('setDeliveryPolygon').value,
             red_zones: document.getElementById('setRedZones').value,
+            orange_zones: document.getElementById('setOrangeZones').value,
             
             bg_main: document.getElementById('setBgMain').value, 
             bg_header: document.getElementById('setBgHeader').value,
             bg_cat: document.getElementById('setBgCat').value, 
             bg_card: document.getElementById('setBgCard').value,
             show_pwa_banner: document.getElementById('setPWABanner').value, 
-            show_lock_icon: document.getElementById('setLockIcon').value
+            show_lock_icon: document.getElementById('setLockIcon').value,
+
+            yookassa_comm_high: document.getElementById('setYookassaCommHigh').value,
+            yookassa_comm_low: document.getElementById('setYookassaCommLow').value,
+            yookassa_comm_18: document.getElementById('setYookassaComm18').value
         }); 
         alert('Все настройки успешно сохранены!'); 
     }
@@ -1526,7 +1716,7 @@
         let payload = {id: id}; 
         if (entity === 'orders') { 
             const pin = prompt('Введите PIN Администратора (Защита от случайного удаления):'); if (pin === null) return; payload.pin = pin; 
-        } else { if(!confirm('Точно удалить эту запись навсегда? Отменить действие будет невозможно.')) return; } 
+        } else { if(!confirm('Точно удалить эту запись навсегда?')) return; } 
         const res = await fetch(`/api/admin/${entity}`, { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }); 
         const data = await res.json(); 
         if (data.error) { alert("Ошибка: " + data.error); } else { callback(); } 
